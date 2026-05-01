@@ -433,7 +433,7 @@ function AdminPage() {
               {users.length === 0 ? "لا يوجد مستخدمين" : "لا توجد نتائج مطابقة"}
             </div>
           )}
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <div key={u.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
