@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/app", label: "الرئيسية", icon: Home, exact: true },
+  { to: "/app/cash", label: "الصندوق", icon: Calculator },
   { to: "/app/pos", label: "نقطة البيع", icon: ShoppingCart },
   { to: "/app/sales", label: "المبيعات", icon: Receipt },
   { to: "/app/purchases", label: "المشتريات", icon: Truck },
