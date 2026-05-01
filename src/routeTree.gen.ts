@@ -32,6 +32,7 @@ import { Route as AppFinanceRouteImport } from './routes/app.finance'
 import { Route as AppExpensesRouteImport } from './routes/app.expenses'
 import { Route as AppCustomersRouteImport } from './routes/app.customers'
 import { Route as AppCashRouteImport } from './routes/app.cash'
+import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppActivateRouteImport } from './routes/app.activate'
 import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
 
@@ -150,6 +151,11 @@ const AppCashRoute = AppCashRouteImport.update({
   path: '/cash',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppActivateRoute = AppActivateRouteImport.update({
   id: '/activate',
   path: '/activate',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/app/activate': typeof AppActivateRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/cash': typeof AppCashRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/expenses': typeof AppExpensesRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/app/activate': typeof AppActivateRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/cash': typeof AppCashRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/expenses': typeof AppExpensesRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/app/activate': typeof AppActivateRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/cash': typeof AppCashRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/expenses': typeof AppExpensesRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/app/activate'
+    | '/app/admin'
     | '/app/cash'
     | '/app/customers'
     | '/app/expenses'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/app/activate'
+    | '/app/admin'
     | '/app/cash'
     | '/app/customers'
     | '/app/expenses'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/app/activate'
+    | '/app/admin'
     | '/app/cash'
     | '/app/customers'
     | '/app/expenses'
@@ -499,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCashRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin': {
+      id: '/app/admin'
+      path: '/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/activate': {
       id: '/app/activate'
       path: '/activate'
@@ -530,6 +549,7 @@ const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppActivateRoute: typeof AppActivateRoute
+  AppAdminRoute: typeof AppAdminRoute
   AppCashRoute: typeof AppCashRoute
   AppCustomersRoute: typeof AppCustomersRoute
   AppExpensesRoute: typeof AppExpensesRoute
@@ -549,6 +569,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppActivateRoute: AppActivateRoute,
+  AppAdminRoute: AppAdminRoute,
   AppCashRoute: AppCashRoute,
   AppCustomersRoute: AppCustomersRoute,
   AppExpensesRoute: AppExpensesRoute,
