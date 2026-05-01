@@ -19,8 +19,10 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          device_id: string | null
           duration_days: number
           id: string
+          is_permanent: boolean
           is_used: boolean
           notes: string | null
           used_at: string | null
@@ -30,8 +32,10 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          device_id?: string | null
           duration_days?: number
           id?: string
+          is_permanent?: boolean
           is_used?: boolean
           notes?: string | null
           used_at?: string | null
@@ -41,8 +45,10 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          device_id?: string | null
           duration_days?: number
           id?: string
+          is_permanent?: boolean
           is_used?: boolean
           notes?: string | null
           used_at?: string | null
@@ -811,6 +817,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      redeem_activation_code: { Args: { _code: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin" | "driver"
