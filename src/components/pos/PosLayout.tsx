@@ -63,9 +63,16 @@ export function PosLayout({ title, children, actions }: { title: string; childre
             <Menu className="h-6 w-6" />
           </button>
           <h1 className="text-lg font-bold">{title}</h1>
-          <div className="flex items-center gap-1">{actions}</div>
+          <div className="flex items-center gap-1">
+            {actions}
+            <button onClick={() => setCalcOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="calculator">
+              <Calculator className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </header>
+
+      <CalculatorDialog open={calcOpen} onOpenChange={setCalcOpen} />
 
       {/* Drawer */}
       {open && (
