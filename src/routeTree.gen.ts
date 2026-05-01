@@ -33,6 +33,7 @@ import { Route as AppExpensesRouteImport } from './routes/app.expenses'
 import { Route as AppCustomersRouteImport } from './routes/app.customers'
 import { Route as AppCashRouteImport } from './routes/app.cash'
 import { Route as AppActivateRouteImport } from './routes/app.activate'
+import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -154,6 +155,11 @@ const AppActivateRoute = AppActivateRouteImport.update({
   path: '/activate',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppPurchasesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -174,12 +180,13 @@ export interface FileRoutesByFullPath {
   '/app/printer': typeof AppPrinterRoute
   '/app/products': typeof AppProductsRoute
   '/app/profits': typeof AppProfitsRoute
-  '/app/purchases': typeof AppPurchasesRoute
+  '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/': typeof AppIndexRoute
+  '/app/purchases/new': typeof AppPurchasesNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -199,12 +206,13 @@ export interface FileRoutesByTo {
   '/app/printer': typeof AppPrinterRoute
   '/app/products': typeof AppProductsRoute
   '/app/profits': typeof AppProfitsRoute
-  '/app/purchases': typeof AppPurchasesRoute
+  '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app': typeof AppIndexRoute
+  '/app/purchases/new': typeof AppPurchasesNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -226,12 +234,13 @@ export interface FileRoutesById {
   '/app/printer': typeof AppPrinterRoute
   '/app/products': typeof AppProductsRoute
   '/app/profits': typeof AppProfitsRoute
-  '/app/purchases': typeof AppPurchasesRoute
+  '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/': typeof AppIndexRoute
+  '/app/purchases/new': typeof AppPurchasesNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/suppliers'
     | '/app/'
+    | '/app/purchases/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/suppliers'
     | '/app'
+    | '/app/purchases/new'
   id:
     | '__root__'
     | '/'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/suppliers'
     | '/app/'
+    | '/app/purchases/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -494,8 +506,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppActivateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/purchases/new': {
+      id: '/app/purchases/new'
+      path: '/new'
+      fullPath: '/app/purchases/new'
+      preLoaderRoute: typeof AppPurchasesNewRouteImport
+      parentRoute: typeof AppPurchasesRoute
+    }
   }
 }
+
+interface AppPurchasesRouteChildren {
+  AppPurchasesNewRoute: typeof AppPurchasesNewRoute
+}
+
+const AppPurchasesRouteChildren: AppPurchasesRouteChildren = {
+  AppPurchasesNewRoute: AppPurchasesNewRoute,
+}
+
+const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
+  AppPurchasesRouteChildren,
+)
 
 interface AppRouteChildren {
   AppActivateRoute: typeof AppActivateRoute
@@ -508,7 +539,7 @@ interface AppRouteChildren {
   AppPrinterRoute: typeof AppPrinterRoute
   AppProductsRoute: typeof AppProductsRoute
   AppProfitsRoute: typeof AppProfitsRoute
-  AppPurchasesRoute: typeof AppPurchasesRoute
+  AppPurchasesRoute: typeof AppPurchasesRouteWithChildren
   AppReportsRoute: typeof AppReportsRoute
   AppSalesRoute: typeof AppSalesRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -527,7 +558,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPrinterRoute: AppPrinterRoute,
   AppProductsRoute: AppProductsRoute,
   AppProfitsRoute: AppProfitsRoute,
-  AppPurchasesRoute: AppPurchasesRoute,
+  AppPurchasesRoute: AppPurchasesRouteWithChildren,
   AppReportsRoute: AppReportsRoute,
   AppSalesRoute: AppSalesRoute,
   AppSettingsRoute: AppSettingsRoute,
