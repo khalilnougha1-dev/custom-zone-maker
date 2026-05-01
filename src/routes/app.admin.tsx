@@ -257,9 +257,11 @@ function AdminPage() {
   return (
     <PosLayout title="لوحة المسؤول">
       <Tabs defaultValue="codes" className="w-full" dir="rtl">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="codes" className="gap-2"><KeyRound className="h-4 w-4" /> رموز التفعيل</TabsTrigger>
-          <TabsTrigger value="users" className="gap-2"><UsersIcon className="h-4 w-4" /> المستخدمين</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsTrigger value="codes" className="gap-1 text-xs"><KeyRound className="h-3 w-3" /> الرموز</TabsTrigger>
+          <TabsTrigger value="users" className="gap-1 text-xs"><UsersIcon className="h-3 w-3" /> المستخدمين</TabsTrigger>
+          <TabsTrigger value="subs" className="gap-1 text-xs"><CalendarClock className="h-3 w-3" /> الاشتراكات</TabsTrigger>
+          <TabsTrigger value="audit" className="gap-1 text-xs"><History className="h-3 w-3" /> السجل</TabsTrigger>
         </TabsList>
 
         <TabsContent value="codes" className="space-y-3">
