@@ -36,6 +36,7 @@ import { Route as AppCustomersRouteImport } from './routes/app.customers'
 import { Route as AppCashRouteImport } from './routes/app.cash'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppActivateRouteImport } from './routes/app.activate'
+import { Route as AppAccountRouteImport } from './routes/app.account'
 import { Route as AppTrucksTruckIdRouteImport } from './routes/app.trucks.$truckId'
 import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
 
@@ -174,6 +175,11 @@ const AppActivateRoute = AppActivateRouteImport.update({
   path: '/activate',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTrucksTruckIdRoute = AppTrucksTruckIdRouteImport.update({
   id: '/$truckId',
   path: '/$truckId',
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/app/account': typeof AppAccountRoute
   '/app/activate': typeof AppActivateRoute
   '/app/admin': typeof AppAdminRoute
   '/app/cash': typeof AppCashRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/app/account': typeof AppAccountRoute
   '/app/activate': typeof AppActivateRoute
   '/app/admin': typeof AppAdminRoute
   '/app/cash': typeof AppCashRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/app/account': typeof AppAccountRoute
   '/app/activate': typeof AppActivateRoute
   '/app/admin': typeof AppAdminRoute
   '/app/cash': typeof AppCashRoute
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
+    | '/app/account'
     | '/app/activate'
     | '/app/admin'
     | '/app/cash'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
+    | '/app/account'
     | '/app/activate'
     | '/app/admin'
     | '/app/cash'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
+    | '/app/account'
     | '/app/activate'
     | '/app/admin'
     | '/app/cash'
@@ -575,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppActivateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/account': {
+      id: '/app/account'
+      path: '/account'
+      fullPath: '/app/account'
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/trucks/$truckId': {
       id: '/app/trucks/$truckId'
       path: '/$truckId'
@@ -617,6 +636,7 @@ const AppTrucksRouteWithChildren = AppTrucksRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAccountRoute: typeof AppAccountRoute
   AppActivateRoute: typeof AppActivateRoute
   AppAdminRoute: typeof AppAdminRoute
   AppCashRoute: typeof AppCashRoute
@@ -639,6 +659,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAccountRoute: AppAccountRoute,
   AppActivateRoute: AppActivateRoute,
   AppAdminRoute: AppAdminRoute,
   AppCashRoute: AppCashRoute,
