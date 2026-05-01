@@ -172,6 +172,66 @@ function AdminPage() {
 
   const userById = (id: string) => users.find((u) => u.id === id);
 
+  const stats = useMemo(() => {
+    const now = new Date();
+    const total = users.length;
+    const active = users.filter((u) => u.is_active && (!u.subscription_expires_at || new Date(u.subscription_expires_at) > now)).length;
+    const expired = users.filter((u) => u.subscription_expires_at && new Date(u.subscription_expires_at) <= now).length;
+    const expiringSoon = users.filter((u) => {
+      if (!u.subscription_expires_at) return false;
+      const exp = new Date(u.subscription_expires_at);
+      const days = Math.ceil((exp.getTime() - now.getTime()) / 86400000);
+      return days > 0 && days <= 7;
+    }).length;
+    const availableCodes = codes.filter((c) => !c.is_used).length;
+    return { total, active, expired, expiringSoon, availableCodes };
+  }, [users, codes]);
+
+  const filteredUsers = useMemo(() => {
+    const now = new Date();
+    const q = search.trim().toLowerCase();
+    return users.filter((u) => {
+      if (q) {
+        const hay = `${u.full_name || ""} ${u.business_name || ""} ${u.phone || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      const expired = u.subscription_expires_at && new Date(u.subscription_expires_at) <= now;
+      if (filter === "active") return u.is_active && !expired;
+      if (filter === "expired") return expired;
+      if (filter === "disabled") return !u.is_active;
+      return true;
+    });
+  }, [users, search, filter]);
+
+  const exportCSV = () => {
+    const headers = ["الاسم", "النشاط التجاري", "الهاتف", "الحالة", "تاريخ الانتهاء", "الأيام المتبقية", "تاريخ التسجيل"];
+    const now = new Date();
+    const rows = filteredUsers.map((u) => {
+      const exp = u.subscription_expires_at ? new Date(u.subscription_expires_at) : null;
+      const days = exp ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null;
+      const status = !u.is_active ? "معطّل" : exp && exp <= now ? "منتهي" : "نشط";
+      return [
+        u.full_name || "",
+        u.business_name || "",
+        u.phone || "",
+        status,
+        exp ? exp.toLocaleDateString("ar-DZ") : "",
+        days != null ? (days < 0 ? "منتهي" : `${days}`) : "",
+        u.created_at ? new Date(u.created_at).toLocaleDateString("ar-DZ") : "",
+      ];
+    });
+    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = "\uFEFF" + [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`تم تصدير ${rows.length} مستخدم`);
+  };
+
   if (authLoading || isAdmin === null) {
     return <PosLayout title="لوحة المسؤول"><div className="p-8 text-center text-muted-foreground">جاري التحقق...</div></PosLayout>;
   }
