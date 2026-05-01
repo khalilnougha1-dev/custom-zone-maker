@@ -72,15 +72,28 @@ function AdminPage() {
   }, [user, authLoading]);
 
   const load = async () => {
-    const [{ data: c }, { data: u }] = await Promise.all([
+    const [{ data: c }, { data: u }, { data: log }] = await Promise.all([
       supabase.from("activation_codes").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      supabase.from("subscription_audit_log").select("*").order("created_at", { ascending: false }).limit(50),
     ]);
     setCodes(c || []);
     setUsers(u || []);
+    setAuditLog(log || []);
   };
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
+
+  const logAudit = async (targetUserId: string, action: string, oldValue: any, newValue: any, noteText?: string) => {
+    await supabase.from("subscription_audit_log").insert({
+      target_user_id: targetUserId,
+      changed_by: user!.id,
+      action,
+      old_value: oldValue,
+      new_value: newValue,
+      notes: noteText || null,
+    });
+  };
 
   const generateCode = async () => {
     setLoading(true);
@@ -103,16 +116,59 @@ function AdminPage() {
   };
 
   const toggleUser = async (u: any) => {
+    const newActive = !u.is_active;
+    const newExpiresAt = newActive && (!u.subscription_expires_at || new Date(u.subscription_expires_at) < new Date())
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : u.subscription_expires_at;
+
     const { error } = await supabase.from("profiles").update({
-      is_active: !u.is_active,
-      subscription_expires_at: !u.is_active
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        : u.subscription_expires_at
+      is_active: newActive,
+      subscription_expires_at: newExpiresAt,
+      subscription_status: newActive ? "active" : "expired",
     }).eq("id", u.id);
+
     if (error) return toast.error(error.message);
+
+    await logAudit(
+      u.id,
+      newActive ? "activate" : "deactivate",
+      { is_active: u.is_active, expires_at: u.subscription_expires_at },
+      { is_active: newActive, expires_at: newExpiresAt }
+    );
+
     toast.success(u.is_active ? "تم تعطيل الحساب" : "تم تفعيل الحساب");
     load();
   };
+
+  const extendSubscription = async () => {
+    if (!extendUser) return;
+    const baseDate = extendUser.subscription_expires_at && new Date(extendUser.subscription_expires_at) > new Date()
+      ? new Date(extendUser.subscription_expires_at)
+      : new Date();
+    const newExpiresAt = new Date(baseDate.getTime() + extendDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error } = await supabase.from("profiles").update({
+      subscription_expires_at: newExpiresAt,
+      is_active: true,
+      subscription_status: "active",
+    }).eq("id", extendUser.id);
+
+    if (error) return toast.error(error.message);
+
+    await logAudit(
+      extendUser.id,
+      "extend",
+      { expires_at: extendUser.subscription_expires_at },
+      { expires_at: newExpiresAt, days_added: extendDays },
+      extendNotes
+    );
+
+    toast.success(`تم تمديد الاشتراك ${extendDays} يوم`);
+    setExtendUser(null); setExtendNotes(""); setExtendDays(30);
+    load();
+  };
+
+  const userById = (id: string) => users.find((u) => u.id === id);
 
   if (authLoading || isAdmin === null) {
     return <PosLayout title="لوحة المسؤول"><div className="p-8 text-center text-muted-foreground">جاري التحقق...</div></PosLayout>;
