@@ -456,6 +456,40 @@ function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!extendUser} onOpenChange={(o) => !o && setExtendUser(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>تمديد الاشتراك</DialogTitle></DialogHeader>
+          {extendUser && (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-muted/40 p-3 text-sm">
+                <div className="font-semibold">{extendUser.full_name || extendUser.business_name || "بدون اسم"}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ينتهي حالياً: {extendUser.subscription_expires_at ? new Date(extendUser.subscription_expires_at).toLocaleDateString("ar-DZ") : "—"}
+                </div>
+              </div>
+              <div>
+                <Label>عدد الأيام للإضافة</Label>
+                <Input type="number" value={extendDays} onChange={(e) => setExtendDays(parseInt(e.target.value) || 30)} />
+                <div className="mt-2 flex gap-1">
+                  {[7, 30, 90, 365].map((d) => (
+                    <Button key={d} type="button" size="sm" variant="outline" onClick={() => setExtendDays(d)} className="flex-1 text-xs">
+                      {d} يوم
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>ملاحظات (اختياري)</Label>
+                <Input value={extendNotes} onChange={(e) => setExtendNotes(e.target.value)} placeholder="سبب التمديد..." />
+              </div>
+              <Button onClick={extendSubscription} className="w-full bg-gradient-primary text-primary-foreground gap-2">
+                <CalendarPlus className="h-4 w-4" /> تمديد {extendDays} يوم
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PosLayout>
   );
 }
