@@ -462,12 +462,21 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="subs" className="space-y-3">
-          {users.length === 0 && (
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث بالاسم أو الهاتف..."
+              className="pr-9"
+            />
+          </div>
+          {filteredUsers.length === 0 && (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              لا توجد اشتراكات
+              {users.length === 0 ? "لا توجد اشتراكات" : "لا توجد نتائج مطابقة"}
             </div>
           )}
-          {users.map((u) => {
+          {filteredUsers.map((u) => {
             const expiresAt = u.subscription_expires_at ? new Date(u.subscription_expires_at) : null;
             const now = new Date();
             const isExpired = expiresAt && expiresAt < now;
