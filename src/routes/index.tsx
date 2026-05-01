@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, ShoppingCart, Package, Users, BarChart3, Globe2, Zap, Check, Play } from "lucide-react";
+import {
+  ArrowRight, ShoppingCart, Package, Users, BarChart3, Globe2, Zap,
+  Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
+  Sparkles, CheckCircle2, Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
@@ -23,6 +27,21 @@ function HomePage() {
     { icon: Globe2, key: "multi" },
   ] as const;
 
+  const advantages = [
+    { icon: ShieldCheck, title: "أمان متقدم", desc: "بياناتك محمية بتشفير على مستوى البنوك ونسخ احتياطية يومية." },
+    { icon: Cloud, title: "سحابي 100%", desc: "اعمل من أي مكان وعلى أي جهاز دون الحاجة لتثبيت برامج." },
+    { icon: Smartphone, title: "متوافق مع الجوال", desc: "واجهة محسّنة للهواتف واللوحات لإدارة نشاطك أثناء التنقل." },
+    { icon: Printer, title: "طباعة احترافية", desc: "دعم طابعات الإيصالات 58mm و80mm وطباعة A4 بثلاث لغات." },
+    { icon: Receipt, title: "فواتير ذكية", desc: "أنشئ فواتير المبيعات والمشتريات بثوانٍ مع حساب الديون تلقائياً." },
+    { icon: TrendingUp, title: "تقارير لحظية", desc: "تابع أرباحك ومخزونك ووضعيتك المالية في أي وقت." },
+  ];
+
+  const steps = [
+    { n: "01", title: "أنشئ حسابك", desc: "سجّل في أقل من دقيقة وابدأ فوراً." },
+    { n: "02", title: "أضف منتجاتك", desc: "استورد قائمتك أو أضفها يدوياً مع الباركود." },
+    { n: "03", title: "ابدأ البيع", desc: "افتح نقطة البيع وأدر نشاطك باحترافية." },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -32,6 +51,7 @@ function HomePage() {
         <div className="container mx-auto px-4 py-20 md:py-32">
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary">
+              <Sparkles className="h-4 w-4" />
               {t("hero.badge")}
             </div>
             <h1 className="text-5xl font-bold leading-tight tracking-tight md:text-7xl">
@@ -44,8 +64,8 @@ function HomePage() {
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 shadow-glow gap-2 h-12 px-8 text-base">
-                <Link to="/signup">
-                  {t("hero.cta")}
+                <Link to="/login">
+                  دخول لوحة التحكم
                   <Arrow />
                 </Link>
               </Button>
@@ -54,10 +74,9 @@ function HomePage() {
                 {t("hero.ctaSecondary")}
               </Button>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">{t("hero.trial")}</p>
           </div>
 
-          {/* Floating preview cards */}
+          {/* Stats */}
           <div className="relative mx-auto mt-16 max-w-5xl">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               {[
@@ -97,54 +116,74 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Pricing teaser */}
+      {/* Why us */}
       <section className="bg-gradient-subtle py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-4xl font-bold md:text-5xl">{t("pricing.title")}</h2>
-            <p className="mt-4 text-lg text-muted-foreground">{t("pricing.subtitle")}</p>
+            <h2 className="text-4xl font-bold md:text-5xl">لماذا khalilPoS؟</h2>
+            <p className="mt-4 text-lg text-muted-foreground">منصة احترافية مصممة لتجار الجزائر والمنطقة العربية</p>
           </div>
-          <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
-            {(["starter", "pro", "enterprise"] as const).map((plan) => {
-              const isPopular = plan === "pro";
-              return (
-                <div
-                  key={plan}
-                  className={`relative rounded-2xl border bg-card p-8 shadow-card transition-smooth ${
-                    isPopular ? "border-primary shadow-glow scale-105" : "border-border/60"
-                  }`}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-primary px-3 py-1 text-xs font-bold text-primary-foreground">
-                      {t("pricing.pro.popular")}
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold">{t(`pricing.${plan}.name`)}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{t(`pricing.${plan}.desc`)}</p>
-                  <div className="mt-6">
-                    <span className="text-5xl font-bold">{plan === "starter" ? "0" : plan === "pro" ? "29" : "99"}</span>
-                    <span className="text-muted-foreground"> $/{t("pricing.monthly")}</span>
+          <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {advantages.map((a) => (
+              <div key={a.title} className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <a.icon className="h-5 w-5" />
                   </div>
-                  <ul className="mt-6 space-y-3 text-sm">
-                    {[
-                      plan === "starter" ? "100 منتج" : t("pricing.features.unlimited") + " " + t("pricing.features.products"),
-                      (plan === "starter" ? "1" : plan === "pro" ? "5" : t("pricing.features.unlimited")) + " " + t("pricing.features.users"),
-                      t("pricing.features.support"),
-                      ...(plan !== "starter" ? [t("pricing.features.reports")] : []),
-                      ...(plan === "enterprise" ? [t("pricing.features.api"), t("pricing.features.priority")] : []),
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-success" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button asChild className={`mt-8 w-full ${isPopular ? "bg-gradient-primary" : ""}`} variant={isPopular ? "default" : "outline"}>
-                    <Link to="/signup">{plan === "enterprise" ? t("pricing.contact") : t("pricing.cta")}</Link>
-                  </Button>
+                  <div>
+                    <h3 className="font-semibold">{a.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{a.desc}</p>
+                  </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20 md:py-28">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-4xl font-bold md:text-5xl">ابدأ في 3 خطوات</h2>
+            <p className="mt-4 text-lg text-muted-foreground">واجهة بسيطة، نتائج احترافية</p>
+          </div>
+          <div className="mt-16 grid gap-6 md:grid-cols-3">
+            {steps.map((s) => (
+              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card p-8 shadow-card">
+                <div className="text-5xl font-bold text-gradient">{s.n}</div>
+                <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
+                <p className="mt-2 text-muted-foreground">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="bg-gradient-subtle py-20 md:py-28">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-4xl font-bold md:text-5xl">يثقون بنا</h2>
+            <p className="mt-4 text-lg text-muted-foreground">آراء تجار يستخدمون khalilPoS يومياً</p>
+          </div>
+          <div className="mt-16 grid gap-6 md:grid-cols-3">
+            {[
+              { name: "أحمد بن علي", role: "صاحب متجر مواد غذائية", quote: "غيّر طريقة عملي تماماً. أصبحت أتابع كل شيء من هاتفي." },
+              { name: "ليلى مرابط", role: "مديرة بوتيك", quote: "سهل وسريع، والدعم الفني ممتاز. أنصح به بشدة." },
+              { name: "كريم بوزيد", role: "صيدلي", quote: "التقارير دقيقة والمخزون منظم. وفّر علي ساعات يومياً." },
+            ].map((tst) => (
+              <div key={tst.name} className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
+                <div className="flex gap-1 text-warning">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
+                </div>
+                <p className="mt-4 text-foreground">"{tst.quote}"</p>
+                <div className="mt-4 border-t border-border/60 pt-4">
+                  <div className="font-semibold">{tst.name}</div>
+                  <div className="text-sm text-muted-foreground">{tst.role}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -155,9 +194,14 @@ function HomePage() {
           <div className="mx-auto max-w-4xl rounded-3xl bg-gradient-hero p-12 text-center shadow-glow md:p-16">
             <h2 className="text-3xl font-bold text-primary-foreground md:text-5xl">{t("cta.title")}</h2>
             <p className="mt-4 text-lg text-primary-foreground/80">{t("cta.subtitle")}</p>
-            <Button asChild size="lg" variant="secondary" className="mt-8 h-12 px-8 text-base">
-              <Link to="/signup">{t("cta.button")}</Link>
-            </Button>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild size="lg" variant="secondary" className="h-12 px-8 text-base">
+                <Link to="/login">دخول لوحة التحكم</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent text-primary-foreground border-primary-foreground/40 hover:bg-primary-foreground/10">
+                <Link to="/contact">اتصل بنا</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
