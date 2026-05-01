@@ -2,15 +2,30 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
+});
+
+const schema = z.object({
+  fullName: z.string().trim().min(2, { message: "Name too short" }).max(100),
+  businessName: z.string().trim().max(100).optional().or(z.literal("")),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  email: z.string().trim().email({ message: "Invalid email" }).max(255),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .max(72)
+    .regex(/[A-Za-z]/, { message: "Must contain a letter" })
+    .regex(/[0-9]/, { message: "Must contain a number" }),
 });
 
 function SignupPage() {
@@ -27,6 +42,11 @@ function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const parsed = schema.safeParse(form);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: form.email,
@@ -87,12 +107,15 @@ function SignupPage() {
               </div>
               <div>
                 <Label htmlFor="password">{t("auth.password")}</Label>
-                <Input id="password" type="password" required minLength={6} value={form.password} onChange={update("password")} className="mt-1.5" />
+                <Input id="password" type="password" required minLength={8} value={form.password} onChange={update("password")} className="mt-1.5" />
+                <p className="mt-1 text-xs text-muted-foreground">8+ caractères, lettres & chiffres</p>
               </div>
               <Button type="submit" disabled={loading} className="w-full bg-gradient-primary h-11">
                 {loading ? t("auth.loading") : t("auth.signup")}
               </Button>
             </form>
+
+            <SocialAuthButtons />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {t("auth.hasAccount")}{" "}

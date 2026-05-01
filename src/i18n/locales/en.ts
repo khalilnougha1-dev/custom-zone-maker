@@ -91,6 +91,7 @@ export const en = {
     success: "Success!",
     error: "An error occurred",
     googleSignIn: "Continue with Google",
+    appleSignIn: "Continue with Apple",
     or: "or",
   },
   common: {

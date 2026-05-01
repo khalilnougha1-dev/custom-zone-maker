@@ -2,15 +2,22 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+});
+
+const schema = z.object({
+  email: z.string().trim().email({ message: "Invalid email" }).max(255),
+  password: z.string().min(6, { message: "Min 6 characters" }).max(72),
 });
 
 function LoginPage() {
@@ -28,6 +35,11 @@ function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const parsed = schema.safeParse({ email, password });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
@@ -72,6 +84,8 @@ function LoginPage() {
                 {loading ? t("auth.loading") : t("auth.login")}
               </Button>
             </form>
+
+            <SocialAuthButtons />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {t("auth.noAccount")}{" "}

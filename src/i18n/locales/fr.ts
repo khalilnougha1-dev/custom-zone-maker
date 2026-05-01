@@ -91,6 +91,7 @@ export const fr = {
     success: "Succès !",
     error: "Une erreur s'est produite",
     googleSignIn: "Continuer avec Google",
+    appleSignIn: "Continuer avec Apple",
     or: "ou",
   },
   common: {
