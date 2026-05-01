@@ -568,6 +568,7 @@ export type Database = {
           email: string | null
           id: string
           initial_debt: number | null
+          is_inactive: boolean
           name: string
           notes: string | null
           phone: string | null
@@ -580,6 +581,7 @@ export type Database = {
           email?: string | null
           id?: string
           initial_debt?: number | null
+          is_inactive?: boolean
           name: string
           notes?: string | null
           phone?: string | null
@@ -592,6 +594,7 @@ export type Database = {
           email?: string | null
           id?: string
           initial_debt?: number | null
+          is_inactive?: boolean
           name?: string
           notes?: string | null
           phone?: string | null
