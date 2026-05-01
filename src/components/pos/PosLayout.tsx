@@ -3,7 +3,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import {
   Menu, X, ShoppingCart, Package, Users, Truck, BarChart3, Wallet,
   Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator,
-  Shield, TruckIcon
+  Shield, TruckIcon, UserCircle
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
