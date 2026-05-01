@@ -37,6 +37,8 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
+  const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const router = useRouterState();
   const path = router.location.pathname;
 
@@ -45,6 +47,28 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   }, [user, loading, navigate]);
 
   useEffect(() => { setOpen(false); }, [path]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("subscription_expires_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.subscription_expires_at) return;
+      const exp = new Date(data.subscription_expires_at);
+      const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
+      if (days <= 7) setExpiryInfo({ daysLeft: days, isExpired: days <= 0 });
+    })();
+    const dismissed = sessionStorage.getItem("expiry_banner_dismissed");
+    if (dismissed) setBannerDismissed(true);
+  }, [user]);
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    sessionStorage.setItem("expiry_banner_dismissed", "1");
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
