@@ -1,24 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Search, Trash2, Pencil } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, ArrowRight, Save, Phone, Smartphone, Mail } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/suppliers")({ component: SuppliersPage });
 
+type FormState = {
+  name: string;
+  address: string;
+  phone: string;
+  mobile: string;
+  email: string;
+  initial_debt: string;
+  notes: string;
+  is_inactive: boolean;
+};
+
+const empty: FormState = { name: "", address: "", phone: "", mobile: "", email: "", initial_debt: "0", notes: "", is_inactive: false };
+
 function SuppliersPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", initial_debt: "0" });
+  const [form, setForm] = useState<FormState>(empty);
 
   const load = () => {
     if (!user) return;
@@ -26,23 +40,126 @@ function SuppliersPage() {
   };
   useEffect(load, [user]);
 
-  const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", initial_debt: "0" }); setOpen(true); };
-  const openEdit = (s: any) => { setEditing(s); setForm({ name: s.name, phone: s.phone || "", address: s.address || "", initial_debt: String(s.initial_debt || 0) }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm(empty); setShowForm(true); };
+  const openEdit = (s: any) => {
+    setEditing(s);
+    // Phone field may contain "phone | mobile" — split if so
+    const [p1 = "", p2 = ""] = (s.phone || "").split("|").map((x: string) => x.trim());
+    setForm({
+      name: s.name || "",
+      address: s.address || "",
+      phone: p1,
+      mobile: p2,
+      email: s.email || "",
+      initial_debt: String(s.initial_debt || 0),
+      notes: s.notes || "",
+      is_inactive: !!s.is_inactive,
+    });
+    setShowForm(true);
+  };
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("الاسم مطلوب");
-    const payload = {
-      user_id: user.id, name: form.name.trim(), phone: form.phone || null, address: form.address || null,
-      initial_debt: Number(form.initial_debt) || 0, balance: Number(form.initial_debt) || 0,
+    const phoneCombined = [form.phone.trim(), form.mobile.trim()].filter(Boolean).join(" | ") || null;
+    const payload: any = {
+      user_id: user.id,
+      name: form.name.trim(),
+      address: form.address.trim() || null,
+      phone: phoneCombined,
+      email: form.email.trim() || null,
+      initial_debt: Number(form.initial_debt) || 0,
+      notes: form.notes.trim() || null,
+      is_inactive: form.is_inactive,
     };
-    const { error } = editing ? await supabase.from("suppliers").update(payload).eq("id", editing.id) : await supabase.from("suppliers").insert(payload);
+    if (!editing) payload.balance = Number(form.initial_debt) || 0;
+    const { error } = editing
+      ? await supabase.from("suppliers").update(payload).eq("id", editing.id)
+      : await supabase.from("suppliers").insert(payload);
     if (error) return toast.error(error.message);
-    toast.success("تم الحفظ"); setOpen(false); load();
+    toast.success("تم الحفظ");
+    setShowForm(false);
+    load();
   };
-  const remove = async (id: string) => { if (!confirm("حذف؟")) return; await supabase.from("suppliers").delete().eq("id", id); load(); };
 
+  const remove = async (id: string) => { if (!confirm("حذف؟")) return; await supabase.from("suppliers").delete().eq("id", id); load(); };
   const filtered = items.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
 
+  // ============ FORM SCREEN ============
+  if (showForm) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex flex-col" dir="rtl">
+        <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
+          <div className="flex h-14 items-center justify-between px-4">
+            <button onClick={() => setShowForm(false)} className="rounded-lg p-2 hover:bg-white/10" aria-label="رجوع">
+              <ArrowRight className="h-6 w-6" />
+            </button>
+            <h1 className="text-lg font-bold">{editing ? "تعديل ممون" : "إضافة ممون"}</h1>
+            <div className="w-10" />
+          </div>
+        </header>
+
+        <main className="flex-1 mx-auto w-full max-w-2xl p-4 pb-32 space-y-4">
+          {/* Inactive switch */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <label className="text-base font-medium">ممون غير نشيط</label>
+            <Switch checked={form.is_inactive} onCheckedChange={(v) => setForm({ ...form, is_inactive: v })} />
+          </div>
+
+          {/* Name */}
+          <div className="flex items-center gap-3">
+            <span className="w-24 text-right text-base font-medium text-foreground">الإسم الكامل</span>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="flex-1 h-12 bg-card border-primary/40 text-right" />
+          </div>
+
+          {/* Address */}
+          <div className="flex items-center gap-3">
+            <span className="w-24 text-right text-base font-medium text-foreground">العنوان</span>
+            <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="flex-1 h-12 bg-card border-primary/40 text-right" />
+          </div>
+
+          {/* Phone */}
+          <div className="flex items-center gap-3">
+            <span className="w-24 flex justify-end text-foreground/70"><Phone className="h-6 w-6" /></span>
+            <Input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="flex-1 h-12 bg-card border-primary/40 text-right" />
+          </div>
+
+          {/* Mobile */}
+          <div className="flex items-center gap-3">
+            <span className="w-24 flex justify-end text-foreground/70"><Smartphone className="h-6 w-6" /></span>
+            <Input type="tel" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="flex-1 h-12 bg-card border-primary/40 text-right" />
+          </div>
+
+          {/* Email */}
+          <div className="flex items-center gap-3">
+            <span className="w-24 flex justify-end text-foreground/70"><Mail className="h-6 w-6" /></span>
+            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="flex-1 h-12 bg-card border-primary/40 text-right" />
+          </div>
+
+          {/* Initial debt */}
+          <div className="flex items-center gap-3">
+            <span className="w-24 text-right text-base font-medium text-foreground">الدين السابق</span>
+            <Input type="number" value={form.initial_debt} onChange={(e) => setForm({ ...form, initial_debt: e.target.value })} className="flex-1 h-12 bg-card border-primary/40 text-right" />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2 pt-2">
+            <div className="text-right text-base font-medium text-foreground/80">ملاحظة</div>
+            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="bg-card border-primary/40 text-right min-h-[80px]" />
+          </div>
+        </main>
+
+        {/* Save button */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur p-3">
+          <Button onClick={save} className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold text-base rounded-full shadow-lg">
+            <Save className="h-5 w-5 ml-2" />
+            حفظ
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ LIST SCREEN ============
   return (
     <PosLayout title="الممونين" actions={
       <button onClick={openNew} className="rounded-lg p-2 hover:bg-white/10"><Plus className="h-5 w-5" /></button>
@@ -59,7 +176,10 @@ function SuppliersPage() {
         ) : filtered.map(c => (
           <div key={c.id} className="flex items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm">
             <div className="flex-1 min-w-0 text-right">
-              <div className="font-semibold">{c.name}</div>
+              <div className="font-semibold flex items-center gap-2 justify-end">
+                {c.is_inactive && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">غير نشيط</span>}
+                {c.name}
+              </div>
               {c.phone && <div className="text-xs text-muted-foreground mt-1">{c.phone}</div>}
             </div>
             <div className="text-right">
@@ -73,19 +193,6 @@ function SuppliersPage() {
           </div>
         ))}
       </div>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader><DialogTitle>{editing ? "تعديل ممون" : "ممون جديد"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>الاسم</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-            <div><Label>العنوان</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-            <div><Label>الدين الأولي</Label><Input type="number" value={form.initial_debt} onChange={(e) => setForm({ ...form, initial_debt: e.target.value })} /></div>
-          </div>
-          <DialogFooter><Button onClick={save} className="w-full">حفظ</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PosLayout>
   );
 }
