@@ -1,12 +1,12 @@
 export const ar = {
-  brand: { name: "KuaiPOS", tagline: "نظام نقاط البيع الذكي" },
+  brand: { name: "khalilPoS", tagline: "نظام نقاط البيع الذكي" },
   nav: {
     home: "الرئيسية",
     features: "الميزات",
     pricing: "الأسعار",
     contact: "اتصل بنا",
     login: "تسجيل الدخول",
-    signup: "ابدأ مجاناً",
+    signup: "إنشاء حساب",
     dashboard: "لوحة التحكم",
     logout: "تسجيل الخروج",
   },
@@ -59,7 +59,7 @@ export const ar = {
   },
   cta: {
     title: "جاهز لتطوير نشاطك؟",
-    subtitle: "انضم لآلاف التجار الذين يثقون بـ KuaiPOS",
+    subtitle: "انضم لآلاف التجار الذين يثقون بـ khalilPoS",
     button: "ابدأ مجاناً الآن",
   },
   footer: {

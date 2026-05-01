@@ -1,5 +1,5 @@
 export const fr = {
-  brand: { name: "KuaiPOS", tagline: "Système de point de vente intelligent" },
+  brand: { name: "khalilPoS", tagline: "Système de point de vente intelligent" },
   nav: {
     home: "Accueil",
     features: "Fonctionnalités",

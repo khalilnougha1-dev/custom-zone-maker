@@ -23,9 +23,6 @@ export function Header() {
           <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
             {t("nav.features")}
           </Link>
-          <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
-            {t("nav.pricing")}
-          </Link>
           <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
             {t("nav.contact")}
           </Link>
@@ -41,14 +38,9 @@ export function Header() {
               </Link>
             </Button>
           ) : (
-            <>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Link to="/login">{t("nav.login")}</Link>
-              </Button>
-              <Button asChild size="sm" className="bg-gradient-primary hover:opacity-90 shadow-md">
-                <Link to="/signup">{t("nav.signup")}</Link>
-              </Button>
-            </>
+            <Button asChild size="sm" className="bg-gradient-primary hover:opacity-90 shadow-md">
+              <Link to="/login">{t("nav.login")}</Link>
+            </Button>
           )}
         </div>
       </div>

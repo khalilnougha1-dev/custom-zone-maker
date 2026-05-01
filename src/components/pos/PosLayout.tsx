@@ -51,7 +51,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
 
   return (
     <div className="min-h-screen bg-muted/30" dir="rtl">
-      {/* Top bar — KuaiPOS purple */}
+      {/* Top bar — khalilPoS purple */}
       <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
         <div className="flex h-14 items-center justify-between px-4">
           <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="menu">

@@ -7,8 +7,8 @@ import { Footer } from "@/components/marketing/Footer";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "اتصل بنا — KuaiPOS" },
-      { name: "description", content: "تواصل مع فريق KuaiPOS." },
+      { title: "اتصل بنا — khalilPoS" },
+      { name: "description", content: "تواصل مع فريق khalilPoS." },
     ],
   }),
   component: ContactPage,
