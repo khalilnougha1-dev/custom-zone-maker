@@ -396,9 +396,41 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-3">
-          {users.length === 0 && (
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="بحث بالاسم أو الهاتف..."
+                className="pr-9"
+              />
+            </div>
+            <div className="flex gap-1 overflow-x-auto">
+              {([
+                ["all", "الكل", stats.total],
+                ["active", "نشط", stats.active],
+                ["expired", "منتهي", stats.expired],
+                ["disabled", "معطّل", stats.total - stats.active - stats.expired],
+              ] as const).map(([key, label, count]) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant={filter === key ? "default" : "outline"}
+                  onClick={() => setFilter(key as typeof filter)}
+                  className={`h-8 text-xs whitespace-nowrap ${filter === key ? "bg-gradient-primary text-primary-foreground" : ""}`}
+                >
+                  {label} ({count})
+                </Button>
+              ))}
+              <Button size="sm" variant="outline" onClick={exportCSV} className="h-8 text-xs gap-1 mr-auto whitespace-nowrap">
+                <Download className="h-3 w-3" /> تصدير
+              </Button>
+            </div>
+          </div>
+          {filteredUsers.length === 0 && (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              لا يوجد مستخدمين
+              {users.length === 0 ? "لا يوجد مستخدمين" : "لا توجد نتائج مطابقة"}
             </div>
           )}
           {users.map((u) => (
