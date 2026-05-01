@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send } from "lucide-react";
+import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,17 +114,81 @@ function AdminPage() {
     return <PosLayout title="لوحة المسؤول"><div className="p-8 text-center text-muted-foreground">جاري التحقق...</div></PosLayout>;
   }
 
-  if (!isAdmin) {
+  if (!user) {
     return (
       <PosLayout title="لوحة المسؤول">
-        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-8 text-center">
-          <Shield className="mx-auto mb-3 h-12 w-12 text-destructive" />
-          <h3 className="text-lg font-bold text-destructive">غير مصرح</h3>
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-6 text-center" dir="rtl">
+          <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-amber-600" />
+          <h3 className="text-lg font-bold">يجب تسجيل الدخول أولاً</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {roleError ? "تعذر التحقق من الصلاحية حالياً" : "هذا الحساب لا يملك صلاحية لوحة المسؤول"}
+            للوصول إلى لوحة المسؤول، يرجى تسجيل الدخول بحساب يملك صلاحيات الإدارة.
           </p>
-          {user?.email && <p className="mt-2 text-xs text-muted-foreground">الحساب الحالي: {user.email}</p>}
-          {roleError && <p className="mt-1 text-xs text-destructive/80">{roleError}</p>}
+          <Button asChild className="mt-4 bg-gradient-primary text-primary-foreground">
+            <a href="/auth">تسجيل الدخول</a>
+          </Button>
+        </div>
+      </PosLayout>
+    );
+  }
+
+  if (!isAdmin) {
+    const handleRetry = async () => {
+      setIsAdmin(null);
+      setRoleError(null);
+      await supabase.auth.refreshSession();
+      window.location.reload();
+    };
+
+    const handleSignOut = async () => {
+      await supabase.auth.signOut();
+      window.location.href = "/auth";
+    };
+
+    return (
+      <PosLayout title="لوحة المسؤول">
+        <div className="space-y-4" dir="rtl">
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-center">
+            <Shield className="mx-auto mb-3 h-12 w-12 text-destructive" />
+            <h3 className="text-lg font-bold text-destructive">غير مصرح بالدخول</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {roleError
+                ? "تعذر التحقق من الصلاحيات حالياً. قد يكون هناك مشكلة في الاتصال."
+                : "هذا الحساب لا يملك صلاحية الوصول إلى لوحة المسؤول."}
+            </p>
+            <div className="mt-4 rounded-lg bg-background/50 p-3 text-right text-xs">
+              <div className="font-semibold text-foreground mb-1">معلومات الحساب:</div>
+              <div className="text-muted-foreground">📧 {user.email}</div>
+              <div className="text-muted-foreground mt-1">🆔 <span dir="ltr" className="font-mono">{user.id.slice(0, 8)}...</span></div>
+              {roleError && (
+                <div className="mt-2 text-destructive/80">⚠️ {roleError}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h4 className="font-bold mb-3 flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-primary" />
+              خطوات لحل المشكلة
+            </h4>
+            <ol className="space-y-2.5 text-sm text-muted-foreground list-decimal list-inside marker:text-primary marker:font-bold">
+              <li>تأكّد من تسجيل الدخول بالحساب الصحيح المخوّل بصلاحيات الإدارة.</li>
+              <li>إذا كنت قد حصلت على الصلاحيات حديثاً، جرّب تحديث الجلسة بالضغط على زر <span className="font-semibold text-foreground">"إعادة المحاولة"</span> أدناه.</li>
+              <li>إذا لم تنجح المحاولة، قم بـ <span className="font-semibold text-foreground">تسجيل الخروج ثم الدخول مجدداً</span> لتحديث رموز الصلاحيات.</li>
+              <li>إذا استمرت المشكلة، تواصل مع المسؤول الرئيسي لمنح حسابك صلاحية <span className="font-mono text-xs text-foreground">admin</span> أو <span className="font-mono text-xs text-foreground">super_admin</span>.</li>
+            </ol>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Button onClick={handleRetry} variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" /> إعادة المحاولة
+            </Button>
+            <Button onClick={handleSignOut} variant="outline" className="gap-2">
+              <LogOut className="h-4 w-4" /> تسجيل خروج
+            </Button>
+            <Button asChild className="gap-2 bg-gradient-primary text-primary-foreground">
+              <a href="/app"><Home className="h-4 w-4" /> الرئيسية</a>
+            </Button>
+          </div>
         </div>
       </PosLayout>
     );
