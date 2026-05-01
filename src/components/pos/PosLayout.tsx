@@ -25,14 +25,17 @@ const NAV = [
   { to: "/app/finance", label: "الوضعية المالية", icon: TrendingUp },
   { to: "/app/profits", label: "الأرباح", icon: BarChart3 },
   { to: "/app/reports", label: "التقارير", icon: FileText },
+  { to: "/app/trucks", label: "الشاحنات والتوزيع", icon: TruckIcon },
   { to: "/app/printer", label: "الطابعة", icon: Printer },
   { to: "/app/settings", label: "الإعدادات", icon: Settings },
+  { to: "/app/admin", label: "لوحة المسؤول", icon: Shield },
 ];
 
 export function PosLayout({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const router = useRouterState();
   const path = router.location.pathname;
 
