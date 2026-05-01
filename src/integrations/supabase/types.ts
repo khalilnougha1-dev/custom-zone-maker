@@ -253,11 +253,14 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          is_inactive: boolean
           is_tracked: boolean | null
           min_stock: number | null
           name: string
+          notes: string | null
           reference: string | null
           retail_price: number
+          sale_mode: string
           semi_wholesale_price: number | null
           stock_quantity: number
           unit: string | null
@@ -272,11 +275,14 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_inactive?: boolean
           is_tracked?: boolean | null
           min_stock?: number | null
           name: string
+          notes?: string | null
           reference?: string | null
           retail_price?: number
+          sale_mode?: string
           semi_wholesale_price?: number | null
           stock_quantity?: number
           unit?: string | null
@@ -291,11 +297,14 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_inactive?: boolean
           is_tracked?: boolean | null
           min_stock?: number | null
           name?: string
+          notes?: string | null
           reference?: string | null
           retail_price?: number
+          sale_mode?: string
           semi_wholesale_price?: number | null
           stock_quantity?: number
           unit?: string | null
