@@ -41,14 +41,9 @@ export function Header() {
               </Link>
             </Button>
           ) : (
-            <>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Link to="/login">{t("nav.login")}</Link>
-              </Button>
-              <Button asChild size="sm" className="bg-gradient-primary hover:opacity-90 shadow-md">
-                <Link to="/signup">{t("nav.signup")}</Link>
-              </Button>
-            </>
+            <Button asChild size="sm" className="bg-gradient-primary hover:opacity-90 shadow-md">
+              <Link to="/login">{t("nav.login")}</Link>
+            </Button>
           )}
         </div>
       </div>
