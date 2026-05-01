@@ -342,6 +342,100 @@ function AdminPage() {
             </div>
           ))}
         </TabsContent>
+
+        <TabsContent value="subs" className="space-y-3">
+          {users.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              لا توجد اشتراكات
+            </div>
+          )}
+          {users.map((u) => {
+            const expiresAt = u.subscription_expires_at ? new Date(u.subscription_expires_at) : null;
+            const now = new Date();
+            const isExpired = expiresAt && expiresAt < now;
+            const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - now.getTime()) / 86400000) : null;
+            return (
+              <div key={u.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold truncate">{u.full_name || u.business_name || "بدون اسم"}</div>
+                    {u.phone && <div className="text-xs text-muted-foreground" dir="ltr">{u.phone}</div>}
+                  </div>
+                  {u.is_active && !isExpired ? (
+                    <Badge className="bg-emerald-500">نشط</Badge>
+                  ) : isExpired ? (
+                    <Badge variant="destructive">منتهي</Badge>
+                  ) : (
+                    <Badge variant="secondary">معطّل</Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="text-muted-foreground">تاريخ الانتهاء</div>
+                    <div className="font-semibold">{expiresAt ? expiresAt.toLocaleDateString("ar-DZ") : "—"}</div>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="text-muted-foreground">المتبقي</div>
+                    <div className={`font-semibold ${isExpired ? "text-destructive" : daysLeft != null && daysLeft <= 7 ? "text-amber-600" : "text-emerald-600"}`}>
+                      {expiresAt ? (isExpired ? "انتهى" : `${daysLeft} يوم`) : "—"}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setExtendUser(u); setExtendDays(30); }} className="flex-1 gap-1">
+                    <CalendarPlus className="h-3 w-3" /> تمديد
+                  </Button>
+                  <Button size="sm" variant={u.is_active ? "destructive" : "default"} onClick={() => toggleUser(u)} className="flex-1 gap-1">
+                    {u.is_active ? <><X className="h-3 w-3" /> تعطيل</> : <><Check className="h-3 w-3" /> تفعيل</>}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-2">
+          {auditLog.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              لا توجد تغييرات مسجلة
+            </div>
+          )}
+          {auditLog.map((entry) => {
+            const target = userById(entry.target_user_id);
+            const actor = userById(entry.changed_by);
+            const actionLabels: Record<string, { label: string; color: string }> = {
+              activate: { label: "تفعيل", color: "bg-emerald-500" },
+              deactivate: { label: "تعطيل", color: "bg-destructive" },
+              extend: { label: "تمديد", color: "bg-blue-500" },
+              code_redeemed: { label: "رمز تفعيل", color: "bg-purple-500" },
+            };
+            const info = actionLabels[entry.action] || { label: entry.action, color: "bg-gray-500" };
+            return (
+              <div key={entry.id} className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge className={info.color}>{info.label}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(entry.created_at).toLocaleString("ar-DZ")}
+                  </span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">الحساب: </span>
+                  <span className="font-semibold">{target?.full_name || target?.business_name || entry.target_user_id.slice(0, 8)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  بواسطة: {actor?.full_name || actor?.business_name || entry.changed_by.slice(0, 8)}
+                </div>
+                {entry.new_value?.expires_at && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    ينتهي في: {new Date(entry.new_value.expires_at).toLocaleDateString("ar-DZ")}
+                    {entry.new_value.days_added && ` (+${entry.new_value.days_added} يوم)`}
+                  </div>
+                )}
+                {entry.notes && <div className="text-xs mt-1 italic">{entry.notes}</div>}
+              </div>
+            );
+          })}
+        </TabsContent>
       </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
