@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
@@ -12,11 +12,18 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/admin")({ component: AdminPage });
+export const Route = createFileRoute("/app/admin")({
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw redirect({ to: "/login" });
+  },
+  component: AdminPage,
+});
 
 function AdminPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [codes, setCodes] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -25,12 +32,40 @@ function AdminPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
-      const roles = (data || []).map((r: any) => r.role);
-      setIsAdmin(roles.includes("admin") || roles.includes("super_admin"));
-    });
-  }, [user]);
+    let cancelled = false;
+
+    const checkAdminAccess = async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const [{ data: adminRole, error: adminError }, { data: superAdminRole, error: superAdminError }] = await Promise.all([
+        supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
+        supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" }),
+      ]);
+
+      if (cancelled) return;
+
+      const error = adminError || superAdminError;
+      if (error) {
+        setRoleError(error.message);
+        setIsAdmin(false);
+        return;
+      }
+
+      setRoleError(null);
+      setIsAdmin(Boolean(adminRole || superAdminRole));
+    };
+
+    checkAdminAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
 
   const load = async () => {
     const [{ data: c }, { data: u }] = await Promise.all([
@@ -75,7 +110,7 @@ function AdminPage() {
     load();
   };
 
-  if (isAdmin === null) {
+  if (authLoading || isAdmin === null) {
     return <PosLayout title="لوحة المسؤول"><div className="p-8 text-center text-muted-foreground">جاري التحقق...</div></PosLayout>;
   }
 
@@ -85,7 +120,11 @@ function AdminPage() {
         <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-8 text-center">
           <Shield className="mx-auto mb-3 h-12 w-12 text-destructive" />
           <h3 className="text-lg font-bold text-destructive">غير مصرح</h3>
-          <p className="mt-2 text-sm text-muted-foreground">هذه الصفحة مخصصة للمسؤول الأعلى فقط</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {roleError ? "تعذر التحقق من الصلاحية حالياً" : "هذا الحساب لا يملك صلاحية لوحة المسؤول"}
+          </p>
+          {user?.email && <p className="mt-2 text-xs text-muted-foreground">الحساب الحالي: {user.email}</p>}
+          {roleError && <p className="mt-1 text-xs text-destructive/80">{roleError}</p>}
         </div>
       </PosLayout>
     );
