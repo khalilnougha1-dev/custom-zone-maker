@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ function CustomersPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", initial_debt: "0" });
+  const [form, setForm] = useState({ name: "", phone: "", address: "", initial_debt: "0", notes: "" });
 
   const load = () => {
     if (!user) return;
@@ -26,14 +27,15 @@ function CustomersPage() {
   };
   useEffect(load, [user]);
 
-  const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", initial_debt: "0" }); setOpen(true); };
-  const openEdit = (c: any) => { setEditing(c); setForm({ name: c.name, phone: c.phone || "", address: c.address || "", initial_debt: String(c.initial_debt || 0) }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", initial_debt: "0", notes: "" }); setOpen(true); };
+  const openEdit = (c: any) => { setEditing(c); setForm({ name: c.name, phone: c.phone || "", address: c.address || "", initial_debt: String(c.initial_debt || 0), notes: c.notes || "" }); setOpen(true); };
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("الاسم مطلوب");
     const payload = {
       user_id: user.id, name: form.name.trim(), phone: form.phone || null, address: form.address || null,
       initial_debt: Number(form.initial_debt) || 0, balance: Number(form.initial_debt) || 0,
+      notes: form.notes.trim() || null,
     };
     const { error } = editing ? await supabase.from("customers").update(payload).eq("id", editing.id) : await supabase.from("customers").insert(payload);
     if (error) return toast.error(error.message);
@@ -82,6 +84,7 @@ function CustomersPage() {
             <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
             <div><Label>العنوان</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
             <div><Label>الدين الأولي</Label><Input type="number" value={form.initial_debt} onChange={(e) => setForm({ ...form, initial_debt: e.target.value })} /></div>
+            <div><Label>الملاحظة</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder="ملاحظات إضافية..." /></div>
           </div>
           <DialogFooter><Button onClick={save} className="w-full">حفظ</Button></DialogFooter>
         </DialogContent>
