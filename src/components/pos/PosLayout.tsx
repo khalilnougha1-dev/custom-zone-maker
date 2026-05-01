@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   Menu, X, ShoppingCart, Package, Users, Truck, BarChart3, Wallet,
-  Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home
+  Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/app", label: "الرئيسية", icon: Home, exact: true },
+  { to: "/app/cash", label: "الصندوق", icon: Calculator },
   { to: "/app/pos", label: "نقطة البيع", icon: ShoppingCart },
   { to: "/app/sales", label: "المبيعات", icon: Receipt },
   { to: "/app/purchases", label: "المشتريات", icon: Truck },
