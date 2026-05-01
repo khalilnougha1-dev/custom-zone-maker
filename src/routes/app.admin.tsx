@@ -48,22 +48,22 @@ function AdminPage() {
         return;
       }
 
-      const [{ data: adminRole, error: adminError }, { data: superAdminRole, error: superAdminError }] = await Promise.all([
-        supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
-        supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" }),
-      ]);
+      const { data: roles, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
 
       if (cancelled) return;
 
-      const error = adminError || superAdminError;
       if (error) {
         setRoleError(error.message);
         setIsAdmin(false);
         return;
       }
 
+      const roleNames = (roles || []).map((item) => item.role);
       setRoleError(null);
-      setIsAdmin(Boolean(adminRole || superAdminRole));
+      setIsAdmin(roleNames.includes("admin") || roleNames.includes("super_admin"));
     };
 
     checkAdminAccess();
