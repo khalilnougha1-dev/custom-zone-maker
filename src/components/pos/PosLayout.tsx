@@ -28,6 +28,7 @@ const NAV = [
   { to: "/app/trucks", label: "الشاحنات والتوزيع", icon: TruckIcon },
   { to: "/app/printer", label: "الطابعة", icon: Printer },
   { to: "/app/settings", label: "الإعدادات", icon: Settings },
+  { to: "/app/account", label: "حسابي", icon: UserCircle },
   { to: "/app/admin", label: "لوحة المسؤول", icon: Shield },
 ];
 
