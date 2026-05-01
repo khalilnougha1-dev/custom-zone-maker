@@ -91,6 +91,7 @@ export const ar = {
     success: "تم بنجاح!",
     error: "حدث خطأ",
     googleSignIn: "المتابعة باستخدام Google",
+    appleSignIn: "المتابعة باستخدام Apple",
     or: "أو",
   },
   common: {
