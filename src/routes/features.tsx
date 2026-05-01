@@ -7,8 +7,8 @@ import { Footer } from "@/components/marketing/Footer";
 export const Route = createFileRoute("/features")({
   head: () => ({
     meta: [
-      { title: "الميزات — khalilPoS" },
-      { name: "description", content: "اكتشف جميع ميزات منصة khalilPoS لإدارة نشاطك التجاري." },
+      { title: "الميزات — SAHLAPOS" },
+      { name: "description", content: "اكتشف جميع ميزات منصة SAHLAPOS لإدارة نشاطك التجاري." },
     ],
   }),
   component: FeaturesPage,

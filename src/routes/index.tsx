@@ -120,7 +120,7 @@ function HomePage() {
       <section className="bg-gradient-subtle py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-4xl font-bold md:text-5xl">لماذا khalilPoS؟</h2>
+            <h2 className="text-4xl font-bold md:text-5xl">لماذا SAHLAPOS؟</h2>
             <p className="mt-4 text-lg text-muted-foreground">منصة احترافية مصممة لتجار الجزائر والمنطقة العربية</p>
           </div>
           <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -165,7 +165,7 @@ function HomePage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-4xl font-bold md:text-5xl">يثقون بنا</h2>
-            <p className="mt-4 text-lg text-muted-foreground">آراء تجار يستخدمون khalilPoS يومياً</p>
+            <p className="mt-4 text-lg text-muted-foreground">آراء تجار يستخدمون SAHLAPOS يومياً</p>
           </div>
           <div className="mt-16 grid gap-6 md:grid-cols-3">
             {[

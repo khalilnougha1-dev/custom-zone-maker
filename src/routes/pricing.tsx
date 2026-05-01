@@ -8,7 +8,7 @@ import { Footer } from "@/components/marketing/Footer";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "الأسعار — khalilPoS" },
+      { title: "الأسعار — SAHLAPOS" },
       { name: "description", content: "خطط أسعار مرنة تناسب جميع الأنشطة التجارية." },
     ],
   }),

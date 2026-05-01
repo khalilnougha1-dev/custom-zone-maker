@@ -7,8 +7,8 @@ import { Footer } from "@/components/marketing/Footer";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "اتصل بنا — khalilPoS" },
-      { name: "description", content: "تواصل مع فريق khalilPoS." },
+      { title: "اتصل بنا — SAHLAPOS" },
+      { name: "description", content: "تواصل مع فريق SAHLAPOS." },
     ],
   }),
   component: ContactPage,
@@ -27,7 +27,7 @@ function ContactPage() {
       <section className="py-20">
         <div className="container mx-auto grid max-w-4xl gap-6 px-4 md:grid-cols-3">
           {[
-            { icon: Mail, title: "Email", value: "contact@kuaipos.com" },
+            { icon: Mail, title: "Email", value: "contact@sahlapos.com" },
             { icon: Phone, title: "Phone", value: "+213 555 000 000" },
             { icon: MapPin, title: "Address", value: "Algiers, Algeria" },
           ].map((c) => (

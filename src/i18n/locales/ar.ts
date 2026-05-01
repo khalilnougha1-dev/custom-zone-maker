@@ -1,5 +1,5 @@
 export const ar = {
-  brand: { name: "khalilPoS", tagline: "نظام نقاط البيع الذكي" },
+  brand: { name: "SAHLAPOS", tagline: "نظام نقاط البيع الذكي" },
   nav: {
     home: "الرئيسية",
     features: "الميزات",
@@ -59,7 +59,7 @@ export const ar = {
   },
   cta: {
     title: "جاهز لتطوير نشاطك؟",
-    subtitle: "انضم لآلاف التجار الذين يثقون بـ khalilPoS",
+    subtitle: "انضم لآلاف التجار الذين يثقون بـ SAHLAPOS",
     button: "ابدأ مجاناً الآن",
   },
   footer: {
