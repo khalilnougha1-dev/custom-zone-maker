@@ -2,12 +2,14 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   Menu, X, ShoppingCart, Package, Users, Truck, BarChart3, Wallet,
-  Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator
+  Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator,
+  Shield, TruckIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CalculatorDialog } from "@/components/pos/CalculatorDialog";
 
 const NAV = [
   { to: "/app", label: "الرئيسية", icon: Home, exact: true },
