@@ -318,6 +318,30 @@ function AdminPage() {
 
   return (
     <PosLayout title="لوحة المسؤول">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div className="rounded-xl border border-border bg-card p-3 text-center">
+          <UsersIcon className="mx-auto mb-1 h-5 w-5 text-primary" />
+          <div className="text-xl font-bold">{stats.total}</div>
+          <div className="text-xs text-muted-foreground">المستخدمين</div>
+        </div>
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
+          <UserCheck className="mx-auto mb-1 h-5 w-5 text-emerald-600" />
+          <div className="text-xl font-bold text-emerald-600">{stats.active}</div>
+          <div className="text-xs text-muted-foreground">نشطين</div>
+        </div>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-center">
+          <UserX className="mx-auto mb-1 h-5 w-5 text-destructive" />
+          <div className="text-xl font-bold text-destructive">{stats.expired}</div>
+          <div className="text-xs text-muted-foreground">منتهية</div>
+        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+          <TrendingUp className="mx-auto mb-1 h-5 w-5 text-amber-600" />
+          <div className="text-xl font-bold text-amber-600">{stats.expiringSoon}</div>
+          <div className="text-xs text-muted-foreground">قارب الانتهاء</div>
+        </div>
+      </div>
+
       <Tabs defaultValue="codes" className="w-full" dir="rtl">
         <TabsList className="grid w-full grid-cols-4 mb-4">
           <TabsTrigger value="codes" className="gap-1 text-xs"><KeyRound className="h-3 w-3" /> الرموز</TabsTrigger>
