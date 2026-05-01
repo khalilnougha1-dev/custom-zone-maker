@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarArrowRight, ShoppingCart, Banknote, CreditCard, PackageOpen,
+  CalendarClock, ShoppingCart, Banknote, CreditCard, PackageOpen,
   Users, UtensilsCrossed, ArrowDownToLine, Calculator, ArrowLeftRight,
   Building2, ArrowUpFromLine, X
 } from "lucide-react";
