@@ -1,0 +1,1 @@
+ALTER TABLE public.suppliers ADD COLUMN IF NOT EXISTS is_inactive BOOLEAN NOT NULL DEFAULT false;
