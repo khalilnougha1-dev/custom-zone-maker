@@ -2,12 +2,14 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   Menu, X, ShoppingCart, Package, Users, Truck, BarChart3, Wallet,
-  Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator
+  Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator,
+  Shield, TruckIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CalculatorDialog } from "@/components/pos/CalculatorDialog";
 
 const NAV = [
   { to: "/app", label: "الرئيسية", icon: Home, exact: true },
@@ -23,14 +25,17 @@ const NAV = [
   { to: "/app/finance", label: "الوضعية المالية", icon: TrendingUp },
   { to: "/app/profits", label: "الأرباح", icon: BarChart3 },
   { to: "/app/reports", label: "التقارير", icon: FileText },
+  { to: "/app/trucks", label: "الشاحنات والتوزيع", icon: TruckIcon },
   { to: "/app/printer", label: "الطابعة", icon: Printer },
   { to: "/app/settings", label: "الإعدادات", icon: Settings },
+  { to: "/app/admin", label: "لوحة المسؤول", icon: Shield },
 ];
 
 export function PosLayout({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const router = useRouterState();
   const path = router.location.pathname;
 
@@ -58,9 +63,16 @@ export function PosLayout({ title, children, actions }: { title: string; childre
             <Menu className="h-6 w-6" />
           </button>
           <h1 className="text-lg font-bold">{title}</h1>
-          <div className="flex items-center gap-1">{actions}</div>
+          <div className="flex items-center gap-1">
+            {actions}
+            <button onClick={() => setCalcOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="calculator">
+              <Calculator className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </header>
+
+      <CalculatorDialog open={calcOpen} onOpenChange={setCalcOpen} />
 
       {/* Drawer */}
       {open && (

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          duration_days: number
+          id: string
+          is_used: boolean
+          notes: string | null
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          duration_days?: number
+          id?: string
+          is_used?: boolean
+          notes?: string | null
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          duration_days?: number
+          id?: string
+          is_used?: boolean
+          notes?: string | null
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           auto_print: boolean | null
@@ -602,6 +638,113 @@ export type Database = {
         }
         Relationships: []
       }
+      truck_distributions: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          delivery_date: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          paid: number
+          product_id: string | null
+          product_name: string
+          quantity: number
+          status: string
+          total: number
+          truck_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          paid?: number
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          status?: string
+          total?: number
+          truck_id: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          paid?: number
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          status?: string
+          total?: number
+          truck_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "truck_distributions_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trucks: {
+        Row: {
+          created_at: string
+          driver_name: string | null
+          driver_phone: string | null
+          driver_user_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          owner_id: string
+          plate_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          driver_name?: string | null
+          driver_phone?: string | null
+          driver_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          owner_id: string
+          plate_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          driver_name?: string | null
+          driver_phone?: string | null
+          driver_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          plate_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -637,7 +780,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin" | "driver"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -765,7 +908,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin", "driver"],
     },
   },
 } as const
