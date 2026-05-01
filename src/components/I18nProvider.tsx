@@ -8,7 +8,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // After hydration, switch to user's preferred language
     const stored = typeof window !== "undefined" ? localStorage.getItem("i18nextLng") : null;
     const target = stored && ["ar", "fr", "en"].includes(stored) ? stored : "ar";
     if (i18n.language !== target) {
@@ -23,6 +22,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lng;
     document.documentElement.dir = isRTL(lng) ? "rtl" : "ltr";
   }, [i18nInstance.language, hydrated]);
+
+  // Avoid SSR/CSR text mismatch by only rendering children after hydration
+  if (!hydrated) {
+    return <div style={{ visibility: "hidden" }}>{children}</div>;
+  }
 
   return <>{children}</>;
 }
