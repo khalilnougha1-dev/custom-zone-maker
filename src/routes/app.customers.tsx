@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,7 +20,7 @@ function CustomersPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", initial_debt: "0", notes: "" });
+  const [form, setForm] = useState({ name: "", phone: "", address: "", initial_debt: "0", notes: "", is_inactive: false });
 
   const load = () => {
     if (!user) return;
@@ -27,8 +28,8 @@ function CustomersPage() {
   };
   useEffect(load, [user]);
 
-  const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", initial_debt: "0", notes: "" }); setOpen(true); };
-  const openEdit = (c: any) => { setEditing(c); setForm({ name: c.name, phone: c.phone || "", address: c.address || "", initial_debt: String(c.initial_debt || 0), notes: c.notes || "" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", initial_debt: "0", notes: "", is_inactive: false }); setOpen(true); };
+  const openEdit = (c: any) => { setEditing(c); setForm({ name: c.name, phone: c.phone || "", address: c.address || "", initial_debt: String(c.initial_debt || 0), notes: c.notes || "", is_inactive: !!c.is_inactive }); setOpen(true); };
 
   const save = async () => {
     if (!user || !form.name.trim()) return toast.error("الاسم مطلوب");
@@ -36,6 +37,7 @@ function CustomersPage() {
       user_id: user.id, name: form.name.trim(), phone: form.phone || null, address: form.address || null,
       initial_debt: Number(form.initial_debt) || 0, balance: Number(form.initial_debt) || 0,
       notes: form.notes.trim() || null,
+      is_inactive: form.is_inactive,
     };
     const { error } = editing ? await supabase.from("customers").update(payload).eq("id", editing.id) : await supabase.from("customers").insert(payload);
     if (error) return toast.error(error.message);
@@ -80,6 +82,10 @@ function CustomersPage() {
         <DialogContent dir="rtl" className="max-w-md">
           <DialogHeader><DialogTitle>{editing ? "تعديل زبون" : "زبون جديد"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2">
+              <Switch checked={form.is_inactive} onCheckedChange={(v) => setForm({ ...form, is_inactive: v })} />
+              <Label className="cursor-pointer">زبون غير نشيط</Label>
+            </div>
             <div><Label>الاسم</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
             <div><Label>العنوان</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
