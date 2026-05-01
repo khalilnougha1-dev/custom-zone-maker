@@ -26,10 +26,14 @@ function AdminPage() {
   const [roleError, setRoleError] = useState<string | null>(null);
   const [codes, setCodes] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState(30);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [extendUser, setExtendUser] = useState<any>(null);
+  const [extendDays, setExtendDays] = useState(30);
+  const [extendNotes, setExtendNotes] = useState("");
 
   useEffect(() => {
     let cancelled = false;
