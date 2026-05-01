@@ -34,6 +34,8 @@ function AdminPage() {
   const [extendUser, setExtendUser] = useState<any>(null);
   const [extendDays, setExtendDays] = useState(30);
   const [extendNotes, setExtendNotes] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "expired" | "disabled">("all");
 
   useEffect(() => {
     let cancelled = false;
