@@ -1,124 +1,348 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Search, Plus, Minus, Trash2, ShoppingCart, X } from "lucide-react";
-import { PosLayout } from "@/components/pos/PosLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Search, ArrowRight, Calculator, ListChecks, ScanLine,
+  ListPlus, Save, ListX, Plus, Minus, X
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/pos")({ component: PosPage });
+export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
 
-type Cart = { id: string; name: string; price: number; cost: number; qty: number };
+type CartItem = { id: string; name: string; price: number; cost: number; qty: number };
 
-function PosPage() {
-  const { user } = useAuth();
+function NewSalePage() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const [now, setNow] = useState({ date: "", time: "" });
   const [products, setProducts] = useState<any[]>([]);
-  const [cart, setCart] = useState<Cart[]>([]);
-  const [q, setQ] = useState("");
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customerQ, setCustomerQ] = useState("");
+  const [productQ, setProductQ] = useState("");
+  const [showCustomerList, setShowCustomerList] = useState(false);
+  const [showProductList, setShowProductList] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [paid, setPaid] = useState("");
+  const productInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [loading, user, navigate]);
+
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      setNow({
+        date: `${dd}/${mm}/${d.getFullYear()}`,
+        time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+      });
+    };
+    tick();
+    const i = setInterval(tick, 30_000);
+    return () => clearInterval(i);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("products").select("*").eq("user_id", user.id).order("name").then(({ data }) => setProducts(data || []));
+    supabase.from("products").select("*").eq("user_id", user.id).order("name")
+      .then(({ data }) => setProducts(data || []));
+    supabase.from("customers").select("id,name,phone").eq("user_id", user.id).order("name")
+      .then(({ data }) => setCustomers(data || []));
   }, [user]);
 
-  const filtered = useMemo(() => products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || (p.barcode || "").includes(q)), [products, q]);
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const change = (Number(paid) || 0) - total;
+  const filteredCustomers = useMemo(() => {
+    const q = customerQ.toLowerCase().trim();
+    if (!q) return customers.slice(0, 20);
+    return customers.filter((c: any) =>
+      c.name?.toLowerCase().includes(q) || (c.phone || "").includes(q)
+    ).slice(0, 20);
+  }, [customers, customerQ]);
 
-  const add = (p: any) => {
+  const filteredProducts = useMemo(() => {
+    const q = productQ.toLowerCase().trim();
+    if (!q) return products.slice(0, 30);
+    return products.filter((p: any) =>
+      p.name?.toLowerCase().includes(q) ||
+      (p.barcode || "").includes(q) ||
+      (p.reference || "").toLowerCase().includes(q)
+    ).slice(0, 30);
+  }, [products, productQ]);
+
+  const totalAmount = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalUnits = cart.reduce((s, i) => s + i.qty, 0);
+  const totalLines = cart.length;
+
+  const addProduct = (p: any) => {
     setCart(prev => {
       const found = prev.find(i => i.id === p.id);
       if (found) return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { id: p.id, name: p.name, price: Number(p.retail_price), cost: Number(p.cost_price), qty: 1 }];
+      return [...prev, {
+        id: p.id, name: p.name,
+        price: Number(p.retail_price) || 0,
+        cost: Number(p.cost_price) || 0, qty: 1,
+      }];
     });
+    setProductQ("");
+    setShowProductList(false);
+    productInputRef.current?.focus();
   };
+
   const setQty = (id: string, qty: number) => {
     if (qty <= 0) return setCart(prev => prev.filter(i => i.id !== id));
     setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
   };
 
-  const checkout = async () => {
+  const clearCart = () => {
+    if (cart.length === 0) return;
+    setCart([]);
+    setCustomerId(null);
+    setCustomerQ("");
+    toast.success("تم تفريغ القائمة");
+  };
+
+  const openConfirm = () => {
+    if (cart.length === 0) return toast.error("السلة فارغة");
+    setPaid(totalAmount.toFixed(2));
+    setConfirmOpen(true);
+  };
+
+  const save = async () => {
     if (!user || cart.length === 0) return;
     const { data: sale, error } = await supabase.from("sales").insert({
-      user_id: user.id, subtotal: total, total, paid: Number(paid) || total, payment_method: "cash",
+      user_id: user.id,
+      customer_id: customerId,
+      subtotal: totalAmount,
+      total: totalAmount,
+      paid: Number(paid) || totalAmount,
+      payment_method: "cash",
       invoice_number: `INV-${Date.now()}`,
     }).select().single();
     if (error || !sale) return toast.error(error?.message || "خطأ");
     const items = cart.map(i => ({
       sale_id: sale.id, product_id: i.id, product_name: i.name,
-      quantity: i.qty, unit_price: i.price, cost_price: i.cost, total: i.price * i.qty,
+      quantity: i.qty, unit_price: i.price, cost_price: i.cost,
+      total: i.price * i.qty,
     }));
     const { error: e2 } = await supabase.from("sale_items").insert(items);
     if (e2) return toast.error(e2.message);
-    toast.success(`✅ تم البيع — ${total.toFixed(2)} دج`);
-    setCart([]); setPaid("");
-    // refresh stock
-    supabase.from("products").select("*").eq("user_id", user.id).order("name").then(({ data }) => setProducts(data || []));
+    toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
+    setCart([]); setPaid(""); setCustomerId(null); setCustomerQ("");
+    setConfirmOpen(false);
+    supabase.from("products").select("*").eq("user_id", user.id).order("name")
+      .then(({ data }) => setProducts(data || []));
   };
 
+  if (loading || !user) {
+    return <div className="flex min-h-screen items-center justify-center bg-background">...</div>;
+  }
+
   return (
-    <PosLayout title="نقطة البيع">
-      <div className="space-y-3">
-        {/* Cart */}
-        <div className="rounded-2xl bg-card border border-border p-3 shadow-card">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-sm font-semibold"><ShoppingCart className="h-4 w-4" />السلة ({cart.length})</div>
-            {cart.length > 0 && <button onClick={() => setCart([])} className="text-xs text-destructive">إفراغ</button>}
+    <div className="min-h-screen bg-muted/30 flex flex-col" dir="rtl">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
+        <div className="flex h-14 items-center justify-between px-4">
+          <button
+            onClick={() => navigate({ to: "/app/sales" })}
+            className="rounded-lg p-2 hover:bg-white/10 transition"
+            aria-label="رجوع"
+          >
+            <ArrowRight className="h-6 w-6" />
+          </button>
+          <h1 className="text-lg font-bold">بيع جديد</h1>
+          <button
+            onClick={openConfirm}
+            className="rounded-lg p-2 hover:bg-white/10 transition"
+            aria-label="حاسبة"
+          >
+            <Calculator className="h-6 w-6" />
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 px-4 pt-3 pb-32">
+        {/* Date & time */}
+        <div className="flex items-center justify-end gap-4 text-sm mb-3">
+          <span className="text-muted-foreground">التوقيت <span className="text-sky-500 font-mono">{now.time}</span></span>
+          <span className="text-muted-foreground">التاريخ <span className="text-sky-500 font-mono">{now.date}</span></span>
+        </div>
+
+        {/* Customer */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-sm font-semibold w-14 text-right">الزبون</span>
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={customerQ}
+              onChange={(e) => { setCustomerQ(e.target.value); setShowCustomerList(true); setCustomerId(null); }}
+              onFocus={() => setShowCustomerList(true)}
+              className="pr-10 h-12 bg-card border-primary/40 text-right"
+            />
+            {showCustomerList && filteredCustomers.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-30 max-h-64 overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
+                {filteredCustomers.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => { setCustomerId(c.id); setCustomerQ(c.name); setShowCustomerList(false); }}
+                    className="w-full text-right px-3 py-2 text-sm hover:bg-muted border-b border-border last:border-0"
+                  >
+                    {c.name}{c.phone && <span className="text-xs text-muted-foreground"> — {c.phone}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {cart.length === 0 ? (
-            <div className="text-center text-sm text-muted-foreground py-6">السلة فارغة — اختر منتج للإضافة</div>
-          ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {cart.map(i => (
-                <div key={i.id} className="flex items-center gap-2 text-sm border-b border-border pb-2 last:border-0">
-                  <button onClick={() => setQty(i.id, i.qty - 1)} className="rounded bg-muted p-1"><Minus className="h-3 w-3" /></button>
-                  <span className="w-8 text-center font-mono font-bold">{i.qty}</span>
-                  <button onClick={() => setQty(i.id, i.qty + 1)} className="rounded bg-muted p-1"><Plus className="h-3 w-3" /></button>
-                  <div className="flex-1 truncate">{i.name}</div>
-                  <div className="font-mono font-semibold">{(i.price * i.qty).toFixed(2)}</div>
-                  <button onClick={() => setQty(i.id, 0)} className="text-destructive"><X className="h-4 w-4" /></button>
-                </div>
+        </div>
+
+        {/* Product search */}
+        <div className="rounded-xl bg-card border border-border p-3 mb-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button className="text-foreground/80 shrink-0" aria-label="قائمة">
+              <ListChecks className="h-7 w-7" />
+            </button>
+            <Input
+              ref={productInputRef}
+              value={productQ}
+              onChange={(e) => { setProductQ(e.target.value); setShowProductList(true); }}
+              onFocus={() => setShowProductList(true)}
+              placeholder="إبحث عن منتج"
+              className="flex-1 border-0 border-b border-foreground/40 rounded-none bg-transparent text-right focus-visible:ring-0 focus-visible:border-primary"
+            />
+          </div>
+          {showProductList && productQ && filteredProducts.length > 0 && (
+            <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-border bg-background">
+              {filteredProducts.map((p: any) => (
+                <button
+                  key={p.id}
+                  onClick={() => addProduct(p)}
+                  className="w-full text-right px-3 py-2 text-sm hover:bg-muted border-b border-border last:border-0 flex items-center justify-between gap-2"
+                >
+                  <span className="font-mono font-bold text-primary">{Number(p.retail_price).toFixed(2)}</span>
+                  <span className="flex-1 truncate">{p.name}</span>
+                </button>
               ))}
             </div>
           )}
-          <div className="mt-3 border-t border-border pt-3 space-y-2">
-            <div className="flex items-center justify-between text-lg font-bold">
-              <span>الإجمالي</span>
-              <span className="font-mono text-primary">{total.toFixed(2)}</span>
+        </div>
+
+        {/* Display panel — black with green digits */}
+        <div className="rounded-xl bg-[#1f1f1f] text-white p-4 shadow-card">
+          <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+            <div
+              className="font-mono text-5xl font-bold text-green-400 tabular-nums tracking-wider"
+              style={{ textShadow: "0 0 8px rgba(74,222,128,0.45)" }}
+            >
+              {totalAmount.toFixed(2)}
             </div>
-            <div className="flex items-center gap-2">
-              <Input type="number" inputMode="decimal" placeholder="المبلغ المدفوع" value={paid} onChange={(e) => setPaid(e.target.value)} className="bg-background" />
-              <div className="text-sm text-muted-foreground whitespace-nowrap">الصرف: <span className="font-mono font-bold text-foreground">{Math.max(0, change).toFixed(2)}</span></div>
+            <div className="text-right space-y-1">
+              <div className="text-base font-bold">المجموع</div>
+              <div className="text-sm flex items-center justify-end gap-2">
+                <span className="font-mono text-green-400">{totalLines}</span>
+                <span className="text-white/80">المنتجات</span>
+              </div>
+              <div className="text-sm flex items-center justify-end gap-2">
+                <span className="font-mono text-green-400">{totalUnits}</span>
+                <span className="text-white/80">المواد</span>
+              </div>
             </div>
-            <Button onClick={checkout} disabled={cart.length === 0} className="w-full bg-gradient-primary text-primary-foreground font-bold">
-              تأكيد البيع
-            </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث عن منتج" className="pr-10 bg-card" />
-        </div>
-
-        {/* Products grid */}
-        <div className="grid grid-cols-2 gap-2">
-          {filtered.map(p => (
-            <button key={p.id} onClick={() => add(p)} className="rounded-xl bg-card border border-border p-3 text-right hover:border-primary/50 transition shadow-sm">
-              <div className="font-semibold truncate">{p.name}</div>
-              <div className="mt-2 flex items-center justify-between text-xs">
-                <span className={`font-mono font-bold ${Number(p.stock_quantity) <= 0 ? "text-destructive" : "text-success"}`}>{p.stock_quantity}</span>
-                <span className="font-mono font-bold text-primary">{Number(p.retail_price).toFixed(2)}</span>
+        {/* Cart items list */}
+        {cart.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {cart.map(i => (
+              <div key={i.id} className="flex items-center gap-2 rounded-lg bg-card border border-border p-2 shadow-sm">
+                <button onClick={() => setQty(i.id, 0)} className="text-destructive p-1"><X className="h-4 w-4" /></button>
+                <div className="font-mono font-bold text-primary w-20 text-left">{(i.price * i.qty).toFixed(2)}</div>
+                <button onClick={() => setQty(i.id, i.qty - 1)} className="rounded bg-muted p-1"><Minus className="h-3 w-3" /></button>
+                <span className="w-8 text-center font-mono font-bold">{i.qty}</span>
+                <button onClick={() => setQty(i.id, i.qty + 1)} className="rounded bg-muted p-1"><Plus className="h-3 w-3" /></button>
+                <div className="flex-1 truncate text-right text-sm">{i.name}</div>
               </div>
-            </button>
-          ))}
-          {filtered.length === 0 && <div className="col-span-2 text-center text-muted-foreground py-6">لا توجد منتجات</div>}
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* Floating barcode button */}
+      <button
+        onClick={() => toast.info("شغّل الكاميرا لمسح الباركود")}
+        className="fixed bottom-24 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
+        aria-label="مسح الباركود"
+      >
+        <ScanLine className="h-6 w-6" />
+      </button>
+
+      {/* Bottom action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto grid max-w-5xl grid-cols-3">
+          <button
+            onClick={() => productInputRef.current?.focus()}
+            className="flex items-center justify-center py-4 hover:bg-muted/50 transition"
+            aria-label="إضافة سطر"
+          >
+            <ListPlus className="h-7 w-7" />
+          </button>
+          <button
+            onClick={openConfirm}
+            className="flex items-center justify-center py-4 hover:bg-muted/50 transition border-x border-border"
+            aria-label="حفظ"
+          >
+            <Save className="h-7 w-7" />
+          </button>
+          <button
+            onClick={clearCart}
+            className="flex items-center justify-center py-4 hover:bg-muted/50 transition"
+            aria-label="مسح القائمة"
+          >
+            <ListX className="h-7 w-7" />
+          </button>
         </div>
       </div>
-    </PosLayout>
+
+      {/* Confirm dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-right">تأكيد البيع</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted p-3 flex items-center justify-between">
+              <span className="font-mono text-2xl font-bold text-primary">{totalAmount.toFixed(2)}</span>
+              <span className="text-sm font-semibold">الإجمالي</span>
+            </div>
+            <div>
+              <label className="text-sm font-semibold block mb-1 text-right">المبلغ المدفوع</label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={paid}
+                onChange={(e) => setPaid(e.target.value)}
+                className="text-right font-mono text-lg"
+              />
+            </div>
+            <div className="rounded-lg bg-muted/60 p-2 flex items-center justify-between text-sm">
+              <span className="font-mono font-bold">{Math.max(0, (Number(paid) || 0) - totalAmount).toFixed(2)}</span>
+              <span>الصرف</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} className="flex-1">إلغاء</Button>
+            <Button onClick={save} className="flex-1 bg-gradient-primary text-primary-foreground">تأكيد البيع</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
