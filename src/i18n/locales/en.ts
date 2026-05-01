@@ -1,5 +1,5 @@
 export const en = {
-  brand: { name: "KuaiPOS", tagline: "Smart Point of Sale System" },
+  brand: { name: "khalilPoS", tagline: "Smart Point of Sale System" },
   nav: {
     home: "Home",
     features: "Features",
@@ -59,7 +59,7 @@ export const en = {
   },
   cta: {
     title: "Ready to grow your business?",
-    subtitle: "Join thousands of merchants who trust KuaiPOS",
+    subtitle: "Join thousands of merchants who trust khalilPoS",
     button: "Start free now",
   },
   footer: {

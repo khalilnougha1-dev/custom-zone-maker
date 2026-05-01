@@ -22,10 +22,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "KuaiPOS — نظام نقاط البيع الذكي" },
+      { title: "khalilPoS — نظام نقاط البيع الذكي" },
       { name: "description", content: "منصة متكاملة لإدارة المبيعات، المخزون، الزبائن، والمشتريات." },
-      { property: "og:title", content: "KuaiPOS — نظام نقاط البيع الذكي" },
-      { name: "twitter:title", content: "KuaiPOS — نظام نقاط البيع الذكي" },
+      { property: "og:title", content: "khalilPoS — نظام نقاط البيع الذكي" },
+      { name: "twitter:title", content: "khalilPoS — نظام نقاط البيع الذكي" },
       { property: "og:description", content: "منصة متكاملة لإدارة المبيعات، المخزون، الزبائن، والمشتريات." },
       { name: "twitter:description", content: "منصة متكاملة لإدارة المبيعات، المخزون، الزبائن، والمشتريات." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/80727949-72ad-4b50-9c0f-3ab0f5ec9a81/id-preview-fd966185--c4779272-19cc-4e87-959f-a75116596f33.lovable.app-1777602011236.png" },
