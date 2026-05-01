@@ -153,7 +153,7 @@ function CashPage() {
 
       {/* Rows */}
       <div className="space-y-2 pb-24">
-        <Row icon={CalendarArrowRight} label="الباقي (من اليوم السابق)" value={previousBalance} />
+        <Row icon={CalendarClock} label="الباقي (من اليوم السابق)" value={previousBalance} />
         <Row icon={ShoppingCart} label="مجموع المبيعات" value={salesTotal} count={sales.length} />
         <Row icon={Banknote} label="المدفوعات نقدا" value={cashSales} count={sales.filter((s:any)=>!s.payment_method||s.payment_method==='cash').length} />
         <Row icon={CreditCard} label="المدفوعات (طرق أخرى)" value={otherSales} count={sales.filter((s:any)=>s.payment_method&&s.payment_method!=='cash').length} />
