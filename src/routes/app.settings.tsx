@@ -104,9 +104,37 @@ function SettingsPage() {
         />
 
         <Section title="الطباعة" />
-        <Row title="لغة الطباعة" desc="الفرنسية" control={<div />} />
+
+        <div className="py-3 border-b border-border text-right">
+          <Label className="block font-semibold">لغة الطباعة</Label>
+          <Select value={s.print_language || "ar"} onValueChange={(v) => setS({ ...s, print_language: v })}>
+            <SelectTrigger className="mt-2 h-11 bg-card border-primary/40 text-right" dir="rtl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent dir="rtl">
+              <SelectItem value="ar">العربية</SelectItem>
+              <SelectItem value="fr">الفرنسية</SelectItem>
+              <SelectItem value="en">الإنجليزية</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <Row title="نظام الطباعة" desc="بسيط" control={<div />} />
-        <Row title="نوع الطابعة" desc="58 مم" control={<div />} />
+
+        <div className="py-3 border-b border-border text-right">
+          <Label className="block font-semibold">نوع الطابعة</Label>
+          <Select value={s.printer_type || "58mm"} onValueChange={(v) => setS({ ...s, printer_type: v })}>
+            <SelectTrigger className="mt-2 h-11 bg-card border-primary/40 text-right" dir="rtl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent dir="rtl">
+              <SelectItem value="58mm">58 مم</SelectItem>
+              <SelectItem value="80mm">80 مم</SelectItem>
+              <SelectItem value="a4">A4</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="py-3 border-b border-border">
           <Label className="text-right block">الهامش</Label>
           <Input type="number" value={s.print_margin} onChange={(e) => setS({ ...s, print_margin: Number(e.target.value) })} className="mt-1" />
