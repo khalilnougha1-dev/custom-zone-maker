@@ -6,7 +6,7 @@ export const ar = {
     pricing: "الأسعار",
     contact: "اتصل بنا",
     login: "تسجيل الدخول",
-    signup: "ابدأ مجاناً",
+    signup: "إنشاء حساب",
     dashboard: "لوحة التحكم",
     logout: "تسجيل الخروج",
   },
