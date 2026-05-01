@@ -3,7 +3,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import {
   Menu, X, ShoppingCart, Package, Users, Truck, BarChart3, Wallet,
   Receipt, Settings, LogOut, Printer, TrendingUp, Boxes, FileText, Home, Calculator,
-  Shield, TruckIcon, UserCircle
+  Shield, TruckIcon, UserCircle, AlertTriangle
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,8 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
+  const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const router = useRouterState();
   const path = router.location.pathname;
 
@@ -45,6 +47,28 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   }, [user, loading, navigate]);
 
   useEffect(() => { setOpen(false); }, [path]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("subscription_expires_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!data?.subscription_expires_at) return;
+      const exp = new Date(data.subscription_expires_at);
+      const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
+      if (days <= 7) setExpiryInfo({ daysLeft: days, isExpired: days <= 0 });
+    })();
+    const dismissed = sessionStorage.getItem("expiry_banner_dismissed");
+    if (dismissed) setBannerDismissed(true);
+  }, [user]);
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    sessionStorage.setItem("expiry_banner_dismissed", "1");
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -74,6 +98,29 @@ export function PosLayout({ title, children, actions }: { title: string; childre
       </header>
 
       <CalculatorDialog open={calcOpen} onOpenChange={setCalcOpen} />
+
+      {expiryInfo && !bannerDismissed && (
+        <div className={`sticky top-14 z-30 border-b ${expiryInfo.isExpired ? "bg-destructive/10 border-destructive/30" : "bg-amber-500/10 border-amber-500/30"}`}>
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-2">
+            <div className="flex items-center gap-2 text-sm min-w-0">
+              <AlertTriangle className={`h-4 w-4 shrink-0 ${expiryInfo.isExpired ? "text-destructive" : "text-amber-600"}`} />
+              <span className={`truncate ${expiryInfo.isExpired ? "text-destructive font-semibold" : "text-amber-900 dark:text-amber-200"}`}>
+                {expiryInfo.isExpired
+                  ? "انتهى اشتراكك! يرجى التجديد للاستمرار."
+                  : `اشتراكك سينتهي خلال ${expiryInfo.daysLeft} ${expiryInfo.daysLeft === 1 ? "يوم" : "أيام"}`}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <Link to="/app/activate">
+                <Button size="sm" className="h-7 text-xs bg-gradient-primary text-primary-foreground">تجديد</Button>
+              </Link>
+              <button onClick={dismissBanner} className="rounded p-1 hover:bg-foreground/10" aria-label="dismiss">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Drawer */}
       {open && (

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,8 @@ function AdminPage() {
   const [extendUser, setExtendUser] = useState<any>(null);
   const [extendDays, setExtendDays] = useState(30);
   const [extendNotes, setExtendNotes] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "expired" | "disabled">("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +172,66 @@ function AdminPage() {
 
   const userById = (id: string) => users.find((u) => u.id === id);
 
+  const stats = useMemo(() => {
+    const now = new Date();
+    const total = users.length;
+    const active = users.filter((u) => u.is_active && (!u.subscription_expires_at || new Date(u.subscription_expires_at) > now)).length;
+    const expired = users.filter((u) => u.subscription_expires_at && new Date(u.subscription_expires_at) <= now).length;
+    const expiringSoon = users.filter((u) => {
+      if (!u.subscription_expires_at) return false;
+      const exp = new Date(u.subscription_expires_at);
+      const days = Math.ceil((exp.getTime() - now.getTime()) / 86400000);
+      return days > 0 && days <= 7;
+    }).length;
+    const availableCodes = codes.filter((c) => !c.is_used).length;
+    return { total, active, expired, expiringSoon, availableCodes };
+  }, [users, codes]);
+
+  const filteredUsers = useMemo(() => {
+    const now = new Date();
+    const q = search.trim().toLowerCase();
+    return users.filter((u) => {
+      if (q) {
+        const hay = `${u.full_name || ""} ${u.business_name || ""} ${u.phone || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      const expired = u.subscription_expires_at && new Date(u.subscription_expires_at) <= now;
+      if (filter === "active") return u.is_active && !expired;
+      if (filter === "expired") return expired;
+      if (filter === "disabled") return !u.is_active;
+      return true;
+    });
+  }, [users, search, filter]);
+
+  const exportCSV = () => {
+    const headers = ["الاسم", "النشاط التجاري", "الهاتف", "الحالة", "تاريخ الانتهاء", "الأيام المتبقية", "تاريخ التسجيل"];
+    const now = new Date();
+    const rows = filteredUsers.map((u) => {
+      const exp = u.subscription_expires_at ? new Date(u.subscription_expires_at) : null;
+      const days = exp ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null;
+      const status = !u.is_active ? "معطّل" : exp && exp <= now ? "منتهي" : "نشط";
+      return [
+        u.full_name || "",
+        u.business_name || "",
+        u.phone || "",
+        status,
+        exp ? exp.toLocaleDateString("ar-DZ") : "",
+        days != null ? (days < 0 ? "منتهي" : `${days}`) : "",
+        u.created_at ? new Date(u.created_at).toLocaleDateString("ar-DZ") : "",
+      ];
+    });
+    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = "\uFEFF" + [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`تم تصدير ${rows.length} مستخدم`);
+  };
+
   if (authLoading || isAdmin === null) {
     return <PosLayout title="لوحة المسؤول"><div className="p-8 text-center text-muted-foreground">جاري التحقق...</div></PosLayout>;
   }
@@ -256,6 +318,30 @@ function AdminPage() {
 
   return (
     <PosLayout title="لوحة المسؤول">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div className="rounded-xl border border-border bg-card p-3 text-center">
+          <UsersIcon className="mx-auto mb-1 h-5 w-5 text-primary" />
+          <div className="text-xl font-bold">{stats.total}</div>
+          <div className="text-xs text-muted-foreground">المستخدمين</div>
+        </div>
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-center">
+          <UserCheck className="mx-auto mb-1 h-5 w-5 text-emerald-600" />
+          <div className="text-xl font-bold text-emerald-600">{stats.active}</div>
+          <div className="text-xs text-muted-foreground">نشطين</div>
+        </div>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-center">
+          <UserX className="mx-auto mb-1 h-5 w-5 text-destructive" />
+          <div className="text-xl font-bold text-destructive">{stats.expired}</div>
+          <div className="text-xs text-muted-foreground">منتهية</div>
+        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+          <TrendingUp className="mx-auto mb-1 h-5 w-5 text-amber-600" />
+          <div className="text-xl font-bold text-amber-600">{stats.expiringSoon}</div>
+          <div className="text-xs text-muted-foreground">قارب الانتهاء</div>
+        </div>
+      </div>
+
       <Tabs defaultValue="codes" className="w-full" dir="rtl">
         <TabsList className="grid w-full grid-cols-4 mb-4">
           <TabsTrigger value="codes" className="gap-1 text-xs"><KeyRound className="h-3 w-3" /> الرموز</TabsTrigger>
@@ -310,12 +396,44 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-3">
-          {users.length === 0 && (
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="بحث بالاسم أو الهاتف..."
+                className="pr-9"
+              />
+            </div>
+            <div className="flex gap-1 overflow-x-auto">
+              {([
+                ["all", "الكل", stats.total],
+                ["active", "نشط", stats.active],
+                ["expired", "منتهي", stats.expired],
+                ["disabled", "معطّل", stats.total - stats.active - stats.expired],
+              ] as const).map(([key, label, count]) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant={filter === key ? "default" : "outline"}
+                  onClick={() => setFilter(key as typeof filter)}
+                  className={`h-8 text-xs whitespace-nowrap ${filter === key ? "bg-gradient-primary text-primary-foreground" : ""}`}
+                >
+                  {label} ({count})
+                </Button>
+              ))}
+              <Button size="sm" variant="outline" onClick={exportCSV} className="h-8 text-xs gap-1 mr-auto whitespace-nowrap">
+                <Download className="h-3 w-3" /> تصدير
+              </Button>
+            </div>
+          </div>
+          {filteredUsers.length === 0 && (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              لا يوجد مستخدمين
+              {users.length === 0 ? "لا يوجد مستخدمين" : "لا توجد نتائج مطابقة"}
             </div>
           )}
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <div key={u.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
@@ -344,12 +462,21 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="subs" className="space-y-3">
-          {users.length === 0 && (
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث بالاسم أو الهاتف..."
+              className="pr-9"
+            />
+          </div>
+          {filteredUsers.length === 0 && (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              لا توجد اشتراكات
+              {users.length === 0 ? "لا توجد اشتراكات" : "لا توجد نتائج مطابقة"}
             </div>
           )}
-          {users.map((u) => {
+          {filteredUsers.map((u) => {
             const expiresAt = u.subscription_expires_at ? new Date(u.subscription_expires_at) : null;
             const now = new Date();
             const isExpired = expiresAt && expiresAt < now;
