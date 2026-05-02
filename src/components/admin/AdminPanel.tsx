@@ -71,15 +71,23 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
   };
 
   const generateCode = async () => {
+    if (!deviceId.trim() || deviceId.trim().length !== 16) {
+      return toast.error("الرقم التعريفي يجب أن يكون 16 خانة");
+    }
     setLoading(true);
     const code = Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join("-");
     const { error } = await supabase.from("activation_codes").insert({
-      code, duration_days: days, notes, created_by: user!.id
+      code,
+      duration_days: isPermanent ? 36500 : days,
+      is_permanent: isPermanent,
+      device_id: deviceId.trim().toLowerCase(),
+      notes,
+      created_by: user!.id,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("تم توليد الرمز");
-    setOpen(false); setNotes(""); load();
+    setOpen(false); setNotes(""); setDeviceId(""); setIsPermanent(false); setDays(30); load();
   };
 
   const copyCode = (c: string) => { navigator.clipboard.writeText(c); toast.success("تم نسخ الرمز"); };
