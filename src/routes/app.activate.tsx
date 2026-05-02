@@ -5,6 +5,7 @@ import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/activate")({ component: ActivatePage });
@@ -13,6 +14,7 @@ function ActivatePage() {
   const { user } = useAuth();
   const [now, setNow] = useState<{ time: string; date: string }>({ time: "", date: "" });
   const [key, setKey] = useState("");
+  const [loading, setLoading] = useState(false);
   const deviceId = user?.id?.replace(/-/g, "").slice(0, 16) || "";
 
   useEffect(() => {
@@ -32,10 +34,36 @@ function ActivatePage() {
     navigator.clipboard.writeText(deviceId);
     toast.success("تم النسخ");
   };
-  const requestKey = () => toast.info("سيتم التواصل معك من فريق الدعم");
-  const confirm = () => {
-    if (!key.trim()) return toast.error("أدخل مفتاح التفعيل");
-    toast.success("جاري التحقق من المفتاح...");
+  const requestKey = () => {
+    const msg = `مرحبا، أريد تفعيل تطبيق SAHLAPOS\nالرقم التعريفي: ${deviceId}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const confirm = async () => {
+    const trimmed = key.trim().toUpperCase();
+    if (!trimmed) return toast.error("أدخل مفتاح التفعيل");
+    setLoading(true);
+    const { data, error } = await supabase.rpc("redeem_activation_code", { _code: trimmed });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    const result = data as { success: boolean; error?: string; expires_at?: string; is_permanent?: boolean };
+    if (!result?.success) {
+      const errors: Record<string, string> = {
+        not_authenticated: "يجب تسجيل الدخول",
+        code_not_found: "مفتاح التفعيل غير صحيح",
+        code_already_used: "هذا المفتاح مستعمل من قبل",
+        device_mismatch: "هذا المفتاح مخصص لجهاز آخر",
+      };
+      return toast.error(errors[result?.error || ""] || "فشل التفعيل");
+    }
+    if (result.is_permanent) {
+      toast.success("تم التفعيل الدائم بنجاح ✓");
+    } else {
+      const exp = result.expires_at ? new Date(result.expires_at).toLocaleDateString("ar-DZ") : "";
+      toast.success(`تم التفعيل بنجاح ✓ صالح إلى ${exp}`);
+    }
+    setKey("");
+    setTimeout(() => { window.location.href = "/app"; }, 1500);
   };
 
   return (
@@ -61,8 +89,8 @@ function ActivatePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button onClick={requestKey} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
-          <Button onClick={confirm} className="bg-gradient-primary text-primary-foreground font-semibold">تأكيد</Button>
+          <Button onClick={requestKey} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
+          <Button onClick={confirm} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">{loading ? "جاري التحقق..." : "تأكيد"}</Button>
         </div>
       </div>
     </PosLayout>

@@ -25,6 +25,8 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState(30);
+  const [isPermanent, setIsPermanent] = useState(false);
+  const [deviceId, setDeviceId] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [extendUser, setExtendUser] = useState<any>(null);
@@ -69,15 +71,23 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
   };
 
   const generateCode = async () => {
+    if (!deviceId.trim() || deviceId.trim().length !== 16) {
+      return toast.error("الرقم التعريفي يجب أن يكون 16 خانة");
+    }
     setLoading(true);
     const code = Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join("-");
     const { error } = await supabase.from("activation_codes").insert({
-      code, duration_days: days, notes, created_by: user!.id
+      code,
+      duration_days: isPermanent ? 36500 : days,
+      is_permanent: isPermanent,
+      device_id: deviceId.trim().toLowerCase(),
+      notes,
+      created_by: user!.id,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("تم توليد الرمز");
-    setOpen(false); setNotes(""); load();
+    setOpen(false); setNotes(""); setDeviceId(""); setIsPermanent(false); setDays(30); load();
   };
 
   const copyCode = (c: string) => { navigator.clipboard.writeText(c); toast.success("تم نسخ الرمز"); };
@@ -444,14 +454,53 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
           <DialogHeader><DialogTitle>توليد رمز تفعيل</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>مدة الصلاحية (أيام)</Label>
-              <Input type="number" value={days} onChange={(e) => setDays(parseInt(e.target.value) || 30)} />
+              <Label>الرقم التعريفي للجهاز (16 خانة)</Label>
+              <Input
+                value={deviceId}
+                onChange={(e) => setDeviceId(e.target.value.replace(/[^a-fA-F0-9]/g, "").slice(0, 16))}
+                placeholder="مثال: e6ee32ecce6c477a"
+                className="font-mono ltr text-left"
+                dir="ltr"
+                maxLength={16}
+              />
+              <div className="text-[11px] text-muted-foreground mt-1">
+                أطلبه من المستخدم — يظهر له في صفحة "تفعيل التطبيق"
+              </div>
             </div>
+
+            <div>
+              <Label>مدة الاشتراك</Label>
+              <div className="grid grid-cols-4 gap-1 mt-1">
+                {([
+                  ["شهر", 30, false],
+                  ["3 أشهر", 90, false],
+                  ["سنة", 365, false],
+                  ["دائم", 0, true],
+                ] as const).map(([label, d, perm]) => {
+                  const selected = perm ? isPermanent : !isPermanent && days === d;
+                  return (
+                    <Button
+                      key={label}
+                      type="button"
+                      size="sm"
+                      variant={selected ? "default" : "outline"}
+                      onClick={() => { setIsPermanent(perm); if (!perm) setDays(d); }}
+                      className={`h-9 text-xs ${selected ? "bg-gradient-primary text-primary-foreground" : ""}`}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <Label>ملاحظات (اختياري)</Label>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="مثلا: لزبون فلان" />
             </div>
-            <Button onClick={generateCode} disabled={loading} className="w-full bg-gradient-primary text-primary-foreground">توليد</Button>
+            <Button onClick={generateCode} disabled={loading} className="w-full bg-gradient-primary text-primary-foreground">
+              توليد الرمز
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
