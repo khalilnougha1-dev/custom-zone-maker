@@ -89,8 +89,8 @@ function ActivatePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button onClick={requestKey} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
-          <Button onClick={confirm} className="bg-gradient-primary text-primary-foreground font-semibold">تأكيد</Button>
+          <Button onClick={requestKey} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
+          <Button onClick={confirm} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">{loading ? "جاري التحقق..." : "تأكيد"}</Button>
         </div>
       </div>
     </PosLayout>
