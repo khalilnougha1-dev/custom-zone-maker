@@ -14,6 +14,7 @@ function ActivatePage() {
   const { user } = useAuth();
   const [now, setNow] = useState<{ time: string; date: string }>({ time: "", date: "" });
   const [key, setKey] = useState("");
+  const [loading, setLoading] = useState(false);
   const deviceId = user?.id?.replace(/-/g, "").slice(0, 16) || "";
 
   useEffect(() => {
