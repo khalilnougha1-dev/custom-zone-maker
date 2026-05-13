@@ -237,8 +237,9 @@ export async function uploadToGoogleDrive(file: BackupFile) {
 
 export async function downloadFromGoogleDrive(): Promise<BackupFile> {
   const token = await getDriveAccessToken();
-  const id = await findDriveBackupFileId(token);
-  if (!id) throw new Error("لم يتم العثور على نسخة احتياطية في Google Drive");
+  const f = await findDriveBackup(token);
+  if (!f) throw new Error("لم يتم العثور على نسخة احتياطية في Google Drive");
+  const id = f.id;
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
     headers: { Authorization: `Bearer ${token}` },
   });
