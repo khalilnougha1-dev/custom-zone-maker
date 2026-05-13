@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Copy, Clock, Calendar } from "lucide-react";
+import { Copy, Clock, Calendar, CheckCircle2, HardDrive, Upload, Cloud } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ function ActivatePage() {
   const [now, setNow] = useState<{ time: string; date: string }>({ time: "", date: "" });
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{ active: boolean; expires_at?: string | null; permanent?: boolean }>({ active: false });
   const deviceId = user?.id?.replace(/-/g, "").slice(0, 16) || "";
 
   useEffect(() => {
@@ -29,6 +30,23 @@ function ActivatePage() {
     const i = setInterval(tick, 1000);
     return () => clearInterval(i);
   }, []);
+
+  const loadStatus = async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("subscription_expires_at, subscription_status, is_active")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (data) {
+      const exp = data.subscription_expires_at ? new Date(data.subscription_expires_at) : null;
+      const isPerm = data.subscription_status === "permanent";
+      const isActive = !!data.is_active && (isPerm || (exp ? exp > new Date() : false));
+      setStatus({ active: isActive, expires_at: data.subscription_expires_at, permanent: isPerm });
+    }
+  };
+
+  useEffect(() => { loadStatus(); }, [user?.id]);
 
   const copy = () => {
     navigator.clipboard.writeText(deviceId);
@@ -63,7 +81,22 @@ function ActivatePage() {
       toast.success(`تم التفعيل بنجاح ✓ صالح إلى ${exp}`);
     }
     setKey("");
-    setTimeout(() => { window.location.href = "/app"; }, 1500);
+    setStatus({ active: true, expires_at: result.expires_at, permanent: result.is_permanent });
+  };
+
+  const handleImportFile = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,.csv,.sql,.backup";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) toast.success(`تم اختيار الملف: ${file.name}`);
+    };
+    input.click();
+  };
+
+  const handleGoogleDrive = () => {
+    toast.info("ربط Google Drive قيد التحضير");
   };
 
   return (
@@ -91,6 +124,45 @@ function ActivatePage() {
         <div className="grid grid-cols-2 gap-3 pt-2">
           <Button onClick={requestKey} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
           <Button onClick={confirm} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">{loading ? "جاري التحقق..." : "تأكيد"}</Button>
+        </div>
+
+        {status.active && (
+          <div className="rounded-md border border-green-500/40 bg-green-500/10 px-4 py-3 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div className="flex-1 text-right">
+              <div className="font-semibold text-green-700 dark:text-green-400">الحساب مفعّل</div>
+              <div className="text-xs text-muted-foreground">
+                {status.permanent
+                  ? "تفعيل دائم"
+                  : status.expires_at
+                  ? `صالح إلى ${new Date(status.expires_at).toLocaleDateString("ar-DZ")}`
+                  : ""}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-md border border-accent/60 bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 text-right">
+            <HardDrive className="h-5 w-5 text-primary" />
+            <div className="font-semibold">تخزين الملفات</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleGoogleDrive}
+              className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
+            >
+              <Cloud className="h-4 w-4" />
+              <span>Google Drive</span>
+            </button>
+            <button
+              onClick={handleImportFile}
+              className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
+            >
+              <Upload className="h-4 w-4" />
+              <span>استيراد ملف</span>
+            </button>
+          </div>
         </div>
       </div>
     </PosLayout>
