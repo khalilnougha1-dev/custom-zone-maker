@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight, ShoppingCart, Package, Users, BarChart3, Globe2, Zap,
   Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
-  Sparkles, CheckCircle2, Star,
+  Sparkles, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
