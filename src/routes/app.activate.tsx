@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  exportBackup,
+  downloadBackup,
+  importBackupFromFile,
+  uploadToGoogleDrive,
+  downloadFromGoogleDrive,
+  getGoogleClientId,
+} from "@/lib/backup";
 
 export const Route = createFileRoute("/app/activate")({ component: ActivatePage });
 
