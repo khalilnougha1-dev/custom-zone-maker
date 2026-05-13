@@ -68,17 +68,10 @@ async function getRememberedDevice(): Promise<any | null> {
 
 async function connectAndFindCharacteristic(device: any) {
   if (!device.gatt) throw new Error("الجهاز لا يدعم GATT");
-  const server = await device.gatt.connect();
-  const services = await server.getPrimaryServices();
-  for (const svc of services) {
-    const chars = await svc.getCharacteristics();
-    for (const c of chars) {
-      if (c.properties.write || c.properties.writeWithoutResponse) {
-        return c;
-      }
-    }
-  }
-  // Fallback to known UUIDs
+  const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
+
+  // Prefer known printer UUIDs first; some devices expose other writable
+  // characteristics that accept bytes but do not trigger actual printing.
   for (const sUuid of SERVICE_CANDIDATES) {
     try {
       const svc = await server.getPrimaryService(sUuid);
@@ -90,20 +83,34 @@ async function connectAndFindCharacteristic(device: any) {
       }
     } catch {}
   }
+
+  const services = await server.getPrimaryServices();
+  for (const svc of services) {
+    const chars = await svc.getCharacteristics();
+    for (const c of chars) {
+      if (c.properties.write) return c;
+    }
+    for (const c of chars) {
+      if (c.properties.writeWithoutResponse) return c;
+    }
+  }
+
   throw new Error("تعذر إيجاد قناة الكتابة على الطابعة");
 }
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
-  const chunkSize = 180; // safe MTU for BLE
+  const chunkSize = 120; // safer for cheap thermal BLE printers
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
-    if (characteristic.writeValueWithoutResponse) {
+    if (characteristic.properties?.write && characteristic.writeValue) {
+      await characteristic.writeValue(slice);
+    } else if (characteristic.writeValueWithoutResponse) {
       await characteristic.writeValueWithoutResponse(slice);
     } else {
       await characteristic.writeValue(slice);
     }
     // small delay to avoid printer buffer overrun
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 30));
   }
 }
 
@@ -211,6 +218,7 @@ export async function printHtmlBluetooth(
 
     const characteristic = await connectAndFindCharacteristic(device);
     await writeChunks(characteristic, escposBytes);
+    await new Promise((r) => setTimeout(r, 500));
 
     try {
       device.gatt?.disconnect();
