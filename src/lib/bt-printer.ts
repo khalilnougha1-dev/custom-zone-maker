@@ -28,6 +28,10 @@ let activeCharacteristic: any | null = null;
 let activeConnectionPromise: Promise<any> | null = null;
 let gattTaskQueue: Promise<unknown> = Promise.resolve();
 
+function isAndroidBluetoothClient() {
+  return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent || "");
+}
+
 declare global {
   interface Navigator {
     bluetooth?: any;
@@ -49,6 +53,27 @@ export function clearRememberedPrinter() {
   activeDeviceId = null;
   activeCharacteristic = null;
   activeConnectionPromise = null;
+}
+
+export function syncRememberedBluetoothPrinter(deviceId?: string | null, name?: string | null) {
+  if (typeof window === "undefined" || !deviceId) return;
+
+  const switchingDevice = activeDeviceId && activeDeviceId !== deviceId;
+  localStorage.setItem(ACTIVE_KEY, deviceId);
+
+  if (name) {
+    localStorage.setItem(NAME_KEY, name);
+  }
+
+  if (switchingDevice) {
+    try {
+      activeDevice?.gatt?.disconnect?.();
+    } catch {}
+    activeDevice = null;
+    activeDeviceId = null;
+    activeCharacteristic = null;
+    activeConnectionPromise = null;
+  }
 }
 
 function queueGattTask<T>(task: () => Promise<T>): Promise<T> {
@@ -254,19 +279,35 @@ async function writeWithReconnect(device: any, bytes: Uint8Array) {
   throw lastError instanceof Error ? lastError : new Error("فشل إرسال البيانات إلى الطابعة");
 }
 
+async function writeChunk(characteristic: any, slice: Uint8Array) {
+  if (characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+    try {
+      await characteristic.writeValueWithoutResponse(slice);
+      return;
+    } catch {}
+  }
+
+  if (characteristic.properties?.write && characteristic.writeValue) {
+    await characteristic.writeValue(slice);
+    return;
+  }
+
+  if (characteristic.writeValueWithoutResponse) {
+    await characteristic.writeValueWithoutResponse(slice);
+    return;
+  }
+
+  await characteristic.writeValue(slice);
+}
+
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
-  const chunkSize = 120; // safer for cheap thermal BLE printers
+  const chunkSize = isAndroidBluetoothClient() ? 20 : 120;
+  const chunkDelay = isAndroidBluetoothClient() ? 12 : 30;
+
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
-    if (characteristic.properties?.write && characteristic.writeValue) {
-      await characteristic.writeValue(slice);
-    } else if (characteristic.writeValueWithoutResponse) {
-      await characteristic.writeValueWithoutResponse(slice);
-    } else {
-      await characteristic.writeValue(slice);
-    }
-    // small delay to avoid printer buffer overrun
-    await new Promise((r) => setTimeout(r, 30));
+    await writeChunk(characteristic, slice);
+    await new Promise((r) => setTimeout(r, chunkDelay));
   }
 }
 
