@@ -174,7 +174,7 @@ export async function printReceipt(d: ReceiptData) {
 
     // Direct Bluetooth printing — no system dialog
     try {
-      const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter } =
+      const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter, syncRememberedBluetoothPrinter } =
         await import("./bt-printer");
 
       if (!isWebBluetoothSupported()) {
@@ -182,11 +182,14 @@ export async function printReceipt(d: ReceiptData) {
         return;
       }
 
+      syncRememberedBluetoothPrinter(activePrinter.address, activePrinter.name);
+
       // Auto-pair on first print (user gesture from the print button)
-      if (!localStorage.getItem("sahla.bt.printerId")) {
+      if (!activePrinter.address && !localStorage.getItem("sahla.bt.printerId")) {
         toast.message("اختر الطابعة من القائمة");
         try {
-          await pairPrinter();
+          const paired = await pairPrinter();
+          syncRememberedBluetoothPrinter(paired.id, paired.name);
         } catch (err) {
           toast.error("لم يتم اختيار طابعة");
           return;
