@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
+import { getActivePrinter } from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
 
@@ -157,17 +158,20 @@ function NewSalePage() {
         }
       }
 
-      try {
-        const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
-        if (isWebBluetoothSupported()) {
-          await prepareBluetoothPrinter({ promptIfMissing: true });
+      const activePrinter = getActivePrinter();
+      if (activePrinter?.connection === "bluetooth") {
+        try {
+          const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
+          if (isWebBluetoothSupported()) {
+            await prepareBluetoothPrinter({ promptIfMissing: true });
+          }
+        } catch (error) {
+          const msg = (error as Error).message || "تعذر تجهيز الطابعة";
+          if (!msg.toLowerCase().includes("cancel")) {
+            toast.error(msg);
+          }
+          return;
         }
-      } catch (error) {
-        const msg = (error as Error).message || "تعذر تجهيز الطابعة";
-        if (!msg.toLowerCase().includes("cancel")) {
-          toast.error(msg);
-        }
-        return;
       }
 
       const invoiceNumber = `INV-${Date.now()}`;
