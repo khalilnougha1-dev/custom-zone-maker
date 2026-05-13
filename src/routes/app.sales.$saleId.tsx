@@ -23,6 +23,7 @@ function SaleDetailPage() {
   const [customerName, setCustomerName] = useState("—");
   const [confirmDel, setConfirmDel] = useState(false);
   const [seq, setSeq] = useState<number | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [loading, user, navigate]);
 
@@ -68,24 +69,29 @@ function SaleDetailPage() {
   };
 
   const printReceipt = async () => {
-    if (!user || !sale) return;
-    await printReceiptHtml({
-      userId: user.id,
-      saleSeq: seq ?? 1,
-      customerId: sale.customer_id,
-      customerName,
-      items: items.map((i: any) => ({
-        product_name: i.product_name,
-        quantity: Number(i.quantity),
-        unit_price: Number(i.unit_price),
-      })),
-      total: Number(sale.total),
-      paid: Number(sale.paid || 0),
-      note: sale.notes,
-      createdAt: sale.created_at,
-    });
+    if (!user || !sale || isPrinting) return;
+    setIsPrinting(true);
+    try {
+      await printReceiptHtml({
+        userId: user.id,
+        saleSeq: seq ?? 1,
+        customerId: sale.customer_id,
+        customerName,
+        items: items.map((i: any) => ({
+          product_name: i.product_name,
+          quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price),
+        })),
+        total: Number(sale.total),
+        paid: Number(sale.paid || 0),
+        note: sale.notes,
+        createdAt: sale.created_at,
+      });
+    } finally {
+      setIsPrinting(false);
+    }
   };
-  const exportPdf = printReceipt;
+  const exportPdf = () => window.print();
 
   if (!sale) {
     return <div className="min-h-screen flex items-center justify-center bg-background">...</div>;
@@ -113,7 +119,7 @@ function SaleDetailPage() {
             <Pencil className="h-7 w-7 text-foreground/80" />
           </button>
           <div className="flex items-center gap-3">
-            <button onClick={printReceipt} className="p-1" aria-label="طباعة">
+            <button onClick={printReceipt} className="p-1 disabled:opacity-50" aria-label="طباعة" disabled={isPrinting}>
               <Printer className="h-7 w-7 text-foreground/80" />
             </button>
             <button
