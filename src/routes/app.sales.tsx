@@ -117,7 +117,7 @@ function SalesPage() {
                   </div>
                 </div>
                 <div className="font-mono text-lg font-bold text-primary">{Number(s.total).toFixed(2)}</div>
-              </div>
+              </button>
             ))}
           </div>
         )}
