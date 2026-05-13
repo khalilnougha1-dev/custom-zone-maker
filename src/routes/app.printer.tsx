@@ -7,10 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
+import {
+  ACTIVE_PRINTER_KEY,
+  SAVED_PRINTERS_KEY,
+  type Connection as ImportedConnection,
+  getPaperWidthPx,
+} from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/printer")({ component: PrinterPage });
 
-type Connection = "bluetooth" | "usb" | "network" | "system";
+type Connection = ImportedConnection;
 type SavedPrinter = {
   id: string;
   name: string;
@@ -19,8 +25,8 @@ type SavedPrinter = {
   paper?: "58mm" | "80mm" | "A4";
 };
 
-const STORAGE_KEY = "sahla.printers";
-const ACTIVE_KEY = "sahla.printer.active";
+const STORAGE_KEY = SAVED_PRINTERS_KEY;
+const ACTIVE_KEY = ACTIVE_PRINTER_KEY;
 
 function loadPrinters(): SavedPrinter[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
@@ -130,7 +136,7 @@ function PrinterPage() {
           <div style="margin-top:8px;">${new Date().toLocaleString("ar")}</div>
           <div style="margin-top:12px;">sahlapay ✓</div>
         </div>`;
-        await printHtmlBluetooth(html, 576);
+        await printHtmlBluetooth(html, getPaperWidthPx(p.paper));
         toast.success("تمت الطباعة");
       } catch (e) {
         toast.error((e as Error).message);
