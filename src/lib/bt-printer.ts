@@ -25,6 +25,8 @@ const NAME_KEY = "sahla.bt.printerName";
 let activeDevice: any | null = null;
 let activeDeviceId: string | null = null;
 let activeCharacteristic: any | null = null;
+let activeConnectionPromise: Promise<any> | null = null;
+let gattTaskQueue: Promise<unknown> = Promise.resolve();
 
 declare global {
   interface Navigator {
@@ -46,6 +48,13 @@ export function clearRememberedPrinter() {
   activeDevice = null;
   activeDeviceId = null;
   activeCharacteristic = null;
+  activeConnectionPromise = null;
+}
+
+function queueGattTask<T>(task: () => Promise<T>): Promise<T> {
+  const run = gattTaskQueue.catch(() => undefined).then(task);
+  gattTaskQueue = run.then(() => undefined, () => undefined);
+  return run;
 }
 
 function bindDevice(device: any) {
@@ -61,6 +70,7 @@ function bindDevice(device: any) {
     device.addEventListener?.("gattserverdisconnected", () => {
       if (activeDeviceId === device.id) {
         activeCharacteristic = null;
+        activeConnectionPromise = null;
       }
     });
     device.__sahlaBoundDisconnectListener = true;
