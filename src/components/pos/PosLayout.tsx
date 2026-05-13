@@ -67,6 +67,21 @@ export function PosLayout({ title, children, actions }: { title: string; childre
     if (dismissed) setBannerDismissed(true);
   }, [user]);
 
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const roles = (data || []).map((r: { role: string }) => r.role);
+      setIsAdmin(roles.includes("admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const dismissBanner = () => {
     setBannerDismissed(true);
     sessionStorage.setItem("expiry_banner_dismissed", "1");
