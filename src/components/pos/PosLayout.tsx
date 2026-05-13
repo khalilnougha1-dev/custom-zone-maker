@@ -29,8 +29,9 @@ const NAV = [
   { to: "/app/printer", label: "الطابعة", icon: Printer },
   { to: "/app/settings", label: "الإعدادات", icon: Settings },
   { to: "/app/account", label: "حسابي", icon: UserCircle },
-  { to: "/app/admin", label: "لوحة المسؤول", icon: Shield },
 ];
+
+const ADMIN_NAV = { to: "/app/admin", label: "لوحة المسؤول", icon: Shield };
 
 export function PosLayout({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
   const { user, loading } = useAuth();
