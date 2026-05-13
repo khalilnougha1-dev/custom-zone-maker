@@ -29,8 +29,9 @@ const NAV = [
   { to: "/app/printer", label: "الطابعة", icon: Printer },
   { to: "/app/settings", label: "الإعدادات", icon: Settings },
   { to: "/app/account", label: "حسابي", icon: UserCircle },
-  { to: "/app/admin", label: "لوحة المسؤول", icon: Shield },
 ];
+
+const ADMIN_NAV = { to: "/app/admin", label: "لوحة المسؤول", icon: Shield };
 
 export function PosLayout({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
   const { user, loading } = useAuth();
@@ -39,6 +40,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const [calcOpen, setCalcOpen] = useState(false);
   const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouterState();
   const path = router.location.pathname;
 
@@ -63,6 +65,21 @@ export function PosLayout({ title, children, actions }: { title: string; childre
     })();
     const dismissed = sessionStorage.getItem("expiry_banner_dismissed");
     if (dismissed) setBannerDismissed(true);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const roles = (data || []).map((r: { role: string }) => r.role);
+      setIsAdmin(roles.includes("admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
   }, [user]);
 
   const dismissBanner = () => {
@@ -137,8 +154,8 @@ export function PosLayout({ title, children, actions }: { title: string; childre
               </button>
             </div>
             <nav className="p-2">
-              {NAV.map((item) => {
-                const active = item.exact ? path === item.to : path.startsWith(item.to);
+              {[...NAV, ...(isAdmin ? [ADMIN_NAV] : [])].map((item) => {
+                const active = "exact" in item && item.exact ? path === item.to : path.startsWith(item.to);
                 return (
                   <Link
                     key={item.to}
