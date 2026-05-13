@@ -189,15 +189,22 @@ async function getDriveAccessToken(): Promise<string> {
   });
 }
 
-async function findDriveBackupFileId(token: string): Promise<string | null> {
+async function findDriveBackup(token: string): Promise<{ id: string; modifiedTime: string; size?: string } | null> {
   const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)`,
+    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   if (!res.ok) throw new Error(`Drive: ${res.status}`);
   const j = await res.json();
-  return j.files?.[0]?.id || null;
+  return j.files?.[0] || null;
+}
+
+export async function getDriveBackupInfo(): Promise<{ modifiedTime: string; size?: string } | null> {
+  const token = await getDriveAccessToken();
+  const f = await findDriveBackup(token);
+  if (!f) return null;
+  return { modifiedTime: f.modifiedTime, size: f.size };
 }
 
 export async function uploadToGoogleDrive(file: BackupFile) {
