@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
 
 export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
 
