@@ -2,8 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search, ArrowRight, Calculator, ListChecks, ScanLine,
-  ListPlus, Save, ListX, Plus, Minus, X
+  ListPlus, Save, ListX, Plus, Minus, X,
+  Banknote, CreditCard, Receipt as ReceiptIcon, Smartphone,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,8 @@ function NewSalePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [paid, setPaid] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
+  const [note, setNote] = useState("");
   const productInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -131,8 +135,55 @@ function NewSalePage() {
 
   const openConfirm = () => {
     if (cart.length === 0) return toast.error("السلة فارغة");
-    setPaid(totalAmount.toFixed(2));
+    setPaid("0");
+    setPaymentMethod("cash");
+    setNote("");
     setConfirmOpen(true);
+  };
+
+  const printReceipt = (invoiceNumber: string) => {
+    const customerName = customers.find((c: any) => c.id === customerId)?.name || "—";
+    const methodLabel = { cash: "نقدا", check: "صك", card: "بطاقة", phone: "الهاتف" }[paymentMethod];
+    const paidNum = Number(paid) || 0;
+    const rest = Math.max(0, totalAmount - paidNum);
+    const rows = cart.map(i => `
+      <tr>
+        <td style="text-align:right;padding:4px 0;">${i.name}</td>
+        <td style="text-align:center;padding:4px 0;">${i.qty}</td>
+        <td style="text-align:left;padding:4px 0;font-family:monospace;">${(i.price*i.qty).toFixed(2)}</td>
+      </tr>`).join("");
+    const html = `
+      <html dir="rtl"><head><meta charset="utf-8"><title>${invoiceNumber}</title>
+      <style>
+        @page { size: 80mm auto; margin: 4mm; }
+        body { font-family: Arial, sans-serif; font-size: 12px; color:#000; }
+        h2 { text-align:center; margin: 4px 0; }
+        .row { display:flex; justify-content:space-between; margin: 2px 0; }
+        table { width:100%; border-collapse:collapse; margin-top:6px; }
+        th { text-align:right; border-bottom:1px dashed #000; padding:4px 0; }
+        .total { font-size:16px; font-weight:bold; border-top:1px dashed #000; padding-top:6px; margin-top:6px; }
+      </style></head><body>
+        <h2>فاتورة بيع</h2>
+        <div class="row"><span>الفاتورة</span><span>${invoiceNumber}</span></div>
+        <div class="row"><span>التاريخ</span><span>${now.date} ${now.time}</span></div>
+        <div class="row"><span>الزبون</span><span>${customerName}</span></div>
+        <div class="row"><span>طريقة الدفع</span><span>${methodLabel}</span></div>
+        <table>
+          <thead><tr><th>المنتج</th><th style="text-align:center;">الكمية</th><th style="text-align:left;">المبلغ</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total row"><span>الإجمالي</span><span>${totalAmount.toFixed(2)}</span></div>
+        <div class="row"><span>المدفوع</span><span>${paidNum.toFixed(2)}</span></div>
+        <div class="row"><span>الباقي</span><span>${rest.toFixed(2)}</span></div>
+        ${note ? `<div class="row" style="margin-top:6px;"><span>ملاحظة:</span><span>${note}</span></div>` : ""}
+        <p style="text-align:center;margin-top:10px;">شكراً لزيارتكم</p>
+      </body></html>`;
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 250);
   };
 
   const save = async () => {
@@ -142,14 +193,16 @@ function NewSalePage() {
         return toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
       }
     }
+    const invoiceNumber = `INV-${Date.now()}`;
     const { data: sale, error } = await supabase.from("sales").insert({
       user_id: user.id,
       customer_id: customerId,
       subtotal: totalAmount,
       total: totalAmount,
-      paid: Number(paid) || totalAmount,
-      payment_method: "cash",
-      invoice_number: `INV-${Date.now()}`,
+      paid: Number(paid) || 0,
+      payment_method: paymentMethod,
+      notes: note || null,
+      invoice_number: invoiceNumber,
     }).select().single();
     if (error || !sale) return toast.error(error?.message || "خطأ");
     const items = cart.map(i => ({
@@ -160,7 +213,8 @@ function NewSalePage() {
     const { error: e2 } = await supabase.from("sale_items").insert(items);
     if (e2) return toast.error(e2.message);
     toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
-    setCart([]); setPaid(""); setCustomerId(null); setCustomerQ("");
+    printReceipt(invoiceNumber);
+    setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
     setConfirmOpen(false);
     supabase.from("products").select("*").eq("user_id", user.id).order("name")
       .then(({ data }) => setProducts(data || []));
@@ -336,33 +390,93 @@ function NewSalePage() {
 
       {/* Confirm dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-right">تأكيد البيع</DialogTitle>
+        <DialogContent dir="rtl" className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-center text-xl">تأكيد العملية</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="rounded-lg bg-muted p-3 flex items-center justify-between">
-              <span className="font-mono text-2xl font-bold text-primary">{totalAmount.toFixed(2)}</span>
-              <span className="text-sm font-semibold">الإجمالي</span>
+          <div className="px-6 py-3 space-y-4">
+            {/* Customer */}
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold">{customers.find((c: any) => c.id === customerId)?.name || "—"}</span>
+              <span className="text-muted-foreground">الزبون</span>
             </div>
+
+            {/* Due amount — digital style */}
+            <div className="flex items-center justify-between">
+              <span
+                className="font-mono text-3xl font-bold tabular-nums"
+                style={{ color: "#1a237e", fontFamily: '"DS-Digital","Courier New",monospace', letterSpacing: "0.05em" }}
+              >
+                {totalAmount.toFixed(2)}
+              </span>
+              <span className="text-muted-foreground">المبلغ المستحق</span>
+            </div>
+
+            {/* Payment method */}
             <div>
-              <label className="text-sm font-semibold block mb-1 text-right">المبلغ المدفوع</label>
+              <div className="text-muted-foreground text-right mb-2">طريقة الدفع</div>
+              <div className="flex items-center justify-between gap-2" dir="ltr">
+                {([
+                  { id: "phone", label: "الهاتف", Icon: Smartphone },
+                  { id: "card", label: "بطاقة", Icon: CreditCard },
+                  { id: "check", label: "صك", Icon: ReceiptIcon },
+                  { id: "cash", label: "نقدا", Icon: Banknote },
+                ] as const).map(({ id, label, Icon }) => {
+                  const active = paymentMethod === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPaymentMethod(id)}
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <Icon className="h-6 w-6 text-foreground/80" />
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${active ? "border-red-600" : "border-muted-foreground/40"}`}>
+                        {active && <span className="h-2.5 w-2.5 rounded-full bg-red-600" />}
+                      </span>
+                      <span className="text-xs">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Paid amount */}
+            <div>
+              <div className="text-muted-foreground text-right mb-1">المبلغ المدفوع</div>
               <Input
                 type="number"
                 inputMode="decimal"
                 value={paid}
                 onChange={(e) => setPaid(e.target.value)}
-                className="text-right font-mono text-lg"
+                className="text-right font-mono text-lg border-primary/40"
               />
             </div>
-            <div className="rounded-lg bg-muted/60 p-2 flex items-center justify-between text-sm">
-              <span className="font-mono font-bold">{Math.max(0, (Number(paid) || 0) - totalAmount).toFixed(2)}</span>
-              <span>الصرف</span>
+
+            {/* Note */}
+            <div>
+              <div className="text-muted-foreground text-right mb-1">ملاحظة</div>
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                className="text-right border-primary/40 resize-none"
+              />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)} className="flex-1">إلغاء</Button>
-            <Button onClick={save} className="flex-1 bg-gradient-primary text-primary-foreground">تأكيد البيع</Button>
+          <DialogFooter className="flex-row justify-between gap-2 border-t border-border px-6 py-3 bg-muted/30 sm:justify-between">
+            <button
+              onClick={() => setConfirmOpen(false)}
+              className="text-primary font-bold text-base px-3 py-1"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={save}
+              className="text-primary font-bold text-base px-3 py-1"
+            >
+              تأكيد
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
