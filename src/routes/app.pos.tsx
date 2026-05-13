@@ -467,15 +467,17 @@ function NewSalePage() {
           <DialogFooter className="flex-row justify-between gap-2 border-t border-border px-6 py-3 bg-muted/30 sm:justify-between">
             <button
               onClick={() => setConfirmOpen(false)}
-              className="text-primary font-bold text-base px-3 py-1"
+              className="text-primary font-bold text-base px-3 py-1 disabled:opacity-50"
+              disabled={isSaving}
             >
               إلغاء
             </button>
             <button
               onClick={save}
-              className="text-primary font-bold text-base px-3 py-1"
+              className="text-primary font-bold text-base px-3 py-1 disabled:opacity-50"
+              disabled={isSaving}
             >
-              تأكيد
+              {isSaving ? "جارٍ الحفظ والطباعة..." : "تأكيد"}
             </button>
           </DialogFooter>
         </DialogContent>
