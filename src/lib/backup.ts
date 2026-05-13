@@ -94,9 +94,13 @@ export async function restoreBackup(file: BackupFile, userId: string) {
   if (!file || file.app !== "sahlapos" || !file.data) {
     throw new Error("ملف النسخة الاحتياطية غير صالح");
   }
-  // Rewrite user_id in case backup is from another account
   const remap = (rows: any[] | undefined) =>
-    (rows || []).map((r) => ("user_id" in r ? { ...r, user_id: userId } : r));
+    (rows || []).map((r) => {
+      const out = { ...r };
+      if ("user_id" in r) out.user_id = userId;
+      if ("owner_id" in r) out.owner_id = userId;
+      return out;
+    });
 
   await clearUserData(userId);
 
