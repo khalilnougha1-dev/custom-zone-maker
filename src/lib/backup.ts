@@ -209,7 +209,7 @@ export async function getDriveBackupInfo(): Promise<{ modifiedTime: string; size
 
 export async function uploadToGoogleDrive(file: BackupFile) {
   const token = await getDriveAccessToken();
-  const existingId = await findDriveBackupFileId(token);
+  const existingId = (await findDriveBackup(token))?.id || null;
 
   const metadata = { name: DRIVE_FILE_NAME, mimeType: "application/json" };
   const boundary = "-------sahlapos" + Math.random().toString(36).slice(2);
