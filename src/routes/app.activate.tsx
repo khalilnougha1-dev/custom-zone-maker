@@ -264,12 +264,12 @@ function ActivatePage() {
                   <span>{busy === "drive-up" ? "جاري الرفع..." : "رفع إلى Drive"}</span>
                 </button>
                 <button
-                  onClick={handleDriveDownload}
-                  disabled={!!busy}
+                  onClick={openDriveRestoreDialog}
+                  disabled={isBusy}
                   className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Cloud className="h-4 w-4" />
-                  <span>{busy === "drive-down" ? "جاري التحميل..." : "تحميل من Drive"}</span>
+                  <span>{busy === "drive-info" ? "جاري الفحص..." : busy === "drive-down" ? "جاري التحميل..." : "تحميل من Drive"}</span>
                 </button>
                 <button
                   onClick={handleExportFile}
