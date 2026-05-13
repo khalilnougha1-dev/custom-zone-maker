@@ -257,7 +257,7 @@ function ActivatePage() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={handleDriveUpload}
-                  disabled={!!busy}
+                  disabled={isBusy}
                   className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Cloud className="h-4 w-4" />
