@@ -120,11 +120,24 @@ function PrinterPage() {
     } finally { setScanning(false); }
   };
 
-  const testPrint = (p: SavedPrinter) => {
-    if (p.connection === "system") {
-      window.print();
+  const testPrint = async (p: SavedPrinter) => {
+    if (p.connection === "bluetooth") {
+      try {
+        const { printHtmlBluetooth } = await import("@/lib/bt-printer");
+        const html = `<div style="font-family:Arial;font-size:20px;text-align:center;padding:8px;">
+          <div style="font-weight:bold;font-size:24px;">صفحة اختبار</div>
+          <div style="margin-top:8px;">${p.name}</div>
+          <div style="margin-top:8px;">${new Date().toLocaleString("ar")}</div>
+          <div style="margin-top:12px;">sahlapay ✓</div>
+        </div>`;
+        await printHtmlBluetooth(html, 576);
+        toast.success("تمت الطباعة");
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
       return;
     }
+    if (p.connection === "system") { window.print(); return; }
     toast.success(`جاري إرسال صفحة اختبار إلى ${p.name}`);
   };
 
