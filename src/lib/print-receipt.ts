@@ -174,7 +174,7 @@ export async function printReceipt(d: ReceiptData) {
 
     // Direct Bluetooth printing — no system dialog
     try {
-      const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter, syncRememberedBluetoothPrinter } =
+      const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter, syncRememberedBluetoothPrinter, clearRememberedPrinter } =
         await import("./bt-printer");
 
       if (!isWebBluetoothSupported()) {
@@ -182,10 +182,14 @@ export async function printReceipt(d: ReceiptData) {
         return;
       }
 
-      syncRememberedBluetoothPrinter(activePrinter.address, activePrinter.name);
+      if (activePrinter.address) {
+        syncRememberedBluetoothPrinter(activePrinter.address, activePrinter.name);
+      } else {
+        clearRememberedPrinter();
+      }
 
       // Auto-pair on first print (user gesture from the print button)
-      if (!activePrinter.address && !localStorage.getItem("sahla.bt.printerId")) {
+      if (!localStorage.getItem("sahla.bt.printerId")) {
         toast.message("اختر الطابعة من القائمة");
         try {
           const paired = await pairPrinter();
