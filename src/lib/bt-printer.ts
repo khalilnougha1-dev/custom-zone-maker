@@ -175,17 +175,16 @@ export async function printHtmlBluetooth(
     throw new Error("Web Bluetooth غير مدعوم");
   }
 
-  // Try remembered device first
+  // Try remembered device first; if browser didn't surface it, re-pick (user gesture from print click)
   let device = await getRememberedDevice();
   if (!device) {
-    // Need user gesture to pair
-    const id = localStorage.getItem(ACTIVE_KEY);
-    if (id) {
-      throw new Error(
-        "الطابعة المحفوظة غير متاحة. اضغط 'اقتران الطابعة' في الإعدادات.",
-      );
-    }
-    throw new Error("لا توجد طابعة مقترنة. افتح الإعدادات واضغط 'اقتران الطابعة'.");
+    const picked = await navigator.bluetooth!.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: SERVICE_CANDIDATES,
+    });
+    localStorage.setItem(ACTIVE_KEY, picked.id);
+    localStorage.setItem(NAME_KEY, picked.name || "Bluetooth Printer");
+    device = picked;
   }
 
   // Render HTML offscreen
