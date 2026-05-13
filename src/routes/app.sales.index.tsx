@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/app/sales")({ component: SalesPage });
+export const Route = createFileRoute("/app/sales/")({ component: SalesPage });
 
 type Period = "today" | "yesterday" | "week" | "month" | "all";
 
