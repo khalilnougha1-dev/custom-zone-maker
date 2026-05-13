@@ -273,7 +273,7 @@ function ActivatePage() {
                 </button>
                 <button
                   onClick={handleExportFile}
-                  disabled={!!busy}
+                  disabled={isBusy}
                   className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <HardDrive className="h-4 w-4" />
@@ -281,7 +281,7 @@ function ActivatePage() {
                 </button>
                 <button
                   onClick={handleImportFile}
-                  disabled={!!busy}
+                  disabled={isBusy}
                   className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
