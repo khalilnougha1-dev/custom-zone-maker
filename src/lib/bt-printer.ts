@@ -187,15 +187,26 @@ export async function printHtmlBluetooth(
     device = picked;
   }
 
-  // Render HTML offscreen
-  const host = document.createElement("div");
-  host.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperWidthPx}px;background:#fff;color:#000;`;
-  host.innerHTML = html;
-  document.body.appendChild(host);
+  // Render HTML inside an isolated iframe so app-level oklch tokens don't leak in
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperWidthPx}px;height:10px;border:0;background:#fff;`;
+  document.body.appendChild(iframe);
 
   try {
-    const target = host.firstElementChild as HTMLElement;
-    const raster = await htmlToRaster(target || host, paperWidthPx);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><style>
+      *,*::before,*::after{box-sizing:border-box;color:#000 !important;background:transparent !important;border-color:#000 !important;}
+      html,body{margin:0;padding:0;background:#fff !important;color:#000 !important;font-family:Arial,sans-serif;}
+    </style></head><body>${html}</body></html>`);
+    doc.close();
+
+    // wait for layout
+    await new Promise((r) => setTimeout(r, 50));
+    const body = doc.body as HTMLElement;
+    iframe.style.height = body.scrollHeight + "px";
+
+    const raster = await htmlToRaster(body, paperWidthPx);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
 
     const characteristic = await connectAndFindCharacteristic(device);
@@ -205,6 +216,6 @@ export async function printHtmlBluetooth(
       device.gatt?.disconnect();
     } catch {}
   } finally {
-    host.remove();
+    iframe.remove();
   }
 }
