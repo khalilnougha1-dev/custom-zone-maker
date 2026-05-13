@@ -34,6 +34,8 @@ function NewSalePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [paid, setPaid] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
+  const [note, setNote] = useState("");
   const productInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
