@@ -85,6 +85,35 @@ function rememberDevice(device: any) {
   return bindDevice(device);
 }
 
+export async function prepareBluetoothPrinter(options?: {
+  promptIfMissing?: boolean;
+}): Promise<{ id: string; name: string } | null> {
+  if (!isWebBluetoothSupported()) return null;
+
+  const promptIfMissing = options?.promptIfMissing ?? true;
+  let device = activeDevice ?? await getRememberedDevice();
+
+  if (!device && promptIfMissing) {
+    const picked = await navigator.bluetooth!.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: SERVICE_CANDIDATES,
+    });
+    device = rememberDevice(picked);
+  }
+
+  if (!device) return null;
+
+  bindDevice(device);
+  await queueGattTask(async () => {
+    await connectAndFindCharacteristic(device);
+  });
+
+  return {
+    id: device.id,
+    name: device.name || "Bluetooth Printer",
+  };
+}
+
 export async function pairPrinter(): Promise<{ id: string; name: string }> {
   if (!isWebBluetoothSupported()) {
     throw new Error("متصفحك لا يدعم Web Bluetooth. استخدم Chrome على أندرويد.");

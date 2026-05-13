@@ -34,6 +34,7 @@ function NewSalePage() {
   const [showProductList, setShowProductList] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [paid, setPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
   const [note, setNote] = useState("");
@@ -145,48 +146,78 @@ function NewSalePage() {
   // print moved to shared lib (src/lib/print-receipt.ts)
 
   const save = async () => {
-    if (!user || cart.length === 0) return;
-    for (const i of cart) {
-      if (isTracked(i.id) && i.qty > getStock(i.id)) {
-        return toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
+    if (!user || cart.length === 0 || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      for (const i of cart) {
+        if (isTracked(i.id) && i.qty > getStock(i.id)) {
+          toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
+          return;
+        }
       }
+
+      try {
+        const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
+        if (isWebBluetoothSupported()) {
+          await prepareBluetoothPrinter({ promptIfMissing: true });
+        }
+      } catch (error) {
+        const msg = (error as Error).message || "تعذر تجهيز الطابعة";
+        if (!msg.toLowerCase().includes("cancel")) {
+          toast.error(msg);
+        }
+        return;
+      }
+
+      const invoiceNumber = `INV-${Date.now()}`;
+      const { data: sale, error } = await supabase.from("sales").insert({
+        user_id: user.id,
+        customer_id: customerId,
+        subtotal: totalAmount,
+        total: totalAmount,
+        paid: Number(paid) || 0,
+        payment_method: paymentMethod,
+        notes: note || null,
+        invoice_number: invoiceNumber,
+      }).select().single();
+      if (error || !sale) {
+        toast.error(error?.message || "خطأ");
+        return;
+      }
+
+      const items = cart.map(i => ({
+        sale_id: sale.id, product_id: i.id, product_name: i.name,
+        quantity: i.qty, unit_price: i.price, cost_price: i.cost,
+        total: i.price * i.qty,
+      }));
+      const { error: e2 } = await supabase.from("sale_items").insert(items);
+      if (e2) {
+        toast.error(e2.message);
+        return;
+      }
+
+      toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
+      const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+      await printReceiptHtml({
+        userId: user.id,
+        saleSeq: count || 1,
+        customerId,
+        customerName: customers.find((c: any) => c.id === customerId)?.name || "—",
+        items: cart.map(i => ({ product_name: i.name, quantity: i.qty, unit_price: i.price })),
+        total: totalAmount,
+        paid: Number(paid) || 0,
+        note,
+        createdAt: sale.created_at,
+      });
+
+      setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
+      setConfirmOpen(false);
+      supabase.from("products").select("*").eq("user_id", user.id).order("name")
+        .then(({ data }) => setProducts(data || []));
+    } finally {
+      setIsSaving(false);
     }
-    const invoiceNumber = `INV-${Date.now()}`;
-    const { data: sale, error } = await supabase.from("sales").insert({
-      user_id: user.id,
-      customer_id: customerId,
-      subtotal: totalAmount,
-      total: totalAmount,
-      paid: Number(paid) || 0,
-      payment_method: paymentMethod,
-      notes: note || null,
-      invoice_number: invoiceNumber,
-    }).select().single();
-    if (error || !sale) return toast.error(error?.message || "خطأ");
-    const items = cart.map(i => ({
-      sale_id: sale.id, product_id: i.id, product_name: i.name,
-      quantity: i.qty, unit_price: i.price, cost_price: i.cost,
-      total: i.price * i.qty,
-    }));
-    const { error: e2 } = await supabase.from("sale_items").insert(items);
-    if (e2) return toast.error(e2.message);
-    toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
-    const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-    await printReceiptHtml({
-      userId: user.id,
-      saleSeq: count || 1,
-      customerId,
-      customerName: customers.find((c: any) => c.id === customerId)?.name || "—",
-      items: cart.map(i => ({ product_name: i.name, quantity: i.qty, unit_price: i.price })),
-      total: totalAmount,
-      paid: Number(paid) || 0,
-      note,
-      createdAt: sale.created_at,
-    });
-    setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
-    setConfirmOpen(false);
-    supabase.from("products").select("*").eq("user_id", user.id).order("name")
-      .then(({ data }) => setProducts(data || []));
   };
 
   if (loading || !user) {
@@ -436,15 +467,17 @@ function NewSalePage() {
           <DialogFooter className="flex-row justify-between gap-2 border-t border-border px-6 py-3 bg-muted/30 sm:justify-between">
             <button
               onClick={() => setConfirmOpen(false)}
-              className="text-primary font-bold text-base px-3 py-1"
+              className="text-primary font-bold text-base px-3 py-1 disabled:opacity-50"
+              disabled={isSaving}
             >
               إلغاء
             </button>
             <button
               onClick={save}
-              className="text-primary font-bold text-base px-3 py-1"
+              className="text-primary font-bold text-base px-3 py-1 disabled:opacity-50"
+              disabled={isSaving}
             >
-              تأكيد
+              {isSaving ? "جارٍ الحفظ والطباعة..." : "تأكيد"}
             </button>
           </DialogFooter>
         </DialogContent>
