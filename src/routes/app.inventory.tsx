@@ -36,7 +36,10 @@ function InventoryPage() {
 
   return (
     <PosLayout title="المخزون" actions={
-      <button onClick={handlePrint} className="rounded-lg p-2 hover:bg-white/10" aria-label="طباعة"><Printer className="h-6 w-6" /></button>
+      <div className="flex items-center gap-1">
+        <Link to="/app/stock-movements" className="rounded-lg p-2 hover:bg-white/10" aria-label="سجل الحركة"><History className="h-6 w-6" /></Link>
+        <button onClick={handlePrint} className="rounded-lg p-2 hover:bg-white/10" aria-label="طباعة"><Printer className="h-6 w-6" /></button>
+      </div>
     }>
       <div className="space-y-3">
         {/* Search row */}
