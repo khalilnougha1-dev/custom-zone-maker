@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight, ShoppingCart, Package, Users, BarChart3, Globe2, Zap,
   Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
-  Sparkles, CheckCircle2, Star,
+  Sparkles, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
@@ -155,34 +155,6 @@ function HomePage() {
                 <div className="text-5xl font-bold text-gradient">{s.n}</div>
                 <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
                 <p className="mt-2 text-muted-foreground">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="bg-gradient-subtle py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-4xl font-bold md:text-5xl">يثقون بنا</h2>
-            <p className="mt-4 text-lg text-muted-foreground">آراء تجار يستخدمون SAHLAPOS يومياً</p>
-          </div>
-          <div className="mt-16 grid gap-6 md:grid-cols-3">
-            {[
-              { name: "أحمد بن علي", role: "صاحب متجر مواد غذائية", quote: "غيّر طريقة عملي تماماً. أصبحت أتابع كل شيء من هاتفي." },
-              { name: "ليلى مرابط", role: "مديرة بوتيك", quote: "سهل وسريع، والدعم الفني ممتاز. أنصح به بشدة." },
-              { name: "كريم بوزيد", role: "صيدلي", quote: "التقارير دقيقة والمخزون منظم. وفّر علي ساعات يومياً." },
-            ].map((tst) => (
-              <div key={tst.name} className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
-                <div className="flex gap-1 text-warning">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
-                </div>
-                <p className="mt-4 text-foreground">"{tst.quote}"</p>
-                <div className="mt-4 border-t border-border/60 pt-4">
-                  <div className="font-semibold">{tst.name}</div>
-                  <div className="text-sm text-muted-foreground">{tst.role}</div>
-                </div>
               </div>
             ))}
           </div>
