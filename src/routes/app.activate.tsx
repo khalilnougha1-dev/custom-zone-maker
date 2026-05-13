@@ -197,20 +197,38 @@ function ActivatePage() {
                 <HardDrive className="h-5 w-5 text-primary" />
                 <div className="font-semibold">تخزين الملفات</div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={handleGoogleDrive}
-                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
+                  onClick={handleDriveUpload}
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Cloud className="h-4 w-4" />
-                  <span>Google Drive</span>
+                  <span>{busy === "drive-up" ? "جاري الرفع..." : "رفع إلى Drive"}</span>
+                </button>
+                <button
+                  onClick={handleDriveDownload}
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
+                >
+                  <Cloud className="h-4 w-4" />
+                  <span>{busy === "drive-down" ? "جاري التحميل..." : "تحميل من Drive"}</span>
+                </button>
+                <button
+                  onClick={handleExportFile}
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
+                >
+                  <HardDrive className="h-4 w-4" />
+                  <span>{busy === "file-out" ? "جاري التصدير..." : "تصدير ملف"}</span>
                 </button>
                 <button
                   onClick={handleImportFile}
-                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
-                  <span>استيراد ملف</span>
+                  <span>{busy === "file-in" ? "جاري الاسترداد..." : "استيراد ملف"}</span>
                 </button>
               </div>
             </div>
