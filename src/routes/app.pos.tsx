@@ -2,8 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search, ArrowRight, Calculator, ListChecks, ScanLine,
-  ListPlus, Save, ListX, Plus, Minus, X
+  ListPlus, Save, ListX, Plus, Minus, X,
+  Banknote, CreditCard, Receipt as ReceiptIcon, Smartphone,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
