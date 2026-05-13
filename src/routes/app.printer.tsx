@@ -67,14 +67,24 @@ function PrinterPage() {
     toast.success("تمت إضافة الطابعة");
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     const next = printers.filter(p => p.id !== id);
     setPrinters(next); savePrinters(next);
+    const removedPrinter = printers.find((p) => p.id === id);
+    if (removedPrinter?.connection === "bluetooth") {
+      const { clearRememberedPrinter } = await import("@/lib/bt-printer");
+      clearRememberedPrinter();
+    }
     if (activeId === id) { setActiveId(""); localStorage.removeItem(ACTIVE_KEY); }
   };
 
-  const setActive = (id: string) => {
+  const setActive = async (id: string) => {
     setActiveId(id); localStorage.setItem(ACTIVE_KEY, id);
+    const selected = printers.find((printer) => printer.id === id);
+    if (selected?.connection === "bluetooth") {
+      const { syncRememberedBluetoothPrinter } = await import("@/lib/bt-printer");
+      syncRememberedBluetoothPrinter(selected.address, selected.name);
+    }
     toast.success("تم اختيار الطابعة الافتراضية");
   };
 
