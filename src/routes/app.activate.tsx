@@ -13,8 +13,14 @@ import {
   importBackupFromFile,
   uploadToGoogleDrive,
   downloadFromGoogleDrive,
+  getDriveBackupInfo,
   getGoogleClientId,
+  restoreBackup,
+  type ProgressCb,
 } from "@/lib/backup";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, CheckCircle2 as CheckIcon } from "lucide-react";
 
 export const Route = createFileRoute("/app/activate")({ component: ActivatePage });
 
