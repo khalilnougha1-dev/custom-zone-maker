@@ -148,24 +148,28 @@ function ActivatePage() {
           </>
         )}
 
-        <div className="space-y-3">
-          <div>
-            <div className="text-sm text-muted-foreground mb-1 text-right">الرقم التعريفي</div>
-            <div className="flex items-center gap-2 rounded-md border border-accent/60 bg-card px-3 py-2">
-              <button onClick={copy} className="text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
-              <input readOnly value={deviceId} className="flex-1 bg-transparent text-right font-mono text-sm outline-none" />
+        {!status.active && (
+          <>
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm text-muted-foreground mb-1 text-right">الرقم التعريفي</div>
+                <div className="flex items-center gap-2 rounded-md border border-accent/60 bg-card px-3 py-2">
+                  <button onClick={copy} className="text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
+                  <input readOnly value={deviceId} className="flex-1 bg-transparent text-right font-mono text-sm outline-none" />
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1 text-right">مفتاح التفعيل</div>
+                <Input value={key} onChange={(e) => setKey(e.target.value)} className="bg-card border-accent/60 text-right" />
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground mb-1 text-right">مفتاح التفعيل</div>
-            <Input value={key} onChange={(e) => setKey(e.target.value)} className="bg-card border-accent/60 text-right" />
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button onClick={requestKey} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
-          <Button onClick={confirm} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">{loading ? "جاري التحقق..." : "تأكيد"}</Button>
-        </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Button onClick={requestKey} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">أطلب مفتاح التفعيل</Button>
+              <Button onClick={confirm} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">{loading ? "جاري التحقق..." : "تأكيد"}</Button>
+            </div>
+          </>
+        )}
 
       </div>
     </PosLayout>
