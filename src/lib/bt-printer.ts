@@ -25,6 +25,8 @@ const NAME_KEY = "sahla.bt.printerName";
 let activeDevice: any | null = null;
 let activeDeviceId: string | null = null;
 let activeCharacteristic: any | null = null;
+let activeConnectionPromise: Promise<any> | null = null;
+let gattTaskQueue: Promise<unknown> = Promise.resolve();
 
 declare global {
   interface Navigator {
@@ -46,6 +48,13 @@ export function clearRememberedPrinter() {
   activeDevice = null;
   activeDeviceId = null;
   activeCharacteristic = null;
+  activeConnectionPromise = null;
+}
+
+function queueGattTask<T>(task: () => Promise<T>): Promise<T> {
+  const run = gattTaskQueue.catch(() => undefined).then(task);
+  gattTaskQueue = run.then(() => undefined, () => undefined);
+  return run;
 }
 
 function bindDevice(device: any) {
@@ -61,6 +70,7 @@ function bindDevice(device: any) {
     device.addEventListener?.("gattserverdisconnected", () => {
       if (activeDeviceId === device.id) {
         activeCharacteristic = null;
+        activeConnectionPromise = null;
       }
     });
     device.__sahlaBoundDisconnectListener = true;
@@ -110,24 +120,42 @@ async function delay(ms: number) {
 async function ensureGattServer(device: any) {
   if (!device?.gatt) throw new Error("الجهاز لا يدعم GATT");
 
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const server = await device.gatt.connect();
-      await delay(250);
-      return server;
-    } catch (error) {
-      lastError = error;
-      try {
-        device.gatt.disconnect?.();
-      } catch {}
-      await delay(300);
-    }
+  if (device.gatt.connected) {
+    return device.gatt;
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("تعذر إعادة الاتصال بالطابعة");
+  if (activeConnectionPromise && activeDeviceId === device?.id) {
+    return activeConnectionPromise;
+  }
+
+  activeConnectionPromise = (async () => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const server = await device.gatt.connect();
+        await delay(250);
+        return server;
+      } catch (error) {
+        lastError = error;
+        try {
+          device.gatt.disconnect?.();
+        } catch {}
+        await delay(300);
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("تعذر إعادة الاتصال بالطابعة");
+  })();
+
+  try {
+    return await activeConnectionPromise;
+  } finally {
+    if (!device.gatt.connected) {
+      activeConnectionPromise = null;
+    }
+  }
 }
 
 async function connectAndFindCharacteristic(device: any) {
@@ -277,71 +305,74 @@ export async function printHtmlBluetooth(
   html: string,
   paperWidthPx = 384,
 ): Promise<void> {
-  if (!isWebBluetoothSupported()) {
-    throw new Error("Web Bluetooth غير مدعوم");
-  }
-
-  // Try remembered device first; if browser didn't surface it, re-pick (user gesture from print click)
-  let device = activeDevice ?? await getRememberedDevice();
-  if (!device) {
-    const picked = await navigator.bluetooth!.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: SERVICE_CANDIDATES,
-    });
-    device = rememberDevice(picked);
-  } else {
-    bindDevice(device);
-  }
-
-  // Render HTML inside an isolated iframe so app-level oklch tokens don't leak in
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperWidthPx}px;height:10px;border:0;background:#fff;`;
-  document.body.appendChild(iframe);
-
-  const sendToPrinter = async (targetDevice: any) => {
-    const doc = iframe.contentDocument!;
-    doc.open();
-    doc.write(`<!doctype html><html><head><meta charset="utf-8"><style>
-      *,*::before,*::after{box-sizing:border-box;color:#000 !important;background:transparent !important;border-color:#000 !important;}
-      html,body{margin:0;padding:0;background:#fff !important;color:#000 !important;font-family:Arial,sans-serif;}
-    </style></head><body>${html}</body></html>`);
-    doc.close();
-
-    // wait for layout
-    await new Promise((r) => setTimeout(r, 50));
-    const body = doc.body as HTMLElement;
-    iframe.style.height = body.scrollHeight + "px";
-
-    const raster = await htmlToRaster(body, paperWidthPx);
-    const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
-
-    await writeWithReconnect(targetDevice, escposBytes);
-    await delay(500);
-  };
-
-  try {
-    try {
-      await sendToPrinter(device);
-    } catch (error) {
-      if (!isGattDisconnectedError(error)) throw error;
-
-      try {
-        device.gatt?.disconnect?.();
-      } catch {}
-
-      await delay(350);
-
-      if (localStorage.getItem(ACTIVE_KEY) === device?.id) {
-        const picked = await navigator.bluetooth!.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: SERVICE_CANDIDATES,
-        });
-        device = rememberDevice(picked);
-      }
-
-      await sendToPrinter(device);
+  return queueGattTask(async () => {
+    if (!isWebBluetoothSupported()) {
+      throw new Error("Web Bluetooth غير مدعوم");
     }
-  } finally {
-    iframe.remove();
-  }
+
+    // Try remembered device first; if browser didn't surface it, re-pick (user gesture from print click)
+    let device = activeDevice ?? await getRememberedDevice();
+    if (!device) {
+      const picked = await navigator.bluetooth!.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: SERVICE_CANDIDATES,
+      });
+      device = rememberDevice(picked);
+    } else {
+      bindDevice(device);
+    }
+
+    // Render HTML inside an isolated iframe so app-level oklch tokens don't leak in
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperWidthPx}px;height:10px;border:0;background:#fff;`;
+    document.body.appendChild(iframe);
+
+    const sendToPrinter = async (targetDevice: any) => {
+      const doc = iframe.contentDocument!;
+      doc.open();
+      doc.write(`<!doctype html><html><head><meta charset="utf-8"><style>
+        *,*::before,*::after{box-sizing:border-box;color:#000 !important;background:transparent !important;border-color:#000 !important;}
+        html,body{margin:0;padding:0;background:#fff !important;color:#000 !important;font-family:Arial,sans-serif;}
+      </style></head><body>${html}</body></html>`);
+      doc.close();
+
+      await new Promise((r) => setTimeout(r, 50));
+      const body = doc.body as HTMLElement;
+      iframe.style.height = body.scrollHeight + "px";
+
+      const raster = await htmlToRaster(body, paperWidthPx);
+      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
+
+      await writeWithReconnect(targetDevice, escposBytes);
+      await delay(500);
+    };
+
+    try {
+      try {
+        await sendToPrinter(device);
+      } catch (error) {
+        if (!isGattDisconnectedError(error)) throw error;
+
+        activeCharacteristic = null;
+        activeConnectionPromise = null;
+        try {
+          device.gatt?.disconnect?.();
+        } catch {}
+
+        await delay(350);
+
+        if (localStorage.getItem(ACTIVE_KEY) === device?.id) {
+          const picked = await navigator.bluetooth!.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: SERVICE_CANDIDATES,
+          });
+          device = rememberDevice(picked);
+        }
+
+        await sendToPrinter(device);
+      }
+    } finally {
+      iframe.remove();
+    }
+  });
 }
