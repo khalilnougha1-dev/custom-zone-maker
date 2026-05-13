@@ -10,13 +10,13 @@ import { toast } from "sonner";
 import {
   ACTIVE_PRINTER_KEY,
   SAVED_PRINTERS_KEY,
-  type Connection as ImportedConnection,
+  type PrinterConnection,
   getPaperWidthPx,
 } from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/printer")({ component: PrinterPage });
 
-type Connection = ImportedConnection;
+type Connection = PrinterConnection;
 type SavedPrinter = {
   id: string;
   name: string;
@@ -153,7 +153,12 @@ function PrinterPage() {
     if (c === "network") return <Wifi className="h-5 w-5" />;
     return <Monitor className="h-5 w-5" />;
   };
-  const connLabel = (c: Connection) => ({ bluetooth: "بلوتوث", usb: "USB", network: "شبكة (IP)", system: "طابعة النظام" }[c]);
+  const connLabel = (c: Connection) => ({
+    bluetooth: "بلوتوث",
+    usb: "USB",
+    network: "شبكة (IP)",
+    system: "طابعة النظام",
+  } satisfies Record<Connection, string>)[c];
 
   return (
     <PosLayout title="الطابعة">
