@@ -75,26 +75,22 @@ function PrinterPage() {
   const scanBluetooth = async () => {
     setScanning(true);
     try {
-      const nav = navigator as Navigator & { bluetooth?: { requestDevice: (o: unknown) => Promise<{ name?: string; id: string }> } };
-      if (!nav.bluetooth) {
-        toast.error("البلوتوث غير مدعوم في هذا المتصفح");
-        return;
-      }
-      const device = await nav.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ["000018f0-0000-1000-8000-00805f9b34fb"] });
+      const { pairPrinter } = await import("@/lib/bt-printer");
+      const { id, name: pname } = await pairPrinter();
       const p: SavedPrinter = {
         id: crypto.randomUUID(),
-        name: device.name || "Bluetooth Printer",
+        name: pname,
         connection: "bluetooth",
-        address: device.id,
+        address: id,
         paper: "80mm",
       };
-      const next = [...printers, p];
+      const next = [...printers.filter(x => x.connection !== "bluetooth"), p];
       setPrinters(next); savePrinters(next);
-      if (!activeId) setActive(p.id);
-      toast.success("تم الاقتران بالطابعة");
+      setActive(p.id);
+      toast.success(`تم اقتران الطابعة: ${pname}`);
     } catch (e) {
       const msg = (e as Error).message || "تعذر الاقتران";
-      if (!msg.includes("cancelled")) toast.error(msg);
+      if (!msg.toLowerCase().includes("cancel")) toast.error(msg);
     } finally { setScanning(false); }
   };
 
