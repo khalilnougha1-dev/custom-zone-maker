@@ -30,62 +30,62 @@ export async function printReceipt(d: ReceiptData) {
   receiptPrintInFlight = true;
 
   try {
-  const date = d.createdAt ? new Date(d.createdAt) : new Date();
-  const dd = String(date.getDate()).padStart(2, "0");
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dateStr = `${date.getFullYear()}/${mm}/${dd}`;
-  const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const date = d.createdAt ? new Date(d.createdAt) : new Date();
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dateStr = `${date.getFullYear()}/${mm}/${dd}`;
+    const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-  // الديون السابقة
-  let prevDebt = 0;
-  if (d.customerId) {
-    const { data } = await supabase
-      .from("sales")
-      .select("total,paid,created_at")
-      .eq("user_id", d.userId)
-      .eq("customer_id", d.customerId)
-      .lt("created_at", date.toISOString());
-    prevDebt = (data || []).reduce(
-      (s: number, r: any) => s + (Number(r.total) - Number(r.paid || 0)),
-      0,
-    );
-    prevDebt = Math.max(0, prevDebt);
-  }
+    // الديون السابقة
+    let prevDebt = 0;
+    if (d.customerId) {
+      const { data } = await supabase
+        .from("sales")
+        .select("total,paid,created_at")
+        .eq("user_id", d.userId)
+        .eq("customer_id", d.customerId)
+        .lt("created_at", date.toISOString());
+      prevDebt = (data || []).reduce(
+        (s: number, r: any) => s + (Number(r.total) - Number(r.paid || 0)),
+        0,
+      );
+      prevDebt = Math.max(0, prevDebt);
+    }
 
-  // حالة التفعيل
-  let isDemo = true;
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("subscription_status,subscription_expires_at,is_active")
-    .eq("id", d.userId)
-    .maybeSingle();
-  if (prof) {
-    const exp = prof.subscription_expires_at
-      ? new Date(prof.subscription_expires_at).getTime()
-      : 0;
-    const active =
-      prof.is_active &&
-      (prof.subscription_status === "permanent" || exp > Date.now());
-    isDemo = !active;
-  }
+    // حالة التفعيل
+    let isDemo = true;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("subscription_status,subscription_expires_at,is_active")
+      .eq("id", d.userId)
+      .maybeSingle();
+    if (prof) {
+      const exp = prof.subscription_expires_at
+        ? new Date(prof.subscription_expires_at).getTime()
+        : 0;
+      const active =
+        prof.is_active &&
+        (prof.subscription_status === "permanent" || exp > Date.now());
+      isDemo = !active;
+    }
 
-  const total = d.total;
-  const paidNum = d.paid;
-  const rest = Math.max(0, total - paidNum);
+    const total = d.total;
+    const paidNum = d.paid;
+    const rest = Math.max(0, total - paidNum);
 
-  const rows = d.items
-    .map(
-      (i) => `
+    const rows = d.items
+      .map(
+        (i) => `
       <tr>
         <td class="num">${(i.unit_price * i.quantity).toFixed(2)}</td>
         <td class="num">${i.unit_price.toFixed(2)}</td>
         <td class="qty">${i.quantity}</td>
         <td class="name">${i.product_name}</td>
       </tr>`,
-    )
-    .join("");
+      )
+      .join("");
 
-  const html = `
+    const html = `
     <html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
     <style>
       @page { size: 80mm auto; margin: 3mm; }
@@ -130,12 +130,12 @@ export async function printReceipt(d: ReceiptData) {
       ${isDemo ? `<div class="footer">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
     </body></html>`;
 
-  // Body-only HTML for the bluetooth raster path
-  const bodyHtml = `<div style="width:100%;font-family:Arial,sans-serif;font-size:18px;color:#000;background:#fff;padding:4px;">${html
-    .split("<body>")[1]
-    .split("</body>")[0]}</div>`;
+    // Body-only HTML for the bluetooth raster path
+    const bodyHtml = `<div style="width:100%;font-family:Arial,sans-serif;font-size:18px;color:#000;background:#fff;padding:4px;">${html
+      .split("<body>")[1]
+      .split("</body>")[0]}</div>`;
 
-  // Direct Bluetooth printing — no system dialog
+    // Direct Bluetooth printing — no system dialog
     try {
       const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter } =
         await import("./bt-printer");
