@@ -3,11 +3,31 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, Sparkles } from "lucide-react";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { LayoutDashboard, Sparkles, Download } from "lucide-react";
+import { toast } from "sonner";
 
 export function Header() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { canInstall, installed, isIOS, install } = usePwaInstall();
+
+  const handleInstall = async () => {
+    if (installed) {
+      toast.success("التطبيق مثبت بالفعل");
+      return;
+    }
+    if (canInstall) {
+      const outcome = await install();
+      if (outcome === "accepted") toast.success("تم تثبيت التطبيق بنجاح");
+      return;
+    }
+    if (isIOS) {
+      toast.message("للتثبيت على iPhone: اضغط زر المشاركة ثم \"إضافة إلى الشاشة الرئيسية\"");
+      return;
+    }
+    toast.message("افتح القائمة في متصفحك واختر \"تثبيت التطبيق\"");
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
@@ -30,6 +50,16 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={handleInstall}
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">تحميل التطبيق</span>
+          </Button>
           {user ? (
             <Button asChild size="sm" className="gap-2">
               <Link to="/dashboard">
