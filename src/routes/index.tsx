@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
+import { InstallAppSection } from "@/components/marketing/InstallAppSection";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
