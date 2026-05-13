@@ -154,7 +154,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
               </button>
             </div>
             <nav className="p-2">
-              {NAV.map((item) => {
+              {[...NAV, ...(isAdmin ? [ADMIN_NAV] : [])].map((item) => {
                 const active = item.exact ? path === item.to : path.startsWith(item.to);
                 return (
                   <Link
