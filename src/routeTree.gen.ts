@@ -22,6 +22,7 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppTrucksRouteImport } from './routes/app.trucks'
 import { Route as AppSuppliersRouteImport } from './routes/app.suppliers'
 import { Route as AppStockMovementsRouteImport } from './routes/app.stock-movements'
+import { Route as AppStockAdjustRouteImport } from './routes/app.stock-adjust'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSalesRouteImport } from './routes/app.sales'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
@@ -105,6 +106,11 @@ const AppSuppliersRoute = AppSuppliersRouteImport.update({
 const AppStockMovementsRoute = AppStockMovementsRouteImport.update({
   id: '/stock-movements',
   path: '/stock-movements',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStockAdjustRoute = AppStockAdjustRouteImport.update({
+  id: '/stock-adjust',
+  path: '/stock-adjust',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks': typeof AppTrucksRouteWithChildren
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks': typeof AppTrucksRouteWithChildren
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks': typeof AppTrucksRouteWithChildren
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/sales'
     | '/app/settings'
+    | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
     | '/app/trucks'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/sales'
     | '/app/settings'
+    | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
     | '/app/trucks'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/sales'
     | '/app/settings'
+    | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
     | '/app/trucks'
@@ -512,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/stock-movements'
       fullPath: '/app/stock-movements'
       preLoaderRoute: typeof AppStockMovementsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/stock-adjust': {
+      id: '/app/stock-adjust'
+      path: '/stock-adjust'
+      fullPath: '/app/stock-adjust'
+      preLoaderRoute: typeof AppStockAdjustRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/settings': {
@@ -692,6 +711,7 @@ interface AppRouteChildren {
   AppReportsRoute: typeof AppReportsRoute
   AppSalesRoute: typeof AppSalesRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppStockAdjustRoute: typeof AppStockAdjustRoute
   AppStockMovementsRoute: typeof AppStockMovementsRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
   AppTrucksRoute: typeof AppTrucksRouteWithChildren
@@ -716,6 +736,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppSalesRoute: AppSalesRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppStockAdjustRoute: AppStockAdjustRoute,
   AppStockMovementsRoute: AppStockMovementsRoute,
   AppSuppliersRoute: AppSuppliersRoute,
   AppTrucksRoute: AppTrucksRouteWithChildren,
