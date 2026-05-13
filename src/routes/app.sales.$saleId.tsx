@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Trash2, Pencil, Printer, FileText, Clock, Calendar, ImageIcon } from "lucide-react";
+import { ArrowRight, Trash2, Pencil, Printer, Clock, Calendar, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -66,11 +67,25 @@ function SaleDetailPage() {
     navigate({ to: "/app/sales" });
   };
 
-  const printReceipt = () => window.print();
-
-  const exportPdf = () => {
-    window.print();
+  const printReceipt = async () => {
+    if (!user || !sale) return;
+    await printReceiptHtml({
+      userId: user.id,
+      saleSeq: seq ?? 1,
+      customerId: sale.customer_id,
+      customerName,
+      items: items.map((i: any) => ({
+        product_name: i.product_name,
+        quantity: Number(i.quantity),
+        unit_price: Number(i.unit_price),
+      })),
+      total: Number(sale.total),
+      paid: Number(sale.paid || 0),
+      note: sale.notes,
+      createdAt: sale.created_at,
+    });
   };
+  const exportPdf = printReceipt;
 
   if (!sale) {
     return <div className="min-h-screen flex items-center justify-center bg-background">...</div>;
