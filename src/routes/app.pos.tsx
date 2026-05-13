@@ -172,7 +172,17 @@ function NewSalePage() {
     if (e2) return toast.error(e2.message);
     toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
     const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-    await printReceipt(count || 1);
+    await printReceiptHtml({
+      userId: user.id,
+      saleSeq: count || 1,
+      customerId,
+      customerName: customers.find((c: any) => c.id === customerId)?.name || "—",
+      items: cart.map(i => ({ product_name: i.name, quantity: i.qty, unit_price: i.price })),
+      total: totalAmount,
+      paid: Number(paid) || 0,
+      note,
+      createdAt: sale.created_at,
+    });
     setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
     setConfirmOpen(false);
     supabase.from("products").select("*").eq("user_id", user.id).order("name")
