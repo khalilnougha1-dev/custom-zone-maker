@@ -96,7 +96,11 @@ function SalesPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map(s => (
-              <div key={s.id} className="flex items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm">
+              <button
+                key={s.id}
+                onClick={() => navigate({ to: "/app/sales/$saleId", params: { saleId: s.id } })}
+                className="w-full text-right flex items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm hover:bg-muted/50 transition"
+              >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Receipt className="h-5 w-5" />
                 </div>
