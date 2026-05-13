@@ -316,6 +316,87 @@ function ActivatePage() {
         )}
 
       </div>
+
+      {/* Drive backup info dialog */}
+      <Dialog open={driveInfo.open} onOpenChange={(o) => !isBusy && setDriveInfo((d) => ({ ...d, open: o }))}>
+        <DialogContent dir="rtl" className="text-right">
+          <DialogHeader>
+            <DialogTitle>نسخة Google Drive الاحتياطية</DialogTitle>
+            <DialogDescription>
+              راجع تفاصيل النسخة قبل تنفيذ الاسترداد. سيتم استبدال جميع بياناتك الحالية.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {driveInfo.loading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                جاري الاتصال بـ Google Drive...
+              </div>
+            )}
+            {driveInfo.error && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                {driveInfo.error}
+              </div>
+            )}
+            {!driveInfo.loading && !driveInfo.error && driveInfo.modifiedTime && (
+              <div className="rounded-md border border-accent/60 bg-card p-3 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">آخر تعديل</span><span className="font-mono">{new Date(driveInfo.modifiedTime).toLocaleString("ar-DZ")}</span></div>
+                {driveInfo.size && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">الحجم</span><span className="font-mono">{fmtSize(driveInfo.size)}</span></div>
+                )}
+                <div className="flex justify-between"><span className="text-muted-foreground">اسم الملف</span><span className="font-mono">sahlapos-backup.json</span></div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDriveInfo((d) => ({ ...d, open: false }))} disabled={isBusy}>إلغاء</Button>
+            <Button
+              onClick={handleDriveRestore}
+              disabled={isBusy || driveInfo.loading || !!driveInfo.error || !driveInfo.modifiedTime}
+              className="bg-gradient-primary text-primary-foreground"
+            >
+              تنفيذ الاسترداد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress dialog (blocks all other operations) */}
+      <Dialog open={progress.open} onOpenChange={() => { /* blocked */ }}>
+        <DialogContent
+          dir="rtl"
+          className="text-right"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {progress.done ? <CheckIcon className="h-5 w-5 text-green-600" /> : progress.error ? null : <Loader2 className="h-5 w-5 animate-spin" />}
+              {progress.title}
+            </DialogTitle>
+            <DialogDescription>
+              {progress.error ? progress.error : progress.label}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Progress value={progress.total ? (progress.current / progress.total) * 100 : 0} />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{progress.current} / {progress.total}</span>
+              <span>{Math.round((progress.current / Math.max(progress.total, 1)) * 100)}%</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setProgress((p) => ({ ...p, open: false }))}
+              disabled={!progress.done && !progress.error}
+              className="bg-gradient-primary text-primary-foreground"
+            >
+              {progress.done || progress.error ? "إغلاق" : "جاري التنفيذ..."}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PosLayout>
   );
 }
