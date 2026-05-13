@@ -116,7 +116,7 @@ export async function printReceipt(d: ReceiptData) {
       </div>
       ${d.note ? `<div style="margin-top:6px;text-align:right;">ملاحظة: ${d.note}</div>` : ""}
       <div class="thanks">شكرا</div>
-      ${isDemo ? `<div class="footer">sahlapay - Version Démo</div>` : ""}
+      ${isDemo ? `<div class="footer">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
     </body></html>`;
 
   // Body-only HTML for the bluetooth raster path
