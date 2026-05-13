@@ -135,8 +135,55 @@ function NewSalePage() {
 
   const openConfirm = () => {
     if (cart.length === 0) return toast.error("السلة فارغة");
-    setPaid(totalAmount.toFixed(2));
+    setPaid("0");
+    setPaymentMethod("cash");
+    setNote("");
     setConfirmOpen(true);
+  };
+
+  const printReceipt = (invoiceNumber: string) => {
+    const customerName = customers.find((c: any) => c.id === customerId)?.name || "—";
+    const methodLabel = { cash: "نقدا", check: "صك", card: "بطاقة", phone: "الهاتف" }[paymentMethod];
+    const paidNum = Number(paid) || 0;
+    const rest = Math.max(0, totalAmount - paidNum);
+    const rows = cart.map(i => `
+      <tr>
+        <td style="text-align:right;padding:4px 0;">${i.name}</td>
+        <td style="text-align:center;padding:4px 0;">${i.qty}</td>
+        <td style="text-align:left;padding:4px 0;font-family:monospace;">${(i.price*i.qty).toFixed(2)}</td>
+      </tr>`).join("");
+    const html = `
+      <html dir="rtl"><head><meta charset="utf-8"><title>${invoiceNumber}</title>
+      <style>
+        @page { size: 80mm auto; margin: 4mm; }
+        body { font-family: Arial, sans-serif; font-size: 12px; color:#000; }
+        h2 { text-align:center; margin: 4px 0; }
+        .row { display:flex; justify-content:space-between; margin: 2px 0; }
+        table { width:100%; border-collapse:collapse; margin-top:6px; }
+        th { text-align:right; border-bottom:1px dashed #000; padding:4px 0; }
+        .total { font-size:16px; font-weight:bold; border-top:1px dashed #000; padding-top:6px; margin-top:6px; }
+      </style></head><body>
+        <h2>فاتورة بيع</h2>
+        <div class="row"><span>الفاتورة</span><span>${invoiceNumber}</span></div>
+        <div class="row"><span>التاريخ</span><span>${now.date} ${now.time}</span></div>
+        <div class="row"><span>الزبون</span><span>${customerName}</span></div>
+        <div class="row"><span>طريقة الدفع</span><span>${methodLabel}</span></div>
+        <table>
+          <thead><tr><th>المنتج</th><th style="text-align:center;">الكمية</th><th style="text-align:left;">المبلغ</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="total row"><span>الإجمالي</span><span>${totalAmount.toFixed(2)}</span></div>
+        <div class="row"><span>المدفوع</span><span>${paidNum.toFixed(2)}</span></div>
+        <div class="row"><span>الباقي</span><span>${rest.toFixed(2)}</span></div>
+        ${note ? `<div class="row" style="margin-top:6px;"><span>ملاحظة:</span><span>${note}</span></div>` : ""}
+        <p style="text-align:center;margin-top:10px;">شكراً لزيارتكم</p>
+      </body></html>`;
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 250);
   };
 
   const save = async () => {
@@ -146,14 +193,16 @@ function NewSalePage() {
         return toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
       }
     }
+    const invoiceNumber = `INV-${Date.now()}`;
     const { data: sale, error } = await supabase.from("sales").insert({
       user_id: user.id,
       customer_id: customerId,
       subtotal: totalAmount,
       total: totalAmount,
-      paid: Number(paid) || totalAmount,
-      payment_method: "cash",
-      invoice_number: `INV-${Date.now()}`,
+      paid: Number(paid) || 0,
+      payment_method: paymentMethod,
+      notes: note || null,
+      invoice_number: invoiceNumber,
     }).select().single();
     if (error || !sale) return toast.error(error?.message || "خطأ");
     const items = cart.map(i => ({
@@ -164,7 +213,8 @@ function NewSalePage() {
     const { error: e2 } = await supabase.from("sale_items").insert(items);
     if (e2) return toast.error(e2.message);
     toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
-    setCart([]); setPaid(""); setCustomerId(null); setCustomerQ("");
+    printReceipt(invoiceNumber);
+    setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
     setConfirmOpen(false);
     supabase.from("products").select("*").eq("user_id", user.id).order("name")
       .then(({ data }) => setProducts(data || []));
