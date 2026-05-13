@@ -66,9 +66,40 @@ async function getRememberedDevice(): Promise<any | null> {
   }
 }
 
+function isGattDisconnectedError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return message.includes("GATT Server is disconnected") || message.includes("gatt.connect");
+}
+
+async function delay(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function ensureGattServer(device: any) {
+  if (!device?.gatt) throw new Error("الجهاز لا يدعم GATT");
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const server = await device.gatt.connect();
+      await delay(250);
+      return server;
+    } catch (error) {
+      lastError = error;
+      try {
+        device.gatt.disconnect?.();
+      } catch {}
+      await delay(300);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("تعذر إعادة الاتصال بالطابعة");
+}
+
 async function connectAndFindCharacteristic(device: any) {
-  if (!device.gatt) throw new Error("الجهاز لا يدعم GATT");
-  const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
+  const server = await ensureGattServer(device);
 
   // Prefer known printer UUIDs first; some devices expose other writable
   // characteristics that accept bytes but do not trigger actual printing.
@@ -199,7 +230,7 @@ export async function printHtmlBluetooth(
   iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperWidthPx}px;height:10px;border:0;background:#fff;`;
   document.body.appendChild(iframe);
 
-  try {
+  const sendToPrinter = async (targetDevice: any) => {
     const doc = iframe.contentDocument!;
     doc.open();
     doc.write(`<!doctype html><html><head><meta charset="utf-8"><style>
@@ -216,9 +247,35 @@ export async function printHtmlBluetooth(
     const raster = await htmlToRaster(body, paperWidthPx);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
 
-    const characteristic = await connectAndFindCharacteristic(device);
+    const characteristic = await connectAndFindCharacteristic(targetDevice);
     await writeChunks(characteristic, escposBytes);
-    await new Promise((r) => setTimeout(r, 500));
+    await delay(500);
+  };
+
+  try {
+    try {
+      await sendToPrinter(device);
+    } catch (error) {
+      if (!isGattDisconnectedError(error)) throw error;
+
+      try {
+        device.gatt?.disconnect?.();
+      } catch {}
+
+      await delay(350);
+
+      if (localStorage.getItem(ACTIVE_KEY) === device?.id) {
+        const picked = await navigator.bluetooth!.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: SERVICE_CANDIDATES,
+        });
+        localStorage.setItem(ACTIVE_KEY, picked.id);
+        localStorage.setItem(NAME_KEY, picked.name || "Bluetooth Printer");
+        device = picked;
+      }
+
+      await sendToPrinter(device);
+    }
 
     try {
       device.gatt?.disconnect();
