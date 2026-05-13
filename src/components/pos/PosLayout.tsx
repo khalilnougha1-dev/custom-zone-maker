@@ -40,6 +40,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const [calcOpen, setCalcOpen] = useState(false);
   const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouterState();
   const path = router.location.pathname;
 
