@@ -7,15 +7,14 @@ const USER_TABLES = [
   "customers",
   "suppliers",
   "products",
-  "trucks",
   "expenses",
   "cash_movements",
   "cash_transactions",
   "stock_movements",
-  "truck_distributions",
   "sales",
   "purchases",
 ] as const;
+const OWNER_TABLES = ["trucks", "truck_distributions"] as const;
 
 // Child tables (filtered via parent join in RLS)
 const CHILD_TABLES = ["sale_items", "purchase_items"] as const;
