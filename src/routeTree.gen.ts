@@ -40,6 +40,7 @@ import { Route as AppCashRouteImport } from './routes/app.cash'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppActivateRouteImport } from './routes/app.activate'
 import { Route as AppAccountRouteImport } from './routes/app.account'
+import { Route as AppSalesIndexRouteImport } from './routes/app.sales.index'
 import { Route as AppTrucksTruckIdRouteImport } from './routes/app.trucks.$truckId'
 import { Route as AppSalesSaleIdRouteImport } from './routes/app.sales.$saleId'
 import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
@@ -199,6 +200,11 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSalesRoute,
+} as any)
 const AppTrucksTruckIdRoute = AppTrucksTruckIdRouteImport.update({
   id: '/$truckId',
   path: '/$truckId',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
+  '/app/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -275,7 +282,6 @@ export interface FileRoutesByTo {
   '/app/profits': typeof AppProfitsRoute
   '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
-  '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
@@ -285,6 +291,7 @@ export interface FileRoutesByTo {
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
+  '/app/sales': typeof AppSalesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -322,6 +329,7 @@ export interface FileRoutesById {
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
+  '/app/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -360,6 +368,7 @@ export interface FileRouteTypes {
     | '/app/purchases/new'
     | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
+    | '/app/sales/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -385,7 +394,6 @@ export interface FileRouteTypes {
     | '/app/profits'
     | '/app/purchases'
     | '/app/reports'
-    | '/app/sales'
     | '/app/settings'
     | '/app/stock-adjust'
     | '/app/stock-movements'
@@ -395,6 +403,7 @@ export interface FileRouteTypes {
     | '/app/purchases/new'
     | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
+    | '/app/sales'
   id:
     | '__root__'
     | '/'
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/app/purchases/new'
     | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
+    | '/app/sales/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -664,6 +674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/sales/': {
+      id: '/app/sales/'
+      path: '/'
+      fullPath: '/app/sales/'
+      preLoaderRoute: typeof AppSalesIndexRouteImport
+      parentRoute: typeof AppSalesRoute
+    }
     '/app/trucks/$truckId': {
       id: '/app/trucks/$truckId'
       path: '/$truckId'
@@ -702,10 +719,12 @@ const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
 
 interface AppSalesRouteChildren {
   AppSalesSaleIdRoute: typeof AppSalesSaleIdRoute
+  AppSalesIndexRoute: typeof AppSalesIndexRoute
 }
 
 const AppSalesRouteChildren: AppSalesRouteChildren = {
   AppSalesSaleIdRoute: AppSalesSaleIdRoute,
+  AppSalesIndexRoute: AppSalesIndexRoute,
 }
 
 const AppSalesRouteWithChildren = AppSalesRoute._addFileChildren(
