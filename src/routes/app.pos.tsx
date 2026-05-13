@@ -141,49 +141,95 @@ function NewSalePage() {
     setConfirmOpen(true);
   };
 
-  const printReceipt = (invoiceNumber: string) => {
+  const printReceipt = async (saleSeq: number) => {
     const customerName = customers.find((c: any) => c.id === customerId)?.name || "—";
-    const methodLabel = { cash: "نقدا", check: "صك", card: "بطاقة", phone: "الهاتف" }[paymentMethod];
     const paidNum = Number(paid) || 0;
     const rest = Math.max(0, totalAmount - paidNum);
+
+    // الديون السابقة للزبون
+    let prevDebt = 0;
+    if (customerId && user) {
+      const { data } = await supabase
+        .from("sales")
+        .select("total,paid")
+        .eq("user_id", user.id)
+        .eq("customer_id", customerId);
+      prevDebt = (data || []).reduce((s: number, r: any) => s + (Number(r.total) - Number(r.paid || 0)), 0);
+      prevDebt = Math.max(0, prevDebt);
+    }
+
+    // حالة التفعيل
+    let isDemo = true;
+    if (user) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("subscription_status,subscription_expires_at,is_active")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof) {
+        const exp = prof.subscription_expires_at ? new Date(prof.subscription_expires_at).getTime() : 0;
+        const active = prof.is_active && (prof.subscription_status === "permanent" || exp > Date.now());
+        isDemo = !active;
+      }
+    }
+
     const rows = cart.map(i => `
       <tr>
-        <td style="text-align:right;padding:4px 0;">${i.name}</td>
-        <td style="text-align:center;padding:4px 0;">${i.qty}</td>
-        <td style="text-align:left;padding:4px 0;font-family:monospace;">${(i.price*i.qty).toFixed(2)}</td>
+        <td style="text-align:left;padding:2px 4px;font-family:monospace;">${(i.price*i.qty).toFixed(2)}</td>
+        <td style="text-align:left;padding:2px 4px;font-family:monospace;">${i.price.toFixed(2)}</td>
+        <td style="text-align:center;padding:2px 4px;font-family:monospace;">${i.qty}</td>
+        <td style="text-align:right;padding:2px 4px;">${i.name}</td>
       </tr>`).join("");
+
     const html = `
-      <html dir="rtl"><head><meta charset="utf-8"><title>${invoiceNumber}</title>
+      <html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${saleSeq}</title>
       <style>
-        @page { size: 80mm auto; margin: 4mm; }
-        body { font-family: Arial, sans-serif; font-size: 12px; color:#000; }
-        h2 { text-align:center; margin: 4px 0; }
-        .row { display:flex; justify-content:space-between; margin: 2px 0; }
-        table { width:100%; border-collapse:collapse; margin-top:6px; }
-        th { text-align:right; border-bottom:1px dashed #000; padding:4px 0; }
-        .total { font-size:16px; font-weight:bold; border-top:1px dashed #000; padding-top:6px; margin-top:6px; }
+        @page { size: 80mm auto; margin: 3mm; }
+        body { font-family: Arial, sans-serif; font-size: 13px; color:#000; margin:0; }
+        .head { display:flex; justify-content:space-between; margin: 2px 0; }
+        .head b { font-weight: normal; }
+        .center { text-align:center; font-weight:bold; margin: 6px 0; font-size:14px; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:right; border-bottom:1px dashed #000; padding:4px 2px; font-weight:normal; }
+        th.num, td.num { text-align:left; }
+        th.qty, td.qty { text-align:center; }
+        tbody tr td { border-bottom:1px dashed #000; }
+        .totals { margin-top:4px; }
+        .totals .row { display:flex; justify-content:space-between; padding:2px 2px; }
+        .totals .row.sum { border-bottom:1px dashed #000; padding-bottom:4px; margin-bottom:2px; }
+        .thanks { text-align:center; margin-top:10px; }
+        .footer { text-align:center; margin-top:4px; font-size:12px; }
       </style></head><body>
-        <h2>فاتورة بيع</h2>
-        <div class="row"><span>الفاتورة</span><span>${invoiceNumber}</span></div>
-        <div class="row"><span>التاريخ</span><span>${now.date} ${now.time}</span></div>
-        <div class="row"><span>الزبون</span><span>${customerName}</span></div>
-        <div class="row"><span>طريقة الدفع</span><span>${methodLabel}</span></div>
+        <div class="head"><b>${now.time}&nbsp;&nbsp;${now.date.replace(/\//g,"/")}</b><b>:التاريخ</b></div>
+        <div class="head"><b>${customerName}</b><b>:الزبون</b></div>
+        <div class="center">وصل بيع رقم: ${saleSeq}</div>
         <table>
-          <thead><tr><th>المنتج</th><th style="text-align:center;">الكمية</th><th style="text-align:left;">المبلغ</th></tr></thead>
+          <thead>
+            <tr>
+              <th class="num">المبلغ</th>
+              <th class="num">السعر</th>
+              <th class="qty">الكمية</th>
+              <th>المنتج</th>
+            </tr>
+          </thead>
           <tbody>${rows}</tbody>
         </table>
-        <div class="total row"><span>الإجمالي</span><span>${totalAmount.toFixed(2)}</span></div>
-        <div class="row"><span>المدفوع</span><span>${paidNum.toFixed(2)}</span></div>
-        <div class="row"><span>الباقي</span><span>${rest.toFixed(2)}</span></div>
-        ${note ? `<div class="row" style="margin-top:6px;"><span>ملاحظة:</span><span>${note}</span></div>` : ""}
-        <p style="text-align:center;margin-top:10px;">شكراً لزيارتكم</p>
+        <div class="totals">
+          <div class="row sum"><span style="font-family:monospace;">${totalAmount.toFixed(2)}</span><span>المجموع</span></div>
+          <div class="row"><span style="font-family:monospace;">${prevDebt.toFixed(2)}</span><span>الديون السابقة</span></div>
+          <div class="row"><span style="font-family:monospace;">${paidNum.toFixed(2)}</span><span>المبلغ المدفوع</span></div>
+          <div class="row"><span style="font-family:monospace;">${rest.toFixed(2)}</span><span>المبلغ المتبقى</span></div>
+        </div>
+        ${note ? `<div style="margin-top:6px;text-align:right;">ملاحظة: ${note}</div>` : ""}
+        <div class="thanks">شكرا</div>
+        ${isDemo ? `<div class="footer">sahlapay - Version Démo</div>` : ""}
       </body></html>`;
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
     w.document.write(html);
     w.document.close();
     w.focus();
-    setTimeout(() => { w.print(); w.close(); }, 250);
+    setTimeout(() => { w.print(); w.close(); }, 300);
   };
 
   const save = async () => {
