@@ -602,6 +602,45 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          movement_type: string
+          notes: string | null
+          product_id: string
+          product_name: string
+          quantity_change: number
+          reference_id: string | null
+          reference_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_type: string
+          notes?: string | null
+          product_id: string
+          product_name: string
+          quantity_change: number
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          product_id?: string
+          product_name?: string
+          quantity_change?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_audit_log: {
         Row: {
           action: string
