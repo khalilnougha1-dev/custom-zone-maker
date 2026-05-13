@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  exportBackup,
+  downloadBackup,
+  importBackupFromFile,
+  uploadToGoogleDrive,
+  downloadFromGoogleDrive,
+  getGoogleClientId,
+} from "@/lib/backup";
 
 export const Route = createFileRoute("/app/activate")({ component: ActivatePage });
 
@@ -84,19 +92,80 @@ function ActivatePage() {
     setStatus({ active: true, expires_at: result.expires_at, permanent: result.is_permanent });
   };
 
+  const [busy, setBusy] = useState<null | "drive-up" | "drive-down" | "file-in" | "file-out">(null);
+
+  const askConfirm = (msg: string) => window.confirm(msg);
+
+  const handleExportFile = async () => {
+    if (!user?.id) return;
+    setBusy("file-out");
+    try {
+      const file = await exportBackup(user.id);
+      downloadBackup(file);
+      toast.success("تم تنزيل النسخة الاحتياطية");
+    } catch (e: any) {
+      toast.error(e.message || "فشل التصدير");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleImportFile = () => {
+    if (!user?.id) return;
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".json,.csv,.sql,.backup";
-    input.onchange = (e) => {
+    input.accept = ".json";
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) toast.success(`تم اختيار الملف: ${file.name}`);
+      if (!file) return;
+      if (!askConfirm("سيتم استبدال جميع بياناتك الحالية بمحتوى الملف. هل أنت متأكد؟")) return;
+      setBusy("file-in");
+      try {
+        await importBackupFromFile(file, user.id);
+        toast.success("تم استرداد البيانات بنجاح");
+      } catch (err: any) {
+        toast.error(err.message || "فشل الاسترداد");
+      } finally {
+        setBusy(null);
+      }
     };
     input.click();
   };
 
-  const handleGoogleDrive = () => {
-    toast.info("ربط Google Drive قيد التحضير");
+  const handleDriveUpload = async () => {
+    if (!user?.id) return;
+    if (!getGoogleClientId()) {
+      return toast.error("ربط Google Drive غير مُهيأ. يرجى إضافة VITE_GOOGLE_CLIENT_ID");
+    }
+    setBusy("drive-up");
+    try {
+      const file = await exportBackup(user.id);
+      await uploadToGoogleDrive(file);
+      toast.success("تم رفع النسخة إلى Google Drive");
+    } catch (e: any) {
+      toast.error(e.message || "فشل الرفع");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDriveDownload = async () => {
+    if (!user?.id) return;
+    if (!getGoogleClientId()) {
+      return toast.error("ربط Google Drive غير مُهيأ. يرجى إضافة VITE_GOOGLE_CLIENT_ID");
+    }
+    if (!askConfirm("سيتم استبدال بياناتك الحالية بالنسخة الموجودة في Google Drive. هل أنت متأكد؟")) return;
+    setBusy("drive-down");
+    try {
+      const file = await downloadFromGoogleDrive();
+      const { restoreBackup } = await import("@/lib/backup");
+      await restoreBackup(file, user.id);
+      toast.success("تم استرداد البيانات من Google Drive");
+    } catch (e: any) {
+      toast.error(e.message || "فشل التحميل");
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -128,20 +197,38 @@ function ActivatePage() {
                 <HardDrive className="h-5 w-5 text-primary" />
                 <div className="font-semibold">تخزين الملفات</div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={handleGoogleDrive}
-                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
+                  onClick={handleDriveUpload}
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Cloud className="h-4 w-4" />
-                  <span>Google Drive</span>
+                  <span>{busy === "drive-up" ? "جاري الرفع..." : "رفع إلى Drive"}</span>
+                </button>
+                <button
+                  onClick={handleDriveDownload}
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
+                >
+                  <Cloud className="h-4 w-4" />
+                  <span>{busy === "drive-down" ? "جاري التحميل..." : "تحميل من Drive"}</span>
+                </button>
+                <button
+                  onClick={handleExportFile}
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
+                >
+                  <HardDrive className="h-4 w-4" />
+                  <span>{busy === "file-out" ? "جاري التصدير..." : "تصدير ملف"}</span>
                 </button>
                 <button
                   onClick={handleImportFile}
-                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
+                  disabled={!!busy}
+                  className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
-                  <span>استيراد ملف</span>
+                  <span>{busy === "file-in" ? "جاري الاسترداد..." : "استيراد ملف"}</span>
                 </button>
               </div>
             </div>
