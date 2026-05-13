@@ -159,7 +159,7 @@ function buildEscPosImage(raster: Uint8Array, width: number, height: number): Ui
     height & 0xff,
     (height >> 8) & 0xff,
   ]);
-  const feed = new Uint8Array([0x0a, 0x0a, 0x0a, 0x1d, 0x56, 0x42, 0x00]); // feed + GS V B (cut)
+  const feed = new Uint8Array([0x0a, 0x0a, 0x0a, 0x0a, 0x0a]); // line feeds only (skip cut to avoid garbage on printers without auto-cutter)
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
