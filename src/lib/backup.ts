@@ -34,7 +34,11 @@ export async function exportBackup(userId: string): Promise<BackupFile> {
     if (error) throw new Error(`${t}: ${error.message}`);
     data[t] = rows || [];
   }
-  // children: fetch all (RLS scopes to user via parent)
+  for (const t of OWNER_TABLES) {
+    const { data: rows, error } = await supabase.from(t as any).select("*").eq("owner_id", userId);
+    if (error) throw new Error(`${t}: ${error.message}`);
+    data[t] = rows || [];
+  }
   for (const t of CHILD_TABLES) {
     const { data: rows, error } = await supabase.from(t as any).select("*");
     if (error) throw new Error(`${t}: ${error.message}`);
