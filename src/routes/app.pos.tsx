@@ -83,7 +83,22 @@ function NewSalePage() {
   const totalUnits = cart.reduce((s, i) => s + i.qty, 0);
   const totalLines = cart.length;
 
+  const getStock = (id: string) => {
+    const p = products.find((x: any) => x.id === id);
+    return p ? Number(p.stock_quantity) : 0;
+  };
+  const isTracked = (id: string) => {
+    const p = products.find((x: any) => x.id === id);
+    return p ? (p.is_tracked !== false) : true;
+  };
+
   const addProduct = (p: any) => {
+    const tracked = p.is_tracked !== false;
+    const stock = Number(p.stock_quantity) || 0;
+    const inCart = cart.find(i => i.id === p.id)?.qty || 0;
+    if (tracked && inCart + 1 > stock) {
+      return toast.error(`المخزون غير كافٍ (المتبقي ${stock})`);
+    }
     setCart(prev => {
       const found = prev.find(i => i.id === p.id);
       if (found) return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
@@ -100,6 +115,9 @@ function NewSalePage() {
 
   const setQty = (id: string, qty: number) => {
     if (qty <= 0) return setCart(prev => prev.filter(i => i.id !== id));
+    if (isTracked(id) && qty > getStock(id)) {
+      return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(id)})`);
+    }
     setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
   };
 
@@ -119,6 +137,11 @@ function NewSalePage() {
 
   const save = async () => {
     if (!user || cart.length === 0) return;
+    for (const i of cart) {
+      if (isTracked(i.id) && i.qty > getStock(i.id)) {
+        return toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
+      }
+    }
     const { data: sale, error } = await supabase.from("sales").insert({
       user_id: user.id,
       customer_id: customerId,

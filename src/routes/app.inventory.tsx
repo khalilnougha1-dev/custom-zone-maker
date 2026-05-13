@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Printer, ImageIcon } from "lucide-react";
+import { Search, Printer, ImageIcon, History } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,7 +36,10 @@ function InventoryPage() {
 
   return (
     <PosLayout title="المخزون" actions={
-      <button onClick={handlePrint} className="rounded-lg p-2 hover:bg-white/10" aria-label="طباعة"><Printer className="h-6 w-6" /></button>
+      <div className="flex items-center gap-1">
+        <Link to="/app/stock-movements" className="rounded-lg p-2 hover:bg-white/10" aria-label="سجل الحركة"><History className="h-6 w-6" /></Link>
+        <button onClick={handlePrint} className="rounded-lg p-2 hover:bg-white/10" aria-label="طباعة"><Printer className="h-6 w-6" /></button>
+      </div>
     }>
       <div className="space-y-3">
         {/* Search row */}
