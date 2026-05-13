@@ -65,15 +65,14 @@ export function downloadBackup(file: BackupFile) {
 }
 
 async function clearUserData(userId: string) {
-  // Delete in reverse dependency order. Children cascade via FK on sales/purchases.
   await supabase.from("stock_movements").delete().eq("user_id", userId);
-  await supabase.from("truck_distributions").delete().eq("user_id", userId);
+  await supabase.from("truck_distributions").delete().eq("owner_id", userId);
   await supabase.from("cash_transactions").delete().eq("user_id", userId);
   await supabase.from("cash_movements").delete().eq("user_id", userId);
   await supabase.from("expenses").delete().eq("user_id", userId);
-  await supabase.from("sales").delete().eq("user_id", userId); // cascades sale_items
-  await supabase.from("purchases").delete().eq("user_id", userId); // cascades purchase_items
-  await supabase.from("trucks").delete().eq("user_id", userId);
+  await supabase.from("sales").delete().eq("user_id", userId);
+  await supabase.from("purchases").delete().eq("user_id", userId);
+  await supabase.from("trucks").delete().eq("owner_id", userId);
   await supabase.from("products").delete().eq("user_id", userId);
   await supabase.from("suppliers").delete().eq("user_id", userId);
   await supabase.from("customers").delete().eq("user_id", userId);
