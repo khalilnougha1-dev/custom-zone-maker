@@ -75,26 +75,22 @@ function PrinterPage() {
   const scanBluetooth = async () => {
     setScanning(true);
     try {
-      const nav = navigator as Navigator & { bluetooth?: { requestDevice: (o: unknown) => Promise<{ name?: string; id: string }> } };
-      if (!nav.bluetooth) {
-        toast.error("البلوتوث غير مدعوم في هذا المتصفح");
-        return;
-      }
-      const device = await nav.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ["000018f0-0000-1000-8000-00805f9b34fb"] });
+      const { pairPrinter } = await import("@/lib/bt-printer");
+      const { id, name: pname } = await pairPrinter();
       const p: SavedPrinter = {
         id: crypto.randomUUID(),
-        name: device.name || "Bluetooth Printer",
+        name: pname,
         connection: "bluetooth",
-        address: device.id,
+        address: id,
         paper: "80mm",
       };
-      const next = [...printers, p];
+      const next = [...printers.filter(x => x.connection !== "bluetooth"), p];
       setPrinters(next); savePrinters(next);
-      if (!activeId) setActive(p.id);
-      toast.success("تم الاقتران بالطابعة");
+      setActive(p.id);
+      toast.success(`تم اقتران الطابعة: ${pname}`);
     } catch (e) {
       const msg = (e as Error).message || "تعذر الاقتران";
-      if (!msg.includes("cancelled")) toast.error(msg);
+      if (!msg.toLowerCase().includes("cancel")) toast.error(msg);
     } finally { setScanning(false); }
   };
 
@@ -124,11 +120,24 @@ function PrinterPage() {
     } finally { setScanning(false); }
   };
 
-  const testPrint = (p: SavedPrinter) => {
-    if (p.connection === "system") {
-      window.print();
+  const testPrint = async (p: SavedPrinter) => {
+    if (p.connection === "bluetooth") {
+      try {
+        const { printHtmlBluetooth } = await import("@/lib/bt-printer");
+        const html = `<div style="font-family:Arial;font-size:20px;text-align:center;padding:8px;">
+          <div style="font-weight:bold;font-size:24px;">صفحة اختبار</div>
+          <div style="margin-top:8px;">${p.name}</div>
+          <div style="margin-top:8px;">${new Date().toLocaleString("ar")}</div>
+          <div style="margin-top:12px;">sahlapay ✓</div>
+        </div>`;
+        await printHtmlBluetooth(html, 576);
+        toast.success("تمت الطباعة");
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
       return;
     }
+    if (p.connection === "system") { window.print(); return; }
     toast.success(`جاري إرسال صفحة اختبار إلى ${p.name}`);
   };
 

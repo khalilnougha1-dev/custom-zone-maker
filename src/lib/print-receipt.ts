@@ -119,6 +119,29 @@ export async function printReceipt(d: ReceiptData) {
       ${isDemo ? `<div class="footer">sahlapay - Version Démo</div>` : ""}
     </body></html>`;
 
+  // Body-only HTML for the bluetooth raster path
+  const bodyHtml = `<div style="width:100%;font-family:Arial,sans-serif;font-size:18px;color:#000;background:#fff;padding:4px;">${html
+    .split("<body>")[1]
+    .split("</body>")[0]}</div>`;
+
+  // Try Web Bluetooth direct printing first
+  try {
+    const { printHtmlBluetooth, isWebBluetoothSupported } = await import("./bt-printer");
+    if (isWebBluetoothSupported() && localStorage.getItem("sahla.bt.printerId")) {
+      await printHtmlBluetooth(bodyHtml, 576); // 80mm default
+      return;
+    }
+  } catch (e) {
+    // fall through to system print
+    console.warn("Bluetooth print failed, falling back:", e);
+    const msg = (e as Error).message;
+    if (typeof window !== "undefined" && msg) {
+      const { toast } = await import("sonner");
+      toast.error(msg);
+    }
+  }
+
+  // Fallback — system print dialog
   const w = window.open("", "_blank", "width=400,height=600");
   if (!w) return;
   w.document.write(html);
@@ -129,3 +152,4 @@ export async function printReceipt(d: ReceiptData) {
     w.close();
   }, 300);
 }
+
