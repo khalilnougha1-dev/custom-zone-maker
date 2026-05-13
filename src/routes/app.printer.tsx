@@ -81,8 +81,9 @@ function PrinterPage() {
   const scanBluetooth = async () => {
     setScanning(true);
     try {
-      const { pairPrinter } = await import("@/lib/bt-printer");
+      const { pairPrinter, syncRememberedBluetoothPrinter } = await import("@/lib/bt-printer");
       const { id, name: pname } = await pairPrinter();
+      syncRememberedBluetoothPrinter(id, pname);
       const p: SavedPrinter = {
         id: crypto.randomUUID(),
         name: pname,
