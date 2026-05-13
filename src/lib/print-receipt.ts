@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+let receiptPrintInFlight = false;
+
 export type ReceiptItem = {
   product_name: string;
   quantity: number;
@@ -19,6 +21,15 @@ export type ReceiptData = {
 };
 
 export async function printReceipt(d: ReceiptData) {
+  if (receiptPrintInFlight) {
+    const { toast } = await import("sonner");
+    toast.message("الطباعة قيد التنفيذ، يرجى الانتظار...");
+    return;
+  }
+
+  receiptPrintInFlight = true;
+
+  try {
   const date = d.createdAt ? new Date(d.createdAt) : new Date();
   const dd = String(date.getDate()).padStart(2, "0");
   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -125,34 +136,42 @@ export async function printReceipt(d: ReceiptData) {
     .split("</body>")[0]}</div>`;
 
   // Direct Bluetooth printing — no system dialog
-  try {
-    const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter } =
-      await import("./bt-printer");
+    try {
+      const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter } =
+        await import("./bt-printer");
 
-    if (!isWebBluetoothSupported()) {
-      const { toast } = await import("sonner");
-      toast.error("متصفحك لا يدعم الطباعة المباشرة. استخدم Chrome على أندرويد.");
-      return;
-    }
-
-    // Auto-pair on first print (user gesture from the print button)
-    if (!localStorage.getItem("sahla.bt.printerId")) {
-      const { toast } = await import("sonner");
-      toast.message("اختر الطابعة من القائمة");
-      try {
-        await pairPrinter();
-      } catch (err) {
-        toast.error("لم يتم اختيار طابعة");
+      if (!isWebBluetoothSupported()) {
+        const { toast } = await import("sonner");
+        toast.error("متصفحك لا يدعم الطباعة المباشرة. استخدم Chrome على أندرويد.");
         return;
       }
-    }
 
-    await printHtmlBluetooth(bodyHtml, 576);
-    return;
-  } catch (e) {
-    console.warn("Bluetooth print failed:", e);
-    const { toast } = await import("sonner");
-    toast.error((e as Error).message || "فشل الطباعة");
+      // Auto-pair on first print (user gesture from the print button)
+      if (!localStorage.getItem("sahla.bt.printerId")) {
+        const { toast } = await import("sonner");
+        toast.message("اختر الطابعة من القائمة");
+        try {
+          await pairPrinter();
+        } catch (err) {
+          toast.error("لم يتم اختيار طابعة");
+          return;
+        }
+      }
+
+      await printHtmlBluetooth(bodyHtml, 576);
+      return;
+    } catch (e) {
+      console.warn("Bluetooth print failed:", e);
+      const { toast } = await import("sonner");
+      const message = (e as Error).message || "فشل الطباعة";
+      toast.error(
+        message.includes("GATT operation already in progress")
+          ? "الطابعة مشغولة حاليًا. أعد المحاولة بعد ثوانٍ قليلة."
+          : message,
+      );
+    }
+  } finally {
+    receiptPrintInFlight = false;
   }
 }
 
