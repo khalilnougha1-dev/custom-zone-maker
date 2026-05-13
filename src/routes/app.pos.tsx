@@ -137,6 +137,11 @@ function NewSalePage() {
 
   const save = async () => {
     if (!user || cart.length === 0) return;
+    for (const i of cart) {
+      if (isTracked(i.id) && i.qty > getStock(i.id)) {
+        return toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
+      }
+    }
     const { data: sale, error } = await supabase.from("sales").insert({
       user_id: user.id,
       customer_id: customerId,
