@@ -41,6 +41,7 @@ import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppActivateRouteImport } from './routes/app.activate'
 import { Route as AppAccountRouteImport } from './routes/app.account'
 import { Route as AppTrucksTruckIdRouteImport } from './routes/app.trucks.$truckId'
+import { Route as AppSalesSaleIdRouteImport } from './routes/app.sales.$saleId'
 import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
 
 const SignupRoute = SignupRouteImport.update({
@@ -203,6 +204,11 @@ const AppTrucksTruckIdRoute = AppTrucksTruckIdRouteImport.update({
   path: '/$truckId',
   getParentRoute: () => AppTrucksRoute,
 } as any)
+const AppSalesSaleIdRoute = AppSalesSaleIdRouteImport.update({
+  id: '/$saleId',
+  path: '/$saleId',
+  getParentRoute: () => AppSalesRoute,
+} as any)
 const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -234,7 +240,7 @@ export interface FileRoutesByFullPath {
   '/app/profits': typeof AppProfitsRoute
   '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
-  '/app/sales': typeof AppSalesRoute
+  '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/app/trucks': typeof AppTrucksRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
+  '/app/sales/$saleId': typeof AppSalesSaleIdRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
 }
 export interface FileRoutesByTo {
@@ -268,7 +275,7 @@ export interface FileRoutesByTo {
   '/app/profits': typeof AppProfitsRoute
   '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
-  '/app/sales': typeof AppSalesRoute
+  '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/app/trucks': typeof AppTrucksRouteWithChildren
   '/app': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
+  '/app/sales/$saleId': typeof AppSalesSaleIdRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
 }
 export interface FileRoutesById {
@@ -304,7 +312,7 @@ export interface FileRoutesById {
   '/app/profits': typeof AppProfitsRoute
   '/app/purchases': typeof AppPurchasesRouteWithChildren
   '/app/reports': typeof AppReportsRoute
-  '/app/sales': typeof AppSalesRoute
+  '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/app/trucks': typeof AppTrucksRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
+  '/app/sales/$saleId': typeof AppSalesSaleIdRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
 }
 export interface FileRouteTypes {
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/app/trucks'
     | '/app/'
     | '/app/purchases/new'
+    | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
     | '/app/trucks'
     | '/app'
     | '/app/purchases/new'
+    | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
   id:
     | '__root__'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/app/trucks'
     | '/app/'
     | '/app/purchases/new'
+    | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
   fileRoutesById: FileRoutesById
 }
@@ -659,6 +671,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTrucksTruckIdRouteImport
       parentRoute: typeof AppTrucksRoute
     }
+    '/app/sales/$saleId': {
+      id: '/app/sales/$saleId'
+      path: '/$saleId'
+      fullPath: '/app/sales/$saleId'
+      preLoaderRoute: typeof AppSalesSaleIdRouteImport
+      parentRoute: typeof AppSalesRoute
+    }
     '/app/purchases/new': {
       id: '/app/purchases/new'
       path: '/new'
@@ -679,6 +698,18 @@ const AppPurchasesRouteChildren: AppPurchasesRouteChildren = {
 
 const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
   AppPurchasesRouteChildren,
+)
+
+interface AppSalesRouteChildren {
+  AppSalesSaleIdRoute: typeof AppSalesSaleIdRoute
+}
+
+const AppSalesRouteChildren: AppSalesRouteChildren = {
+  AppSalesSaleIdRoute: AppSalesSaleIdRoute,
+}
+
+const AppSalesRouteWithChildren = AppSalesRoute._addFileChildren(
+  AppSalesRouteChildren,
 )
 
 interface AppTrucksRouteChildren {
@@ -709,7 +740,7 @@ interface AppRouteChildren {
   AppProfitsRoute: typeof AppProfitsRoute
   AppPurchasesRoute: typeof AppPurchasesRouteWithChildren
   AppReportsRoute: typeof AppReportsRoute
-  AppSalesRoute: typeof AppSalesRoute
+  AppSalesRoute: typeof AppSalesRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
   AppStockAdjustRoute: typeof AppStockAdjustRoute
   AppStockMovementsRoute: typeof AppStockMovementsRoute
@@ -734,7 +765,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfitsRoute: AppProfitsRoute,
   AppPurchasesRoute: AppPurchasesRouteWithChildren,
   AppReportsRoute: AppReportsRoute,
-  AppSalesRoute: AppSalesRoute,
+  AppSalesRoute: AppSalesRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
   AppStockAdjustRoute: AppStockAdjustRoute,
   AppStockMovementsRoute: AppStockMovementsRoute,
