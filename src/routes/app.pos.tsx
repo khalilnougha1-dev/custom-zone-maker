@@ -259,7 +259,8 @@ function NewSalePage() {
     const { error: e2 } = await supabase.from("sale_items").insert(items);
     if (e2) return toast.error(e2.message);
     toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
-    printReceipt(invoiceNumber);
+    const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+    await printReceipt(count || 1);
     setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
     setConfirmOpen(false);
     supabase.from("products").select("*").eq("user_id", user.id).order("name")
