@@ -22,6 +22,9 @@ const WRITE_CANDIDATES = [
 
 const ACTIVE_KEY = "sahla.bt.printerId";
 const NAME_KEY = "sahla.bt.printerName";
+let activeDevice: any | null = null;
+let activeDeviceId: string | null = null;
+let activeCharacteristic: any | null = null;
 
 declare global {
   interface Navigator {
@@ -40,6 +43,36 @@ export function getRememberedPrinterName(): string | null {
 export function clearRememberedPrinter() {
   localStorage.removeItem(ACTIVE_KEY);
   localStorage.removeItem(NAME_KEY);
+  activeDevice = null;
+  activeDeviceId = null;
+  activeCharacteristic = null;
+}
+
+function bindDevice(device: any) {
+  if (!device) return null;
+
+  activeDevice = device;
+  if (activeDeviceId !== device.id) {
+    activeCharacteristic = null;
+  }
+  activeDeviceId = device.id;
+
+  if (!device.__sahlaBoundDisconnectListener) {
+    device.addEventListener?.("gattserverdisconnected", () => {
+      if (activeDeviceId === device.id) {
+        activeCharacteristic = null;
+      }
+    });
+    device.__sahlaBoundDisconnectListener = true;
+  }
+
+  return device;
+}
+
+function rememberDevice(device: any) {
+  localStorage.setItem(ACTIVE_KEY, device.id);
+  localStorage.setItem(NAME_KEY, device.name || "Bluetooth Printer");
+  return bindDevice(device);
 }
 
 export async function pairPrinter(): Promise<{ id: string; name: string }> {
@@ -50,8 +83,7 @@ export async function pairPrinter(): Promise<{ id: string; name: string }> {
     acceptAllDevices: true,
     optionalServices: SERVICE_CANDIDATES,
   });
-  localStorage.setItem(ACTIVE_KEY, device.id);
-  localStorage.setItem(NAME_KEY, device.name || "Bluetooth Printer");
+  rememberDevice(device);
   return { id: device.id, name: device.name || "Bluetooth Printer" };
 }
 
@@ -60,7 +92,7 @@ async function getRememberedDevice(): Promise<any | null> {
   if (!id || !navigator.bluetooth?.getDevices) return null;
   try {
     const devices = await navigator.bluetooth.getDevices();
-    return devices.find((d: any) => d.id === id) || null;
+    return bindDevice(devices.find((d: any) => d.id === id) || null);
   } catch {
     return null;
   }
@@ -99,6 +131,10 @@ async function ensureGattServer(device: any) {
 }
 
 async function connectAndFindCharacteristic(device: any) {
+  if (activeCharacteristic && activeDeviceId === device?.id && device?.gatt?.connected) {
+    return activeCharacteristic;
+  }
+
   const server = await ensureGattServer(device);
 
   // Prefer known printer UUIDs first; some devices expose other writable
@@ -109,6 +145,7 @@ async function connectAndFindCharacteristic(device: any) {
       for (const wUuid of WRITE_CANDIDATES) {
         try {
           const c = await svc.getCharacteristic(wUuid);
+          activeCharacteristic = c;
           return c;
         } catch {}
       }
@@ -119,14 +156,45 @@ async function connectAndFindCharacteristic(device: any) {
   for (const svc of services) {
     const chars = await svc.getCharacteristics();
     for (const c of chars) {
-      if (c.properties.write) return c;
+      if (c.properties.write) {
+        activeCharacteristic = c;
+        return c;
+      }
     }
     for (const c of chars) {
-      if (c.properties.writeWithoutResponse) return c;
+      if (c.properties.writeWithoutResponse) {
+        activeCharacteristic = c;
+        return c;
+      }
     }
   }
 
   throw new Error("تعذر إيجاد قناة الكتابة على الطابعة");
+}
+
+async function writeWithReconnect(device: any, bytes: Uint8Array) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const characteristic = await connectAndFindCharacteristic(device);
+      await writeChunks(characteristic, bytes);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isGattDisconnectedError(error)) {
+        throw error;
+      }
+
+      activeCharacteristic = null;
+      try {
+        device.gatt?.disconnect?.();
+      } catch {}
+      await delay(400);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("فشل إرسال البيانات إلى الطابعة");
 }
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
@@ -214,15 +282,15 @@ export async function printHtmlBluetooth(
   }
 
   // Try remembered device first; if browser didn't surface it, re-pick (user gesture from print click)
-  let device = await getRememberedDevice();
+  let device = activeDevice ?? await getRememberedDevice();
   if (!device) {
     const picked = await navigator.bluetooth!.requestDevice({
       acceptAllDevices: true,
       optionalServices: SERVICE_CANDIDATES,
     });
-    localStorage.setItem(ACTIVE_KEY, picked.id);
-    localStorage.setItem(NAME_KEY, picked.name || "Bluetooth Printer");
-    device = picked;
+    device = rememberDevice(picked);
+  } else {
+    bindDevice(device);
   }
 
   // Render HTML inside an isolated iframe so app-level oklch tokens don't leak in
@@ -247,8 +315,7 @@ export async function printHtmlBluetooth(
     const raster = await htmlToRaster(body, paperWidthPx);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
 
-    const characteristic = await connectAndFindCharacteristic(targetDevice);
-    await writeChunks(characteristic, escposBytes);
+    await writeWithReconnect(targetDevice, escposBytes);
     await delay(500);
   };
 
@@ -269,17 +336,11 @@ export async function printHtmlBluetooth(
           acceptAllDevices: true,
           optionalServices: SERVICE_CANDIDATES,
         });
-        localStorage.setItem(ACTIVE_KEY, picked.id);
-        localStorage.setItem(NAME_KEY, picked.name || "Bluetooth Printer");
-        device = picked;
+        device = rememberDevice(picked);
       }
 
       await sendToPrinter(device);
     }
-
-    try {
-      device.gatt?.disconnect();
-    } catch {}
   } finally {
     iframe.remove();
   }
