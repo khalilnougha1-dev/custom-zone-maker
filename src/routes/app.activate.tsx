@@ -167,44 +167,6 @@ function ActivatePage() {
           <Button onClick={confirm} disabled={loading} className="bg-gradient-primary text-primary-foreground font-semibold">{loading ? "جاري التحقق..." : "تأكيد"}</Button>
         </div>
 
-        {status.active && (
-          <div className="rounded-md border border-green-500/40 bg-green-500/10 px-4 py-3 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <div className="flex-1 text-right">
-              <div className="font-semibold text-green-700 dark:text-green-400">الحساب مفعّل</div>
-              <div className="text-xs text-muted-foreground">
-                {status.permanent
-                  ? "تفعيل دائم"
-                  : status.expires_at
-                  ? `صالح إلى ${new Date(status.expires_at).toLocaleDateString("ar-DZ")}`
-                  : ""}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-md border border-accent/60 bg-card p-4 space-y-3">
-          <div className="flex items-center gap-2 text-right">
-            <HardDrive className="h-5 w-5 text-primary" />
-            <div className="font-semibold">تخزين الملفات</div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleGoogleDrive}
-              className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
-            >
-              <Cloud className="h-4 w-4" />
-              <span>Google Drive</span>
-            </button>
-            <button
-              onClick={handleImportFile}
-              className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition"
-            >
-              <Upload className="h-4 w-4" />
-              <span>استيراد ملف</span>
-            </button>
-          </div>
-        </div>
       </div>
     </PosLayout>
   );
