@@ -355,13 +355,30 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
   const chunkSize = 20;
-  const chunkDelay = isAndroidBluetoothClient() ? 18 : 14;
+  const supportsWriteWithoutResponse =
+    !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
+  const chunkDelay = supportsWriteWithoutResponse
+    ? isAndroidBluetoothClient()
+      ? 10
+      : 6
+    : isAndroidBluetoothClient()
+      ? 16
+      : 12;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
     await writeChunk(characteristic, slice);
     await delay(chunkDelay);
   }
+}
+
+function getBluetoothPrintTimeoutMs(payloadBytesLength: number) {
+  const estimatedChunks = Math.ceil(payloadBytesLength / 20);
+  const estimatedDuration = estimatedChunks * (isAndroidBluetoothClient() ? 18 : 14) + 12_000;
+  return Math.max(
+    BLUETOOTH_PRINT_TIMEOUT_MIN_MS,
+    Math.min(BLUETOOTH_PRINT_TIMEOUT_MAX_MS, estimatedDuration),
+  );
 }
 
 // Render an HTML element to a 1-bit raster matching the printer's pixel width
@@ -492,8 +509,16 @@ function canvasToRaster(
 function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: number) {
   const marginX = 16;
   const contentWidth = paperWidthPx - marginX * 2;
+  const columnGap = 10;
   const measureCanvas = document.createElement("canvas");
   const measureCtx = measureCanvas.getContext("2d")!;
+
+  const resolveColumnWidths = (columns: SimpleReceiptColumn[]) => {
+    const totalWeight = columns.reduce((sum, column) => sum + (column.width || 1), 0) || columns.length;
+    const availableWidth = contentWidth - columnGap * Math.max(0, columns.length - 1);
+    return columns.map((column) => Math.max(24, Math.floor((availableWidth * (column.width || 1)) / totalWeight)));
+  };
+
   let height = 18;
 
   for (const line of lines) {
@@ -506,8 +531,19 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
     const size = line.size ?? 20;
     const weight = line.bold ? "700" : "400";
     measureCtx.font = `${weight} ${size}px Arial, Tahoma, sans-serif`;
+    const lineHeight = Math.max(22, Math.round(size * 1.4));
+
+    if (line.columns?.length) {
+      const widths = resolveColumnWidths(line.columns);
+      const maxWrappedLines = Math.max(
+        ...line.columns.map((column, index) => wrapCanvasText(measureCtx, column.text || "", widths[index]).length),
+      );
+      height += maxWrappedLines * lineHeight;
+      continue;
+    }
+
     const wrapped = wrapCanvasText(measureCtx, line.text || "", contentWidth);
-    height += wrapped.length * Math.max(24, Math.round(size * 1.45));
+    height += wrapped.length * lineHeight;
   }
 
   height += 18;
@@ -540,9 +576,38 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
 
     const size = line.size ?? 20;
     const weight = line.bold ? "700" : "400";
-    const lineHeight = Math.max(24, Math.round(size * 1.45));
+    const lineHeight = Math.max(22, Math.round(size * 1.4));
     ctx.font = `${weight} ${size}px Arial, Tahoma, sans-serif`;
     ctx.textBaseline = "top";
+
+    if (line.columns?.length) {
+      const widths = resolveColumnWidths(line.columns);
+      const wrappedColumns = line.columns.map((column, index) => wrapCanvasText(ctx, column.text || "", widths[index]));
+      const maxWrappedLines = Math.max(...wrappedColumns.map((wrapped) => wrapped.length));
+      let rightEdge = canvas.width - marginX;
+
+      line.columns.forEach((column, index) => {
+        const columnWidth = widths[index];
+        const columnLeft = rightEdge - columnWidth;
+        const align = column.align || "right";
+        ctx.font = `${column.bold || line.bold ? "700" : "400"} ${size}px Arial, Tahoma, sans-serif`;
+        (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction = column.direction || line.direction || "rtl";
+        ctx.textAlign = align === "center" ? "center" : align === "left" ? "left" : "right";
+
+        const x = align === "center" ? columnLeft + columnWidth / 2 : align === "left" ? columnLeft : rightEdge;
+        const wrapped = wrappedColumns[index];
+
+        wrapped.forEach((wrappedLine, lineIndex) => {
+          ctx.fillText(wrappedLine, x, y + lineIndex * lineHeight);
+        });
+
+        rightEdge = columnLeft - columnGap;
+      });
+
+      y += maxWrappedLines * lineHeight;
+      continue;
+    }
+
     (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction = line.direction || "rtl";
 
     const align = line.align || "right";
