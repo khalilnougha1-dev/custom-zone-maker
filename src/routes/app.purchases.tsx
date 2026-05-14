@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, Truck, Calendar, Plus } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
@@ -120,13 +120,13 @@ function PurchasesPage() {
       </div>
 
       {/* Floating red button -> new purchase */}
-      <button
-        onClick={() => navigate({ to: "/app/purchases/new" })}
-        className="fixed bottom-44 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
+      <Link
+        to="/app/purchases/new"
+        className="fixed bottom-44 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
         aria-label="شراء جديد"
       >
         <Plus className="h-7 w-7" />
-      </button>
+      </Link>
 
       {/* Total bar */}
       <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-border bg-card/95 backdrop-blur">
