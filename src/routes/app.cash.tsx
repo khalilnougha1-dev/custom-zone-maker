@@ -259,6 +259,6 @@ function Row({
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-foreground/80">
         <Icon className="h-5 w-5" />
       </div>
-    </div>
+    </Comp>
   );
 }
