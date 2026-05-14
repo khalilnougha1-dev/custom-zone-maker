@@ -106,10 +106,11 @@ export function PackagesManager({ productId, productName, unitPrice, unitCost = 
 }
 
 function PackageEditor({
-  productId, unitPrice, editing, onClose, onSaved,
+  productId, unitPrice, unitCost, editing, onClose, onSaved,
 }: {
   productId: string;
   unitPrice: number;
+  unitCost: number;
   editing: Pkg | null;
   onClose: () => void;
   onSaved: () => void;
