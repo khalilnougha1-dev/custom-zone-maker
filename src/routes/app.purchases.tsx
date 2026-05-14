@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Truck, Calendar, Plus } from "lucide-react";
+import { Search, Truck, Calendar, Plus, Pencil } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
