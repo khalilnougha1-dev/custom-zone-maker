@@ -297,85 +297,89 @@ export async function printReceipt(d: ReceiptData) {
       const simpleLines = [
         {
           columns: [
-            { text: `التاريخ: ${dateStr}`, width: 1.45, align: "right" as const },
-            { text: timeStr, width: 0.95, align: "left" as const, direction: "ltr" as const },
+            { text: `التاريخ: ${dateStr}`, width: 1.35, align: "right" as const },
+            { text: timeStr, width: 0.85, align: "left" as const, direction: "ltr" as const },
           ],
-          size: 14,
+          size: isCompactReceipt ? 12 : 14,
         },
         {
           columns: [
-            { text: `الزبون: ${d.customerName}`, width: 1.45, align: "right" as const, bold: true },
-            { text: "", width: 0.95 },
+            { text: `الزبون: ${d.customerName}`, width: 1.35, align: "right" as const, bold: true },
+            { text: "", width: 0.85 },
           ],
-          size: 14,
+          size: isCompactReceipt ? 12 : 14,
           gapTop: 2,
         },
-        { text: `وصل بيع رقم: ${d.saleSeq}`, align: "center" as const, size: 20, bold: true, gapTop: 8 },
+        { text: `وصل بيع رقم: ${d.saleSeq}`, align: "center" as const, size: isCompactReceipt ? 17 : 20, bold: true, gapTop: 6 },
         {
           columns: [
-            { text: "المنتج", width: 1.8, align: "right" as const, bold: true },
-            { text: "الكمية", width: 0.7, align: "center" as const, bold: true },
-            { text: "السعر", width: 0.8, align: "center" as const, bold: true },
-            { text: "المبلغ", width: 0.9, align: "left" as const, bold: true },
+            { text: "المنتج", width: 1.55, align: "right" as const, bold: true },
+            { text: "ك", width: 0.45, align: "center" as const, bold: true },
+            { text: "الإجمالي", width: 0.8, align: "left" as const, bold: true },
           ],
-          size: 14,
-          gapTop: 8,
+          size: isCompactReceipt ? 12 : 14,
+          gapTop: 6,
         },
         { dashed: true, gapTop: 2 },
         ...d.items.flatMap((item) => [
           {
             columns: [
-              { text: item.product_name, width: 1.8, align: "right" as const, bold: true },
-              { text: String(item.quantity), width: 0.7, align: "center" as const, direction: "ltr" as const },
-              { text: item.unit_price.toFixed(2), width: 0.8, align: "center" as const, direction: "ltr" as const },
+              { text: item.product_name, width: 1.55, align: "right" as const, bold: true },
+              { text: String(item.quantity), width: 0.45, align: "center" as const, direction: "ltr" as const },
               {
                 text: (item.unit_price * item.quantity).toFixed(2),
-                width: 0.9,
+                width: 0.8,
                 align: "left" as const,
                 direction: "ltr" as const,
               },
             ],
-            size: 15,
+            size: isCompactReceipt ? 13 : 15,
             gapTop: 2,
+          },
+          {
+            text: `${item.unit_price.toFixed(2)} × ${item.quantity}`,
+            align: "left" as const,
+            size: isCompactReceipt ? 10 : 12,
+            direction: "ltr" as const,
           },
           { dashed: true, gapTop: 2 },
         ]),
         {
           columns: [
-            { text: "المجموع", width: 1.6, align: "right" as const, bold: true },
-            { text: total.toFixed(2), width: 1, align: "left" as const, bold: true, direction: "ltr" as const },
+            { text: "المجموع", width: 1.35, align: "right" as const, bold: true },
+            { text: total.toFixed(2), width: 0.85, align: "left" as const, bold: true, direction: "ltr" as const },
           ],
-          size: 16,
+          size: isCompactReceipt ? 14 : 16,
           gapTop: 2,
         },
         { dashed: true, gapTop: 2 },
         {
           columns: [
-            { text: "الديون السابقة", width: 1.6, align: "right" as const },
-            { text: prevDebt.toFixed(2), width: 1, align: "left" as const, direction: "ltr" as const },
+            { text: "الديون السابقة", width: 1.35, align: "right" as const },
+            { text: prevDebt.toFixed(2), width: 0.85, align: "left" as const, direction: "ltr" as const },
           ],
-          size: 15,
+          size: isCompactReceipt ? 12 : 15,
           gapTop: 2,
         },
         {
           columns: [
-            { text: "المبلغ المدفوع", width: 1.6, align: "right" as const },
-            { text: paidNum.toFixed(2), width: 1, align: "left" as const, direction: "ltr" as const },
+            { text: "المدفوع", width: 1.35, align: "right" as const },
+            { text: paidNum.toFixed(2), width: 0.85, align: "left" as const, direction: "ltr" as const },
           ],
-          size: 15,
+          size: isCompactReceipt ? 12 : 15,
           gapTop: 2,
         },
         {
           columns: [
-            { text: "المبلغ المتبقي", width: 1.6, align: "right" as const },
-            { text: rest.toFixed(2), width: 1, align: "left" as const, direction: "ltr" as const },
+            { text: "المتبقي", width: 1.35, align: "right" as const },
+            { text: rest.toFixed(2), width: 0.85, align: "left" as const, direction: "ltr" as const },
           ],
-          size: 15,
+          size: isCompactReceipt ? 12 : 15,
           gapTop: 2,
         },
-        ...(d.note ? [{ text: `ملاحظة: ${d.note}`, align: "right" as const, size: 14, gapTop: 8 }] : []),
-        { text: "شكراً", align: "center" as const, size: 16, gapTop: 10 },
-        ...(isDemo ? [{ text: "KuaiPOS 9.10 Illizi - Version Demo", align: "center" as const, size: 13, direction: "ltr" as const, gapTop: 4 }] : []),
+        ...(d.note ? [{ text: `ملاحظة: ${d.note}`, align: "right" as const, size: isCompactReceipt ? 12 : 14, gapTop: 6 }] : []),
+        { text: "شكراً", align: "center" as const, size: isCompactReceipt ? 14 : 16, gapTop: 8 },
+        ...(isDemo ? [{ text: "KuaiPOS 9.10 Illizi - Version Demo", align: "center" as const, size: isCompactReceipt ? 10 : 13, direction: "ltr" as const, gapTop: 4 }] : []),
       ];
 
       const MAX_ATTEMPTS = 3;
@@ -390,7 +394,7 @@ export async function printReceipt(d: ReceiptData) {
             toast.message("جاري الإرسال إلى الطابعة...");
           }
 
-          await printSimpleReceiptBluetooth(simpleLines, paperWidthPx);
+          await printSimpleReceiptBluetooth(simpleLines, receiptWidthPx);
           toast.success("تم إرسال الوصل إلى الطابعة");
           printed = true;
           break;
