@@ -5,6 +5,10 @@ import { toast } from "sonner";
 let receiptPrintInFlight = false;
 const PRINT_ABORT_MESSAGES = ["cancel", "aborted", "notfounderror", "user gesture"];
 
+function getBluetoothWidthCandidates(width: number) {
+  return Array.from(new Set([Math.min(width, 576), 384].filter((value) => value > 0)));
+}
+
 async function openSystemPrintDialog(html: string) {
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:0;height:0;border:0;";
@@ -382,19 +386,23 @@ export async function printReceipt(d: ReceiptData) {
         ...(isDemo ? [{ text: "KuaiPOS 9.10 Illizi - Version Demo", align: "center" as const, size: isCompactReceipt ? 10 : 13, direction: "ltr" as const, gapTop: 4 }] : []),
       ];
 
-      const MAX_ATTEMPTS = 3;
+      const widthCandidates = getBluetoothWidthCandidates(receiptWidthPx);
+      const MAX_ATTEMPTS = widthCandidates.length * 2;
       let lastError: unknown = null;
       let printed = false;
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const widthIndex = Math.min(widthCandidates.length - 1, Math.floor((attempt - 1) / 2));
+        const targetWidth = widthCandidates[widthIndex];
         try {
           if (attempt > 1) {
-            toast.message(`إعادة المحاولة ${attempt} من ${MAX_ATTEMPTS}...`);
+            const widthLabel = targetWidth === 384 ? "58مم" : "80مم";
+            toast.message(`إعادة المحاولة ${attempt} من ${MAX_ATTEMPTS} (${widthLabel})...`);
           } else {
             toast.message("جاري الإرسال إلى الطابعة...");
           }
 
-          await printSimpleReceiptBluetooth(simpleLines, receiptWidthPx);
+          await printSimpleReceiptBluetooth(simpleLines, targetWidth);
           toast.success("تم إرسال الوصل إلى الطابعة");
           printed = true;
           break;

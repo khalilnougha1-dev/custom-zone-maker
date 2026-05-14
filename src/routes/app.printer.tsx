@@ -158,7 +158,7 @@ function PrinterPage() {
       </div>`;
       if (active.connection === "bluetooth") {
         const { printHtmlBluetooth } = await import("@/lib/bt-printer");
-        await printHtmlBluetooth(html, getPaperWidthPx(active.paper));
+        await printHtmlBluetooth(html, Math.min(getPaperWidthPx(active.paper), 384));
       } else if (active.connection === "system") {
         const w = window.open("", "_blank", "width=400,height=300");
         if (!w) throw new Error("تم منع النوافذ المنبثقة");
@@ -192,7 +192,7 @@ function PrinterPage() {
           <div style="margin-top:8px;">${new Date().toLocaleString("ar")}</div>
           <div style="margin-top:12px;">sahlapay ✓</div>
         </div>`;
-        await printHtmlBluetooth(html, getPaperWidthPx(p.paper));
+        await printHtmlBluetooth(html, Math.min(getPaperWidthPx(p.paper), 384));
         toast.success("تمت الطباعة");
       } catch (e) {
         toast.error((e as Error).message);
