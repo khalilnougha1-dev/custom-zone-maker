@@ -577,17 +577,22 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     @page { size: ${paperWidthMm}mm auto; margin: 0; }
-    html, body { margin:0 !important; padding:0 !important; width:${paperWidthMm}mm !important; background:#fff; }
-    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    .receipt-sheet {
-      width:${receiptWidthMm}mm !important;
-      margin:0 auto !important;
-      padding:${isCompactReceipt ? 1.8 : 2.5}mm ${isCompactReceipt ? 1.6 : 2.5}mm 4mm !important;
-      box-sizing:border-box !important;
-      background:#fff;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: ${paperWidthMm}mm !important;
+      min-height: 0 !important;
+      height: auto !important;
+      background: #fff;
+      color: #000;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
+    body { padding: ${isCompactReceipt ? 1.5 : 2.5}mm ${isCompactReceipt ? 1.5 : 2.5}mm ${isCompactReceipt ? 3 : 4}mm !important; }
+    table { page-break-inside: avoid; }
   </style>
-  </head><body><div class="receipt-sheet">${receiptBody}</div></body></html>`;
+  </head><body>${receiptBody}</body></html>`;
 }
 
 export const SAMPLE_RECEIPT: PreviewReceiptInput = {
