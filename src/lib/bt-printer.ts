@@ -3,11 +3,19 @@
 
 import html2canvas from "html2canvas";
 
-// Common ESC/POS BLE service/characteristic combinations
+// Common ESC/POS BLE service/characteristic combinations.
+// IMPORTANT: Web Bluetooth only exposes services listed in optionalServices,
+// so we list every UUID range commonly used by thermal/receipt printers.
 const SERVICE_CANDIDATES = [
   "000018f0-0000-1000-8000-00805f9b34fb", // most Xprinter / generic ESC/POS
   "0000ff00-0000-1000-8000-00805f9b34fb",
+  "0000ff10-0000-1000-8000-00805f9b34fb",
   "0000fee7-0000-1000-8000-00805f9b34fb",
+  "0000ffe0-0000-1000-8000-00805f9b34fb", // HM-10 / cheap BLE modules
+  "0000ffb0-0000-1000-8000-00805f9b34fb",
+  "0000ffd0-0000-1000-8000-00805f9b34fb",
+  "0000fff0-0000-1000-8000-00805f9b34fb",
+  "0000ae00-0000-1000-8000-00805f9b34fb",
   "49535343-fe7d-4ae5-8fa9-9fafd205e455", // ISSC / Microchip
   "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
 ];
@@ -15,7 +23,14 @@ const SERVICE_CANDIDATES = [
 const WRITE_CANDIDATES = [
   "00002af1-0000-1000-8000-00805f9b34fb",
   "0000ff02-0000-1000-8000-00805f9b34fb",
+  "0000ff01-0000-1000-8000-00805f9b34fb",
+  "0000ff03-0000-1000-8000-00805f9b34fb",
   "0000fee8-0000-1000-8000-00805f9b34fb",
+  "0000ffe1-0000-1000-8000-00805f9b34fb", // HM-10 write/notify
+  "0000ffb2-0000-1000-8000-00805f9b34fb",
+  "0000fff1-0000-1000-8000-00805f9b34fb",
+  "0000fff2-0000-1000-8000-00805f9b34fb",
+  "0000ae01-0000-1000-8000-00805f9b34fb",
   "49535343-8841-43f4-a8d4-ecbe34729bb3",
   "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
 ];
@@ -262,49 +277,69 @@ async function connectAndFindCharacteristic(device: any) {
   }
 
   const server = await ensureGattServer(device);
-  const discoveredServices: string[] = [];
 
-  // Prefer known printer UUIDs first; some devices expose other writable
-  // characteristics that accept bytes but do not trigger actual printing.
+  // 1) Try exact known service+characteristic combos first (fastest path).
   for (const sUuid of SERVICE_CANDIDATES) {
     try {
       const svc = await server.getPrimaryService(sUuid);
-      discoveredServices.push(String(svc.uuid || sUuid));
       for (const wUuid of WRITE_CANDIDATES) {
         try {
           const c = await svc.getCharacteristic(wUuid);
-          console.info("[bt-printer] matched exact write characteristic", {
-            service: String(svc.uuid || sUuid),
-            characteristic: String(c.uuid || wUuid),
-          });
+          console.info("[bt-printer] exact match", { service: sUuid, characteristic: wUuid });
           activeCharacteristic = c;
           return c;
         } catch {}
       }
-
-      const chars = await svc.getCharacteristics();
-      for (const c of chars) {
-        const isWritable = !!(c.properties.writeWithoutResponse || c.properties.write);
-        const isNotifyOnly = !!c.properties.notify && !c.properties.writeWithoutResponse && !c.properties.write;
-        if (isWritable && !isNotifyOnly) {
-          console.info("[bt-printer] matched fallback characteristic inside known printer service", {
-            service: String(svc.uuid || sUuid),
-            characteristic: String(c.uuid || "unknown"),
-            write: !!c.properties.write,
-            writeWithoutResponse: !!c.properties.writeWithoutResponse,
-          });
-          activeCharacteristic = c;
-          return c;
-        }
-      }
     } catch {}
   }
 
-  console.warn("[bt-printer] no known printer write characteristic found", {
+  // 2) Fallback: scan ALL primary services and pick any writable
+  //    characteristic. Prefer ones inside known printer services, then any.
+  let services: any[] = [];
+  try {
+    services = await server.getPrimaryServices();
+  } catch (e) {
+    console.warn("[bt-printer] getPrimaryServices failed", e);
+  }
+
+  const knownSet = new Set(SERVICE_CANDIDATES.map((s) => s.toLowerCase()));
+  const preferred: any[] = [];
+  const others: any[] = [];
+
+  for (const svc of services) {
+    let chars: any[] = [];
+    try {
+      chars = await svc.getCharacteristics();
+    } catch {
+      continue;
+    }
+    for (const c of chars) {
+      const p = c.properties || {};
+      const writable = !!(p.writeWithoutResponse || p.write);
+      if (!writable) continue;
+      const entry = { svc: String(svc.uuid || ""), c };
+      if (knownSet.has(String(svc.uuid || "").toLowerCase())) preferred.push(entry);
+      else others.push(entry);
+    }
+  }
+
+  const pick = preferred[0] || others[0];
+  if (pick) {
+    console.info("[bt-printer] fallback match", {
+      service: pick.svc,
+      characteristic: String(pick.c.uuid || ""),
+      write: !!pick.c.properties?.write,
+      writeWithoutResponse: !!pick.c.properties?.writeWithoutResponse,
+    });
+    activeCharacteristic = pick.c;
+    return pick.c;
+  }
+
+  console.warn("[bt-printer] no writable characteristic found", {
     deviceId: device?.id || null,
-    services: discoveredServices,
+    services: services.map((s) => String(s.uuid || "")),
   });
-  throw new Error("تعذر العثور على قناة الطباعة الصحيحة للطابعة. أعد الاقتران بالطابعة الحرارية المتوافقة ثم حاول مجددًا.");
+  throw new Error("تعذر العثور على قناة كتابة في هذه الطابعة. تأكد أنها طابعة حرارية ESC/POS وأعد الاقتران.");
 }
 
 async function writeWithReconnect(device: any, bytes: Uint8Array) {
