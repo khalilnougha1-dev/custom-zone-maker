@@ -16,10 +16,13 @@ export const Route = createFileRoute("/app/customers")({ component: CustomersPag
 
 function CustomersPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [salesOpen, setSalesOpen] = useState(false);
+  const [salesCustomer, setSalesCustomer] = useState<any>(null);
   const [form, setForm] = useState({ name: "", phone: "", address: "", initial_debt: "0", notes: "", is_inactive: false });
 
   const load = () => {
