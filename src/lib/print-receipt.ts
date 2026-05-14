@@ -115,9 +115,11 @@ export async function printReceipt(d: ReceiptData) {
     const dateStr = `${date.getFullYear()}/${mm}/${dd}`;
     const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-    // الديون السابقة
+    // الديون السابقة — تخطّي الاستعلام إذا تم تمريرها مسبقًا
     let prevDebt = 0;
-    if (d.customerId) {
+    if (typeof d.prevDebt === "number") {
+      prevDebt = Math.max(0, d.prevDebt);
+    } else if (d.customerId) {
       const { data } = await supabase
         .from("sales")
         .select("total,paid,created_at")
@@ -131,21 +133,25 @@ export async function printReceipt(d: ReceiptData) {
       prevDebt = Math.max(0, prevDebt);
     }
 
-    // حالة التفعيل
+    // حالة التفعيل — تخطّي الاستعلام إذا تم تمريرها مسبقًا
     let isDemo = true;
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("subscription_status,subscription_expires_at,is_active")
-      .eq("id", d.userId)
-      .maybeSingle();
-    if (prof) {
-      const exp = prof.subscription_expires_at
-        ? new Date(prof.subscription_expires_at).getTime()
-        : 0;
-      const active =
-        prof.is_active &&
-        (prof.subscription_status === "permanent" || exp > Date.now());
-      isDemo = !active;
+    if (typeof d.isDemo === "boolean") {
+      isDemo = d.isDemo;
+    } else {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("subscription_status,subscription_expires_at,is_active")
+        .eq("id", d.userId)
+        .maybeSingle();
+      if (prof) {
+        const exp = prof.subscription_expires_at
+          ? new Date(prof.subscription_expires_at).getTime()
+          : 0;
+        const active =
+          prof.is_active &&
+          (prof.subscription_status === "permanent" || exp > Date.now());
+        isDemo = !active;
+      }
     }
 
     const total = d.total;
