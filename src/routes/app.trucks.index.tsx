@@ -20,6 +20,7 @@ function TrucksPage() {
   const [edit, setEdit] = useState<any>(null);
   const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_email: "", driver_user_id: "" });
   const [linking, setLinking] = useState(false);
+  const [matches, setMatches] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
 
   const load = async () => {
     if (!user) return;
@@ -32,15 +33,44 @@ function TrucksPage() {
   const openEdit = (t: any) => { setEdit(t); setForm({ name: t.name, plate_number: t.plate_number || "", driver_name: t.driver_name || "", driver_phone: t.driver_phone || "", driver_email: "", driver_user_id: t.driver_user_id || "" }); setOpen(true); };
 
   const linkByEmail = async () => {
-    const email = form.driver_email.trim();
-    if (!email) return toast.error("أدخل بريد السائق");
+    const raw = form.driver_email.trim();
+    if (!raw) return toast.error("أدخل بريد أو اسم السائق");
     setLinking(true);
-    const { data, error } = await supabase.rpc("find_user_id_by_email", { _email: email });
+    setMatches([]);
+
+    // 1) Try exact email lookup (auto-append @gmail.com if missing)
+    const candidates = raw.includes("@") ? [raw] : [raw, `${raw}@gmail.com`];
+    for (const cand of candidates) {
+      const { data } = await supabase.rpc("find_user_id_by_email", { _email: cand });
+      if (data) {
+        setForm((f) => ({ ...f, driver_user_id: data as string, driver_email: cand }));
+        setLinking(false);
+        toast.success("تم ربط الحساب بنجاح");
+        return;
+      }
+    }
+
+    // 2) Fallback: search by name or partial email
+    const { data: list, error } = await supabase.rpc("search_linkable_users", { _q: raw });
     setLinking(false);
     if (error) return toast.error(error.message);
-    if (!data) return toast.error("لم يتم العثور على حساب بهذا البريد. اطلب من السائق التسجيل أولاً عبر Google.");
-    setForm((f) => ({ ...f, driver_user_id: data as string }));
-    toast.success("تم ربط الحساب بنجاح");
+    if (!list || (list as any[]).length === 0) {
+      return toast.error("لم يتم العثور على حساب. تأكد أن السائق سجّل دخوله مرّة عبر Google");
+    }
+    if ((list as any[]).length === 1) {
+      const u = (list as any[])[0];
+      setForm((f) => ({ ...f, driver_user_id: u.id, driver_email: u.email }));
+      toast.success(`تم الربط: ${u.full_name || u.email}`);
+      return;
+    }
+    setMatches(list as any[]);
+    toast.message("اختر الحساب من القائمة");
+  };
+
+  const pickMatch = (u: { id: string; full_name: string; email: string }) => {
+    setForm((f) => ({ ...f, driver_user_id: u.id, driver_email: u.email }));
+    setMatches([]);
+    toast.success(`تم الربط: ${u.full_name || u.email}`);
   };
 
   const save = async () => {
@@ -139,23 +169,37 @@ function TrucksPage() {
             <div><Label>اسم السائق</Label><Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} /></div>
             <div><Label>هاتف السائق</Label><Input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} dir="ltr" /></div>
             <div>
-              <Label>بريد حساب السائق (Google)</Label>
+              <Label>بريد أو اسم السائق</Label>
               <div className="flex gap-2">
                 <Input
                   value={form.driver_email}
                   onChange={(e) => setForm({ ...form, driver_email: e.target.value })}
                   dir="ltr"
-                  placeholder="driver@gmail.com"
-                  type="email"
+                  placeholder="driver@gmail.com أو الاسم"
                 />
                 <Button type="button" onClick={linkByEmail} disabled={linking} variant="outline">
-                  {linking ? "..." : "ربط"}
+                  {linking ? "..." : "بحث/ربط"}
                 </Button>
               </div>
+              {matches.length > 0 && (
+                <div className="mt-2 space-y-1 rounded-md border bg-muted/30 p-2">
+                  {matches.map((u) => (
+                    <button
+                      type="button"
+                      key={u.id}
+                      onClick={() => pickMatch(u)}
+                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-right hover:bg-background"
+                    >
+                      <span className="text-xs text-muted-foreground" dir="ltr">{u.email}</span>
+                      <span className="text-sm font-medium">{u.full_name || "—"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               {form.driver_user_id && (
                 <p className="mt-1 text-xs text-emerald-600">✓ تم الربط — معرّف: <span dir="ltr">{form.driver_user_id.slice(0, 8)}…</span></p>
               )}
-              <p className="mt-1 text-xs text-muted-foreground">يجب أن يسجّل السائق دخوله مرّة واحدة عبر Google قبل الربط.</p>
+              <p className="mt-1 text-xs text-muted-foreground">يكفي إدخال جزء من الاسم أو البريد. على السائق تسجيل الدخول مرّة عبر Google قبل الربط.</p>
             </div>
             <Button onClick={save} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
           </div>
