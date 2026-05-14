@@ -565,8 +565,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
         </table>
       </div>
       ${d.note ? `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;"><b>ملاحظة:</b> ${d.note}</div>` : ""}
-      <div style="text-align:center;margin-top:12px;font-size:${isCompactReceipt ? 20 : 24}px;font-weight:900;">شكراً</div>
-      ${isDemo ? `<div style="text-align:center;margin-top:3px;font-size:${isCompactReceipt ? 12 : 14}px;font-weight:700;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+      <div style="text-align:center;margin-top:14px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;">اعد الحساب من فضلك</div>
     </div>`;
 
   return `<html dir="rtl"><head><meta charset="utf-8"><title>معاينة وصل ${d.saleSeq}</title>
