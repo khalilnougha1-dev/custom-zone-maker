@@ -43,3 +43,15 @@ export function getPaperWidthPx(paper?: string | null): number {
       return 384;
   }
 }
+
+export function getPaperWidthMm(paper?: string | null): number {
+  switch ((paper || "").toLowerCase()) {
+    case "80mm":
+      return 80;
+    case "a4":
+      return 210;
+    case "58mm":
+    default:
+      return 58;
+  }
+}
