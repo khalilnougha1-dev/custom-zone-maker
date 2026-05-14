@@ -19,7 +19,17 @@ import { getActivePrinter } from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
 
-type CartItem = { id: string; name: string; price: number; cost: number; qty: number };
+type CartItem = {
+  id: string; // unique row id (product id, or `pkg:<packageId>`)
+  productId: string;
+  name: string;
+  price: number;
+  cost: number;
+  qty: number;
+  packageId?: string;
+  packageName?: string;
+  unitsPerPackage?: number; // when set, this is a package row
+};
 
 function NewSalePage() {
   const { user, loading } = useAuth();
