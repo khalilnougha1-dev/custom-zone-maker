@@ -302,20 +302,34 @@ function NewSalePage() {
         }
       }
 
-      const invoiceNumber = `INV-${Date.now()}`;
-      const { data: sale, error } = await supabase.from("sales").insert({
-        user_id: user.id,
-        customer_id: customerId,
-        subtotal: totalAmount,
-        total: totalAmount,
-        paid: Number(paid) || 0,
-        payment_method: paymentMethod,
-        notes: note || null,
-        invoice_number: invoiceNumber,
-      }).select().single();
-      if (error || !sale) {
-        toast.error(error?.message || "خطأ");
-        return;
+      let saleRow: any;
+      if (isEditMode && editSaleId) {
+        const { data: sale, error } = await supabase.from("sales").update({
+          customer_id: customerId,
+          subtotal: totalAmount,
+          total: totalAmount,
+          paid: Number(paid) || 0,
+          payment_method: paymentMethod,
+          notes: note || null,
+        }).eq("id", editSaleId).select().single();
+        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
+        saleRow = sale;
+        const { error: eDel } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+        if (eDel) { toast.error(eDel.message); return; }
+      } else {
+        const invoiceNumber = `INV-${Date.now()}`;
+        const { data: sale, error } = await supabase.from("sales").insert({
+          user_id: user.id,
+          customer_id: customerId,
+          subtotal: totalAmount,
+          total: totalAmount,
+          paid: Number(paid) || 0,
+          payment_method: paymentMethod,
+          notes: note || null,
+          invoice_number: invoiceNumber,
+        }).select().single();
+        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
+        saleRow = sale;
       }
 
       const items = cart.map((i) => {
@@ -323,7 +337,7 @@ function NewSalePage() {
         const unitPrice = i.unitsPerPackage ? i.price / i.unitsPerPackage : i.price;
         const unitCost = i.unitsPerPackage ? i.cost / i.unitsPerPackage : i.cost;
         return {
-          sale_id: sale.id,
+          sale_id: saleRow.id,
           product_id: i.productId,
           product_name: i.name,
           quantity: units,
@@ -346,6 +360,13 @@ function NewSalePage() {
         return;
       }
 
+      if (isEditMode) {
+        toast.success("تم تحديث الفاتورة");
+        setConfirmOpen(false);
+        navigate({ to: "/app/sales/$saleId", params: { saleId: editSaleId! } });
+        return;
+      }
+
       toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
       const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
       await printReceiptHtml({
@@ -363,7 +384,7 @@ function NewSalePage() {
         total: totalAmount,
         paid: Number(paid) || 0,
         note,
-        createdAt: sale.created_at,
+        createdAt: saleRow.created_at,
         preparedBluetoothPrinterId,
       });
 
