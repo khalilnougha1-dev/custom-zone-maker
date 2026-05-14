@@ -59,6 +59,10 @@ export type ReceiptData = {
   note?: string | null;
   createdAt?: string | Date;
   preparedBluetoothPrinterId?: string | null;
+  /** Pass to skip prev-debt query (huge speedup) */
+  prevDebt?: number;
+  /** Pass to skip subscription query */
+  isDemo?: boolean;
 };
 
 export async function printReceipt(d: ReceiptData) {
