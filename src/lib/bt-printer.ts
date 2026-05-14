@@ -30,6 +30,7 @@ let gattTaskQueue: Promise<unknown> = Promise.resolve();
 const BLUETOOTH_CONNECT_TIMEOUT_MS = 12_000;
 const BLUETOOTH_PRINT_TIMEOUT_MIN_MS = 45_000;
 const BLUETOOTH_PRINT_TIMEOUT_MAX_MS = 180_000;
+const BLUETOOTH_WRITE_TIMEOUT_MS = 4_000;
 
 export type SimpleReceiptColumn = {
   text: string;
@@ -281,13 +282,13 @@ async function connectAndFindCharacteristic(device: any) {
   for (const svc of services) {
     const chars = await svc.getCharacteristics();
     for (const c of chars) {
-      if (c.properties.write) {
+      if (c.properties.writeWithoutResponse) {
         activeCharacteristic = c;
         return c;
       }
     }
     for (const c of chars) {
-      if (c.properties.writeWithoutResponse) {
+      if (c.properties.write) {
         activeCharacteristic = c;
         return c;
       }
@@ -323,30 +324,38 @@ async function writeWithReconnect(device: any, bytes: Uint8Array) {
 }
 
 async function writeChunk(characteristic: any, slice: Uint8Array) {
+  const writers = [
+    characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse
+      ? () => characteristic.writeValueWithoutResponse(slice)
+      : null,
+    characteristic.properties?.write && characteristic.writeValue
+      ? () => characteristic.writeValue(slice)
+      : null,
+    characteristic.writeValueWithoutResponse
+      ? () => characteristic.writeValueWithoutResponse(slice)
+      : null,
+    characteristic.writeValue ? () => characteristic.writeValue(slice) : null,
+  ].filter(Boolean) as Array<() => Promise<void>>;
+
+  if (writers.length === 0) {
+    throw new Error("تعذر إيجاد أسلوب إرسال مناسب للطابعة");
+  }
+
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      if (characteristic.properties?.write && characteristic.writeValue) {
-        await characteristic.writeValue(slice);
+  for (const writer of writers) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await withBluetoothTimeout(
+          writer(),
+          BLUETOOTH_WRITE_TIMEOUT_MS,
+          "انتهت مهلة إرسال جزء من بيانات الطباعة",
+        );
         return;
+      } catch (error) {
+        lastError = error;
+        await delay(30);
       }
-
-      if (characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
-        await characteristic.writeValueWithoutResponse(slice);
-        return;
-      }
-
-      if (characteristic.writeValueWithoutResponse) {
-        await characteristic.writeValueWithoutResponse(slice);
-        return;
-      }
-
-      await characteristic.writeValue(slice);
-      return;
-    } catch (error) {
-      lastError = error;
-      await delay(25);
     }
   }
 
@@ -358,14 +367,15 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
   const supportsWrite = !!characteristic?.properties?.write && !!characteristic?.writeValue;
   const supportsWriteWithoutResponse =
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
-  const chunkDelay = supportsWrite
-    ? isAndroidBluetoothClient()
-      ? 14
-      : 10
-    : supportsWriteWithoutResponse
+  const prefersWriteWithoutResponse = supportsWriteWithoutResponse || !supportsWrite;
+  const chunkDelay = prefersWriteWithoutResponse
       ? isAndroidBluetoothClient()
         ? 26
         : 18
+    : supportsWrite
+      ? isAndroidBluetoothClient()
+        ? 14
+        : 10
       : isAndroidBluetoothClient()
         ? 22
         : 16;
