@@ -206,9 +206,16 @@ function NewSalePage() {
     setIsSaving(true);
     let preparedBluetoothPrinterId: string | null = null;
     try {
+      // Aggregate units per product across all cart rows (incl. packages) for stock check
+      const usedByProduct = new Map<string, number>();
       for (const i of cart) {
-        if (isTracked(i.id) && i.qty > getStock(i.id)) {
-          toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
+        const u = i.qty * (i.unitsPerPackage || 1);
+        usedByProduct.set(i.productId, (usedByProduct.get(i.productId) || 0) + u);
+      }
+      for (const [pid, units] of usedByProduct) {
+        if (isTracked(pid) && units > getStock(pid)) {
+          const name = products.find((p: any) => p.id === pid)?.name || "";
+          toast.error(`المخزون غير كافٍ للمنتج ${name} (المتبقي ${getStock(pid)})`);
           return;
         }
       }
@@ -246,11 +253,28 @@ function NewSalePage() {
         return;
       }
 
-      const items = cart.map(i => ({
-        sale_id: sale.id, product_id: i.id, product_name: i.name,
-        quantity: i.qty, unit_price: i.price, cost_price: i.cost,
-        total: i.price * i.qty,
-      }));
+      const items = cart.map((i) => {
+        const units = i.qty * (i.unitsPerPackage || 1);
+        const unitPrice = i.unitsPerPackage ? i.price / i.unitsPerPackage : i.price;
+        const unitCost = i.unitsPerPackage ? i.cost / i.unitsPerPackage : i.cost;
+        return {
+          sale_id: sale.id,
+          product_id: i.productId,
+          product_name: i.name,
+          quantity: units,
+          unit_price: unitPrice,
+          cost_price: unitCost,
+          total: i.price * i.qty,
+          ...(i.unitsPerPackage
+            ? {
+                package_id: i.packageId,
+                package_name: i.packageName,
+                package_units_count: i.unitsPerPackage,
+                package_qty: i.qty,
+              }
+            : {}),
+        };
+      });
       const { error: e2 } = await supabase.from("sale_items").insert(items);
       if (e2) {
         toast.error(e2.message);
