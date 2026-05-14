@@ -92,10 +92,31 @@ async function insertChunked(table: string, rows: any[]) {
 
 export type ProgressCb = (step: { label: string; current: number; total: number }) => void;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_ROWS_PER_TABLE = 100_000;
+
+function isUuid(v: unknown): v is string {
+  return typeof v === "string" && UUID_RE.test(v);
+}
+
 export async function restoreBackup(file: BackupFile, userId: string, onProgress?: ProgressCb) {
-  if (!file || file.app !== "sahlapos" || !file.data) {
-    throw new Error("ملف النسخة الاحتياطية غير صالح");
+  // Strict structural validation
+  if (!file || typeof file !== "object") throw new Error("ملف النسخة الاحتياطية غير صالح");
+  if (file.app !== "sahlapos") throw new Error("ملف غير متوافق مع التطبيق");
+  if (file.version !== 1) throw new Error("إصدار النسخة الاحتياطية غير مدعوم");
+  if (!file.data || typeof file.data !== "object") throw new Error("بيانات النسخة الاحتياطية مفقودة");
+
+  // Validate every table's payload: must be array and not exceed cap
+  const allTables = [...USER_TABLES, ...OWNER_TABLES, ...CHILD_TABLES] as readonly string[];
+  for (const t of allTables) {
+    const rows = (file.data as Record<string, unknown>)[t];
+    if (rows === undefined) continue;
+    if (!Array.isArray(rows)) throw new Error(`بيانات الجدول ${t} غير صالحة`);
+    if (rows.length > MAX_ROWS_PER_TABLE) {
+      throw new Error(`الجدول ${t} يتجاوز الحد الأقصى المسموح (${MAX_ROWS_PER_TABLE})`);
+    }
   }
+
   const remap = (rows: any[] | undefined) =>
     (rows || []).map((r) => {
       const out = { ...r };
@@ -105,6 +126,24 @@ export async function restoreBackup(file: BackupFile, userId: string, onProgress
     });
 
   const products = remap(file.data.products);
+
+  // Build the set of product ids that belong to this restore (after remap they
+  // belong to the current user). sale_items / purchase_items product_id values
+  // MUST reference one of these — otherwise drop the reference to prevent
+  // cross-tenant stock manipulation via crafted backups.
+  const ownProductIds = new Set<string>(
+    products.map((p: any) => p?.id).filter(isUuid) as string[]
+  );
+  const sanitizeChildRefs = (rows: any[] | undefined) =>
+    (rows || []).map((r) => {
+      const out = { ...r };
+      if (out.product_id != null && !ownProductIds.has(out.product_id)) {
+        out.product_id = null;
+      }
+      return out;
+    });
+  const safeSaleItems = sanitizeChildRefs(file.data.sale_items);
+  const safePurchaseItems = sanitizeChildRefs(file.data.purchase_items);
   const manualMoves = (file.data.stock_movements || []).filter(
     (m: any) => m.movement_type === "adjustment" || m.reference_type === "manual"
   );
