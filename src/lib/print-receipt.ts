@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getActivePrinter, getPaperWidthPx } from "@/lib/printer-config";
+import { toast } from "sonner";
 
 let receiptPrintInFlight = false;
 
@@ -24,7 +25,6 @@ export type ReceiptData = {
 
 export async function printReceipt(d: ReceiptData) {
   if (receiptPrintInFlight) {
-    const { toast } = await import("sonner");
     toast.message("الطباعة قيد التنفيذ، يرجى الانتظار...");
     return;
   }
@@ -32,7 +32,34 @@ export async function printReceipt(d: ReceiptData) {
   receiptPrintInFlight = true;
 
   try {
-    const { toast } = await import("sonner");
+    const activePrinter = getActivePrinter();
+    if (!activePrinter) {
+      toast.error("لم يتم تحديد طابعة افتراضية من صفحة الطابعة");
+      return;
+    }
+
+    const paperWidthPx = getPaperWidthPx(activePrinter.paper || "80mm");
+    let preparedBluetoothPrinterId = d.preparedBluetoothPrinterId || null;
+
+    if (activePrinter.connection === "bluetooth" && !preparedBluetoothPrinterId) {
+      try {
+        const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("./bt-printer");
+        if (!isWebBluetoothSupported()) {
+          toast.error("متصفحك لا يدعم الطباعة المباشرة. استخدم Chrome على أندرويد.");
+          return;
+        }
+
+        const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
+        preparedBluetoothPrinterId = preparedPrinter?.id || null;
+      } catch (error) {
+        const message = (error as Error).message || "تعذر تجهيز الطابعة";
+        if (!message.toLowerCase().includes("cancel")) {
+          toast.error(message);
+        }
+        return;
+      }
+    }
+
     const date = d.createdAt ? new Date(d.createdAt) : new Date();
     const dd = String(date.getDate()).padStart(2, "0");
     const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -155,15 +182,6 @@ export async function printReceipt(d: ReceiptData) {
 
     const bodyHtml = receiptBody;
 
-    const activePrinter = getActivePrinter();
-    // Force 80mm raster width (user requirement) when no explicit paper set
-    const paperWidthPx = getPaperWidthPx(activePrinter?.paper || "80mm");
-
-    if (!activePrinter) {
-      toast.error("لم يتم تحديد طابعة افتراضية من صفحة الطابعة");
-      return;
-    }
-
     if (activePrinter.connection === "system") {
       const iframe = document.createElement("iframe");
       iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:0;height:0;border:0;";
@@ -201,11 +219,10 @@ export async function printReceipt(d: ReceiptData) {
         return;
       }
 
-      const preparedPrinterId = d.preparedBluetoothPrinterId || null;
       const rememberedPrinterId = localStorage.getItem("sahla.bt.printerId");
 
-      if (preparedPrinterId) {
-        syncRememberedBluetoothPrinter(preparedPrinterId, activePrinter.name);
+      if (preparedBluetoothPrinterId) {
+        syncRememberedBluetoothPrinter(preparedBluetoothPrinterId, activePrinter.name);
       } else if (!rememberedPrinterId && activePrinter.address) {
         syncRememberedBluetoothPrinter(activePrinter.address, activePrinter.name);
       } else if (!rememberedPrinterId) {
