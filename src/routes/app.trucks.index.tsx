@@ -18,7 +18,8 @@ function TrucksPage() {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_user_id: "" });
+  const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_email: "", driver_user_id: "" });
+  const [linking, setLinking] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -27,8 +28,20 @@ function TrucksPage() {
   };
   useEffect(() => { load(); }, [user]);
 
-  const openNew = () => { setEdit(null); setForm({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_user_id: "" }); setOpen(true); };
-  const openEdit = (t: any) => { setEdit(t); setForm({ name: t.name, plate_number: t.plate_number || "", driver_name: t.driver_name || "", driver_phone: t.driver_phone || "", driver_user_id: t.driver_user_id || "" }); setOpen(true); };
+  const openNew = () => { setEdit(null); setForm({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_email: "", driver_user_id: "" }); setOpen(true); };
+  const openEdit = (t: any) => { setEdit(t); setForm({ name: t.name, plate_number: t.plate_number || "", driver_name: t.driver_name || "", driver_phone: t.driver_phone || "", driver_email: "", driver_user_id: t.driver_user_id || "" }); setOpen(true); };
+
+  const linkByEmail = async () => {
+    const email = form.driver_email.trim();
+    if (!email) return toast.error("أدخل بريد السائق");
+    setLinking(true);
+    const { data, error } = await supabase.rpc("find_user_id_by_email", { _email: email });
+    setLinking(false);
+    if (error) return toast.error(error.message);
+    if (!data) return toast.error("لم يتم العثور على حساب بهذا البريد. اطلب من السائق التسجيل أولاً عبر Google.");
+    setForm((f) => ({ ...f, driver_user_id: data as string }));
+    toast.success("تم ربط الحساب بنجاح");
+  };
 
   const save = async () => {
     if (!form.name.trim()) return toast.error("اسم الشاحنة مطلوب");
@@ -126,9 +139,23 @@ function TrucksPage() {
             <div><Label>اسم السائق</Label><Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} /></div>
             <div><Label>هاتف السائق</Label><Input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} dir="ltr" /></div>
             <div>
-              <Label>معرّف حساب السائق (اختياري)</Label>
-              <Input value={form.driver_user_id} onChange={(e) => setForm({ ...form, driver_user_id: e.target.value })} dir="ltr" placeholder="UUID للسماح بدخول السائق" />
-              <p className="mt-1 text-xs text-muted-foreground">يستخدمه السائق للدخول إلى /app/driver</p>
+              <Label>بريد حساب السائق (Google)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.driver_email}
+                  onChange={(e) => setForm({ ...form, driver_email: e.target.value })}
+                  dir="ltr"
+                  placeholder="driver@gmail.com"
+                  type="email"
+                />
+                <Button type="button" onClick={linkByEmail} disabled={linking} variant="outline">
+                  {linking ? "..." : "ربط"}
+                </Button>
+              </div>
+              {form.driver_user_id && (
+                <p className="mt-1 text-xs text-emerald-600">✓ تم الربط — معرّف: <span dir="ltr">{form.driver_user_id.slice(0, 8)}…</span></p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">يجب أن يسجّل السائق دخوله مرّة واحدة عبر Google قبل الربط.</p>
             </div>
             <Button onClick={save} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
           </div>
