@@ -59,6 +59,10 @@ export type ReceiptData = {
   note?: string | null;
   createdAt?: string | Date;
   preparedBluetoothPrinterId?: string | null;
+  /** Pass to skip prev-debt query (huge speedup) */
+  prevDebt?: number;
+  /** Pass to skip subscription query */
+  isDemo?: boolean;
 };
 
 export async function printReceipt(d: ReceiptData) {
@@ -111,9 +115,11 @@ export async function printReceipt(d: ReceiptData) {
     const dateStr = `${date.getFullYear()}/${mm}/${dd}`;
     const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-    // الديون السابقة
+    // الديون السابقة — تخطّي الاستعلام إذا تم تمريرها مسبقًا
     let prevDebt = 0;
-    if (d.customerId) {
+    if (typeof d.prevDebt === "number") {
+      prevDebt = Math.max(0, d.prevDebt);
+    } else if (d.customerId) {
       const { data } = await supabase
         .from("sales")
         .select("total,paid,created_at")
@@ -127,21 +133,25 @@ export async function printReceipt(d: ReceiptData) {
       prevDebt = Math.max(0, prevDebt);
     }
 
-    // حالة التفعيل
+    // حالة التفعيل — تخطّي الاستعلام إذا تم تمريرها مسبقًا
     let isDemo = true;
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("subscription_status,subscription_expires_at,is_active")
-      .eq("id", d.userId)
-      .maybeSingle();
-    if (prof) {
-      const exp = prof.subscription_expires_at
-        ? new Date(prof.subscription_expires_at).getTime()
-        : 0;
-      const active =
-        prof.is_active &&
-        (prof.subscription_status === "permanent" || exp > Date.now());
-      isDemo = !active;
+    if (typeof d.isDemo === "boolean") {
+      isDemo = d.isDemo;
+    } else {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("subscription_status,subscription_expires_at,is_active")
+        .eq("id", d.userId)
+        .maybeSingle();
+      if (prof) {
+        const exp = prof.subscription_expires_at
+          ? new Date(prof.subscription_expires_at).getTime()
+          : 0;
+        const active =
+          prof.is_active &&
+          (prof.subscription_status === "permanent" || exp > Date.now());
+        isDemo = !active;
+      }
     }
 
     const total = d.total;
@@ -389,38 +399,23 @@ export async function printReceipt(d: ReceiptData) {
       ];
 
       const widthCandidates = getBluetoothWidthCandidates(receiptWidthPx);
-      const MAX_ATTEMPTS = widthCandidates.length * 2;
+      const MAX_ATTEMPTS = widthCandidates.length;
       let lastError: unknown = null;
       let printed = false;
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        const widthIndex = Math.min(widthCandidates.length - 1, Math.floor((attempt - 1) / 2));
-        const targetWidth = widthCandidates[widthIndex];
+        const targetWidth = widthCandidates[attempt - 1];
         try {
-          if (attempt > 1) {
-            const widthLabel = targetWidth === 384 ? "58مم" : "80مم";
-            toast.message(`إعادة المحاولة ${attempt} من ${MAX_ATTEMPTS} (${widthLabel})...`);
-          } else {
-            toast.message("جاري الإرسال إلى الطابعة...");
-          }
-
           await printSimpleReceiptBluetooth(simpleLines, targetWidth);
-          toast.success("تم إرسال الوصل إلى الطابعة");
+          toast.success("تمت الطباعة");
           printed = true;
           break;
         } catch (err) {
           lastError = err;
           const msg = (err as Error)?.message || "";
           console.warn(`Bluetooth print attempt ${attempt} failed:`, err);
-
-          // لا نعيد المحاولة عند إلغاء المستخدم
-          if (PRINT_ABORT_MESSAGES.some((token) => msg.toLowerCase().includes(token))) {
-            break;
-          }
-
-          if (attempt < MAX_ATTEMPTS) {
-            await new Promise((r) => setTimeout(r, 700 * attempt));
-          }
+          if (PRINT_ABORT_MESSAGES.some((token) => msg.toLowerCase().includes(token))) break;
+          if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 250));
         }
       }
 
