@@ -568,14 +568,11 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
-    const escposBytes = buildEscPosImage(raster, {
+    const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height, {
       feed: index === bands.length - 1,
     });
 
-    await Promise.race([
-      writeWithReconnect(device, escposBytes),
-      timeoutAfter(getBluetoothPrintTimeoutMs(escposBytes.length), "تجاوز وقت الطباعة"),
-    ]);
+    await writeWithReconnect(device, escposBytes);
 
     if (index === bands.length - 1) {
       await delay(canvas.width <= 384 ? 160 : 120);
