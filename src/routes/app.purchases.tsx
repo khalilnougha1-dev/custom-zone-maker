@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Truck, Calendar, Plus, Pencil } from "lucide-react";
+import { Search, Truck, Calendar, Plus, Pencil, Trash2 } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/purchases")({ component: PurchasesPage });
 
@@ -97,6 +99,39 @@ function PurchasesPage() {
           <div className="space-y-2">
             {filtered.map(s => (
               <div key={s.id} className="flex items-center gap-2 rounded-xl bg-card border border-border p-3 shadow-sm">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition"
+                      aria-label="حذف"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent dir="rtl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>حذف عملية الشراء؟</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        سيتم حذف هذه العملية و إرجاع الكميات من المخزون. لا يمكن التراجع.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          const { error: e1 } = await supabase.from("purchase_items").delete().eq("purchase_id", s.id);
+                          if (e1) { toast.error(e1.message); return; }
+                          const { error: e2 } = await supabase.from("purchases").delete().eq("id", s.id);
+                          if (e2) { toast.error(e2.message); return; }
+                          setPurchases(prev => prev.filter(x => x.id !== s.id));
+                          toast.success("تم الحذف");
+                        }}
+                      >
+                        حذف
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <Link
                   to="/app/purchases/$purchaseId"
                   params={{ purchaseId: s.id }}

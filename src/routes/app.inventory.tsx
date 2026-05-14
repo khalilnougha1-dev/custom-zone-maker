@@ -16,10 +16,21 @@ function InventoryPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
 
-  useEffect(() => {
+  const reload = () => {
     if (!user) return;
     supabase.from("products").select("*").eq("user_id", user.id).order("name").then(({ data }) => setItems(data || []));
     supabase.from("categories").select("*").eq("user_id", user.id).order("name").then(({ data }) => setCategories(data || []));
+  };
+
+  useEffect(() => {
+    reload();
+    const onFocus = () => reload();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, [user]);
 
   const filtered = useMemo(() => {
