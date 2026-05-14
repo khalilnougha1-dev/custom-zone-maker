@@ -3,6 +3,7 @@ import { getActivePrinter, getPaperWidthPx } from "@/lib/printer-config";
 import { toast } from "sonner";
 
 let receiptPrintInFlight = false;
+const PRINT_ABORT_MESSAGES = ["cancel", "aborted", "notfounderror", "user gesture"];
 
 export type ReceiptItem = {
   product_name: string;
@@ -53,7 +54,7 @@ export async function printReceipt(d: ReceiptData) {
         preparedBluetoothPrinterId = preparedPrinter?.id || null;
       } catch (error) {
         const message = (error as Error).message || "تعذر تجهيز الطابعة";
-        if (!message.toLowerCase().includes("cancel")) {
+        if (!PRINT_ABORT_MESSAGES.some((token) => message.toLowerCase().includes(token))) {
           toast.error(message);
         }
         return;
@@ -195,11 +196,25 @@ export async function printReceipt(d: ReceiptData) {
         doc.write(html);
         doc.close();
 
-        await new Promise((resolve) => setTimeout(resolve, 250));
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        const frameWindow = iframe.contentWindow;
+        if (!frameWindow) throw new Error("تعذر فتح نافذة الطباعة");
+
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            frameWindow.removeEventListener?.("afterprint", done);
+            resolve();
+          };
+
+          frameWindow.addEventListener?.("afterprint", done, { once: true });
+          window.setTimeout(done, 1200);
+          frameWindow.focus();
+          frameWindow.print();
+        });
+
+        toast.success("تم إرسال الوصل إلى نافذة الطباعة");
       } finally {
-        setTimeout(() => iframe.remove(), 1000);
+        setTimeout(() => iframe.remove(), 1500);
       }
       return;
     }
@@ -236,7 +251,10 @@ export async function printReceipt(d: ReceiptData) {
           const paired = await pairPrinter();
           syncRememberedBluetoothPrinter(paired.id, paired.name);
         } catch (err) {
-          toast.error("لم يتم اختيار طابعة");
+          const pairMessage = (err as Error).message || "لم يتم اختيار طابعة";
+          if (!PRINT_ABORT_MESSAGES.some((token) => pairMessage.toLowerCase().includes(token))) {
+            toast.error(pairMessage);
+          }
           return;
         }
       }
@@ -269,6 +287,7 @@ export async function printReceipt(d: ReceiptData) {
       ];
 
       await printSimpleReceiptBluetooth(simpleLines, paperWidthPx);
+      toast.success("تم إرسال الوصل إلى الطابعة");
       return;
     } catch (e) {
       console.warn("Bluetooth print failed:", e);
@@ -276,6 +295,8 @@ export async function printReceipt(d: ReceiptData) {
       toast.error(
         message.includes("GATT operation already in progress")
           ? "الطابعة مشغولة حاليًا. أعد المحاولة بعد ثوانٍ قليلة."
+          : message.includes("NetworkError") || message.includes("GATT Server is disconnected")
+            ? "انقطع الاتصال بالطابعة. أعد تشغيل الطابعة ثم أعد المحاولة."
           : message,
       );
     }
