@@ -94,6 +94,7 @@ export function PackagesManager({ productId, productName, unitPrice, unitCost = 
       {editorOpen && (
         <PackageEditor
           productId={productId}
+          productName={productName}
           unitPrice={unitPrice}
           unitCost={unitCost}
           editing={editing}
