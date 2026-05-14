@@ -461,11 +461,12 @@ function NewSalePage() {
                 <Input
                   type="text"
                   inputMode="decimal"
-                  value={String(i.qty)}
+                  value={qtyDraft[i.id] ?? String(i.qty)}
                   onChange={(e) => {
                     const v = e.target.value.replace(",", ".");
-                    if (v === "") return setCart(prev => prev.map(x => x.id === i.id ? { ...x, qty: 0 } : x));
                     if (!/^\d*\.?\d*$/.test(v)) return;
+                    setQtyDraft(prev => ({ ...prev, [i.id]: v }));
+                    if (v === "" || v === ".") return;
                     const n = Number(v);
                     if (!Number.isFinite(n) || n < 0) return;
                     const unitsPerPackage = i.unitsPerPackage || 1;
@@ -477,7 +478,10 @@ function NewSalePage() {
                     }
                     setCart(prev => prev.map(x => x.id === i.id ? { ...x, qty: n } : x));
                   }}
-                  onBlur={() => { if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id)); }}
+                  onBlur={() => {
+                    setQtyDraft(prev => { const { [i.id]: _, ...rest } = prev; return rest; });
+                    if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id));
+                  }}
                   className="w-16 h-8 text-center font-mono font-bold px-1"
                 />
                 <div className="flex-1 truncate text-right text-sm">
