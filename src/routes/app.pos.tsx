@@ -389,7 +389,7 @@ function NewSalePage() {
                   onBlur={() => { if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id)); }}
                   className="w-14 h-8 text-center font-mono font-bold px-1"
                 />
-                <button onClick={() => setQty(i.id, i.qty + 1)} className="rounded bg-muted p-1"><Plus className="h-3 w-3" /></button>
+                
                 <div className="flex-1 truncate text-right text-sm">{i.name}</div>
               </div>
             ))}
