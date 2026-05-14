@@ -287,6 +287,65 @@ export type Database = {
         }
         Relationships: []
       }
+      product_packages: {
+        Row: {
+          apply_unit_price: boolean
+          barcode: string | null
+          cost_price: number
+          created_at: string
+          id: string
+          image_url: string | null
+          is_inactive: boolean
+          name: string
+          notes: string | null
+          product_id: string
+          retail_price: number
+          units_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apply_unit_price?: boolean
+          barcode?: string | null
+          cost_price?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_inactive?: boolean
+          name: string
+          notes?: string | null
+          product_id: string
+          retail_price?: number
+          units_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apply_unit_price?: boolean
+          barcode?: string | null
+          cost_price?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_inactive?: boolean
+          name?: string
+          notes?: string | null
+          product_id?: string
+          retail_price?: number
+          units_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_packages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
