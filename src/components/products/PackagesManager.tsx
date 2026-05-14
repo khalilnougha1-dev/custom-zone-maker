@@ -31,10 +31,11 @@ interface Props {
   productId: string;
   productName: string;
   unitPrice: number;
+  unitCost?: number;
   onClose: () => void;
 }
 
-export function PackagesManager({ productId, productName, unitPrice, onClose }: Props) {
+export function PackagesManager({ productId, productName, unitPrice, unitCost = 0, onClose }: Props) {
   const { user } = useAuth();
   const [items, setItems] = useState<Pkg[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -94,6 +95,7 @@ export function PackagesManager({ productId, productName, unitPrice, onClose }: 
         <PackageEditor
           productId={productId}
           unitPrice={unitPrice}
+          unitCost={unitCost}
           editing={editing}
           onClose={() => setEditorOpen(false)}
           onSaved={() => { setEditorOpen(false); load(); }}
@@ -104,10 +106,11 @@ export function PackagesManager({ productId, productName, unitPrice, onClose }: 
 }
 
 function PackageEditor({
-  productId, unitPrice, editing, onClose, onSaved,
+  productId, unitPrice, unitCost, editing, onClose, onSaved,
 }: {
   productId: string;
   unitPrice: number;
+  unitCost: number;
   editing: Pkg | null;
   onClose: () => void;
   onSaved: () => void;
@@ -158,7 +161,7 @@ function PackageEditor({
       name: form.name.trim(),
       units_count: units,
       apply_unit_price: form.apply_unit_price,
-      cost_price: Number(form.cost_price) || 0,
+      cost_price: unitCost * units,
       retail_price: retail,
       image_url: form.image_url || null,
       notes: form.notes.trim() || null,
@@ -210,10 +213,15 @@ function PackageEditor({
           <Switch checked={form.apply_unit_price} onCheckedChange={(v) => update({ apply_unit_price: v })} />
         </Row>
 
-        <Row label="سعر الشراء (التكلفة)">
-          <Input type="number" inputMode="decimal" value={form.cost_price}
-            onChange={(e) => update({ cost_price: e.target.value })}
-            className="bg-card border-primary/40 w-40 text-right font-mono" />
+        <Row label="سعر شراء الوحدة">
+          <span className="font-mono">{unitCost.toFixed(2)}</span>
+        </Row>
+
+        <Row label="إجمالي سعر الشراء">
+          <Input type="number" inputMode="decimal"
+            value={(unitCost * (Number(form.units_count) || 0)).toFixed(2)}
+            disabled
+            className="bg-muted border-primary/40 w-40 text-right font-mono" />
         </Row>
 
         <div className="mt-4 mb-2 text-right">
