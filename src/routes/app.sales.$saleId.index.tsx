@@ -157,9 +157,6 @@ function SaleDetailPage() {
             <Pencil className="h-7 w-7 text-foreground/80" />
           </button>
           <div className="flex items-center gap-3">
-            <button onClick={printReceipt} className="p-1 disabled:opacity-50" aria-label="طباعة سريعة" disabled={isPrinting}>
-              <Printer className="h-7 w-7 text-foreground/80" />
-            </button>
             <button
               onClick={() => navigate({ to: "/app/sales/$saleId/print", params: { saleId } })}
               className="flex h-9 items-center justify-center gap-1 rounded bg-primary px-3 text-xs font-bold text-primary-foreground"
