@@ -226,6 +226,15 @@ function ProductEditor({
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+        {/* Manage packages — always visible at top when editing */}
+        {editing && (
+          <div className="mb-4">
+            <Button onClick={() => setPackagesOpen(true)} className="w-full h-12 bg-gradient-primary text-primary-foreground gap-2 rounded-xl text-base font-bold shadow-md">
+              <PackageIcon className="h-5 w-5" /> تسيير التعبئات (البيع بالكرطون)
+            </Button>
+          </div>
+        )}
+
         {/* Inactive toggle */}
         <div className="flex items-center justify-end gap-3 mb-4">
           <Label className="font-semibold cursor-pointer">منتج غير نشيط</Label>
