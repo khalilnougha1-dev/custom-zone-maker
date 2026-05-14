@@ -39,6 +39,7 @@ function NewSalePage() {
   const [paid, setPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
   const [note, setNote] = useState("");
+  const [preparedBluetoothPrinterId, setPreparedBluetoothPrinterId] = useState<string | null>(null);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -163,7 +164,8 @@ function NewSalePage() {
         try {
           const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
           if (isWebBluetoothSupported()) {
-            await prepareBluetoothPrinter({ promptIfMissing: true });
+            const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
+            setPreparedBluetoothPrinterId(preparedPrinter?.id || null);
           }
         } catch (error) {
           const msg = (error as Error).message || "تعذر تجهيز الطابعة";
@@ -213,13 +215,17 @@ function NewSalePage() {
         paid: Number(paid) || 0,
         note,
         createdAt: sale.created_at,
+        preparedBluetoothPrinterId,
       });
 
-      setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
+      setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ(""); setPreparedBluetoothPrinterId(null);
       setConfirmOpen(false);
       supabase.from("products").select("*").eq("user_id", user.id).order("name")
         .then(({ data }) => setProducts(data || []));
     } finally {
+      if (!confirmOpen) {
+        setPreparedBluetoothPrinterId(null);
+      }
       setIsSaving(false);
     }
   };
