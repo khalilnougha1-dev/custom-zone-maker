@@ -156,71 +156,77 @@ export async function printReceipt(d: ReceiptData) {
     const paidNum = d.paid;
     const rest = Math.max(0, total - paidNum);
 
-    const rowFont = `font-family:Arial,'Tahoma',sans-serif;font-size:14px;color:#000;`;
-    const dashed = `<div style="border-top:1px dashed #000;margin:4px 0;"></div>`;
-
-    const itemRows = d.items
+    const rows = d.items
       .map(
-        (i) => `
-      <tr style="${rowFont}">
-        <td style="text-align:right;padding:2px 0;font-weight:700;">${i.product_name}</td>
-        <td style="text-align:center;padding:2px 0;direction:ltr;">${i.quantity}</td>
-        <td style="text-align:center;padding:2px 0;direction:ltr;">${i.unit_price.toFixed(2)}</td>
-        <td style="text-align:left;padding:2px 0;direction:ltr;">${(i.unit_price * i.quantity).toFixed(2)}</td>
+        (i, index) => `
+      <tr>
+        <td style="padding:5px 0 3px;text-align:right;font-weight:700;font-size:${isCompactReceipt ? 15 : 18}px;line-height:1.3;word-break:break-word;">${index + 1}. ${i.product_name}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 6px;border-bottom:1px dashed #000;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'Courier New',monospace;font-size:${isCompactReceipt ? 12 : 17}px;direction:ltr;">
+            <span>${(i.unit_price * i.quantity).toFixed(2)}</span>
+            <span>${i.unit_price.toFixed(2)} × ${i.quantity}</span>
+          </div>
+        </td>
       </tr>`,
       )
       .join("");
 
-    const sumRow = (label: string, value: string, bold = false) => `
-      <tr style="${rowFont}${bold ? "font-weight:700;" : ""}">
-        <td style="text-align:left;padding:2px 0;direction:ltr;">${value}</td>
-        <td style="text-align:right;padding:2px 0;">${label}</td>
-      </tr>`;
+    const lineStyle = `display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:${isCompactReceipt ? 2 : 4}px 0;`;
+    const labelStyle = `font-size:${isCompactReceipt ? 14 : 18}px;font-weight:700;white-space:nowrap;`;
+    const valueStyle = `font-size:${isCompactReceipt ? 13 : 18}px;font-family:'Courier New',monospace;font-weight:700;text-align:left;direction:ltr;unicode-bidi:embed;`;
 
-    // Plain text-style layout matching thermal receipt aesthetic (no boxes/borders)
+    // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
-      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;font-size:14px;" dir="rtl">
-        <table style="width:100%;border-collapse:collapse;${rowFont}">
-          <tr>
-            <td style="text-align:left;padding:1px 0;direction:ltr;">${timeStr}&nbsp;&nbsp;${dateStr}</td>
-            <td style="text-align:right;padding:1px 0;">التاريخ:</td>
-          </tr>
-          <tr>
-            <td style="text-align:left;padding:1px 0;">${d.customerName}</td>
-            <td style="text-align:right;padding:1px 0;">الزبون:</td>
-          </tr>
+      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;" dir="rtl">
+        <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:${isCompactReceipt ? 6 : 8}px;margin-bottom:${isCompactReceipt ? 6 : 8}px;">
+          <div style="font-size:${isCompactReceipt ? 20 : 30}px;font-weight:900;line-height:1.2;">وصل بيع رقم</div>
+          <div style="font-size:${isCompactReceipt ? 24 : 34}px;font-weight:900;line-height:1.2;margin-top:3px;">${d.saleSeq}</div>
+        </div>
+
+        <div style="border-bottom:1px dashed #000;padding-bottom:${isCompactReceipt ? 6 : 8}px;margin-bottom:${isCompactReceipt ? 6 : 8}px;">
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${dateStr}</span>
+            <span style="${labelStyle}">التاريخ</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${timeStr}</span>
+            <span style="${labelStyle}">الوقت</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="font-size:${isCompactReceipt ? 14 : 18}px;font-weight:700;text-align:right;flex:1;word-break:break-word;">${d.customerName}</span>
+            <span style="${labelStyle}">الزبون</span>
+          </div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+          <tbody>${rows}</tbody>
         </table>
 
-        <div style="text-align:center;font-weight:700;margin-top:6px;font-size:15px;">وصل بيع رقم: ${d.saleSeq}</div>
+        <div style="border-top:2px solid #000;border-bottom:2px solid #000;padding:${isCompactReceipt ? 6 : 8}px 0;margin-top:${isCompactReceipt ? 6 : 8}px;">
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${total.toFixed(2)}</span>
+            <span style="${labelStyle}">المجموع</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${prevDebt.toFixed(2)}</span>
+            <span style="${labelStyle}">الديون السابقة</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${paidNum.toFixed(2)}</span>
+            <span style="${labelStyle}">المدفوع</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${rest.toFixed(2)}</span>
+            <span style="${labelStyle}">المتبقي</span>
+          </div>
+        </div>
 
-        <table style="width:100%;border-collapse:collapse;margin-top:6px;${rowFont}font-weight:700;">
-          <tr>
-            <td style="text-align:right;padding:2px 0;">المنتج</td>
-            <td style="text-align:center;padding:2px 0;width:30px;">الكمية</td>
-            <td style="text-align:center;padding:2px 0;width:50px;">السعر</td>
-            <td style="text-align:left;padding:2px 0;width:55px;">المبلغ</td>
-          </tr>
-        </table>
-        ${dashed}
-        <table style="width:100%;border-collapse:collapse;">
-          ${itemRows}
-        </table>
-        ${dashed}
+        ${d.note ? `<div style="margin-top:${isCompactReceipt ? 8 : 10}px;border-bottom:1px dashed #000;padding-bottom:${isCompactReceipt ? 6 : 8}px;"><div style="font-size:${isCompactReceipt ? 14 : 18}px;font-weight:700;margin-bottom:4px;">ملاحظة</div><div style="font-size:${isCompactReceipt ? 13 : 17}px;line-height:1.5;word-break:break-word;">${d.note}</div></div>` : ""}
 
-        <table style="width:100%;border-collapse:collapse;">
-          ${sumRow("المجموع", total.toFixed(2), true)}
-        </table>
-        ${dashed}
-        <table style="width:100%;border-collapse:collapse;">
-          ${sumRow("الديون السابقة", prevDebt.toFixed(2))}
-          ${sumRow("المبلغ المدفوع", paidNum.toFixed(2))}
-          ${sumRow("المبلغ المتبقي", rest.toFixed(2))}
-        </table>
-
-        ${d.note ? `<div style="margin-top:6px;${rowFont}"><span style="font-weight:700;">ملاحظة:</span> ${d.note}</div>` : ""}
-
-        <div style="text-align:center;margin-top:10px;font-weight:700;font-size:15px;">شكرا</div>
-        ${isDemo ? `<div style="text-align:center;margin-top:2px;font-size:12px;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+        <div style="text-align:center;margin-top:${isCompactReceipt ? 9 : 12}px;font-size:${isCompactReceipt ? 16 : 23}px;font-weight:900;">شكراً لتعاملكم معنا</div>
+        ${isDemo ? `<div style="text-align:center;margin-top:6px;font-size:${isCompactReceipt ? 11 : 16}px;line-height:1.4;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
       </div>`;
 
     const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
