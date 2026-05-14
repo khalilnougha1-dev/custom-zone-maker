@@ -559,7 +559,8 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 }
 
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 96 : 128);
+  // أكبر = أسرع (عدد روابط أقل)
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 192 : 256);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
@@ -575,11 +576,11 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
     );
 
     if (index === bands.length - 1) {
-      await delay(canvas.width <= 384 ? 1200 : 900);
+      await delay(canvas.width <= 384 ? 350 : 250);
       continue;
     }
 
-    await delay(canvas.width <= 384 ? 220 : 180);
+    await delay(60);
   }
 }
 
