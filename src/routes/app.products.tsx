@@ -386,6 +386,15 @@ function ProductEditor({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {packagesOpen && editing && (
+        <PackagesManager
+          productId={editing.id}
+          productName={editing.name}
+          unitPrice={Number(form.retail_price) || editing.retail_price || 0}
+          onClose={() => setPackagesOpen(false)}
+        />
+      )}
     </div>
   );
 }
