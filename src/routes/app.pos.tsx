@@ -121,42 +121,65 @@ function NewSalePage() {
 
   const totalLines = cart.length;
 
-  const getStock = (id: string) => {
-    const p = products.find((x: any) => x.id === id);
+  const getStock = (productId: string) => {
+    const p = products.find((x: any) => x.id === productId);
     return p ? Number(p.stock_quantity) : 0;
   };
-  const isTracked = (id: string) => {
-    const p = products.find((x: any) => x.id === id);
+  const isTracked = (productId: string) => {
+    const p = products.find((x: any) => x.id === productId);
     return p ? (p.is_tracked !== false) : true;
   };
 
-  const addProduct = (p: any) => {
-    const tracked = p.is_tracked !== false;
-    const stock = Number(p.stock_quantity) || 0;
-    const inCart = cart.find(i => i.id === p.id)?.qty || 0;
-    if (tracked && inCart + 1 > stock) {
+  // Total units of a product currently held in cart (counting packages × unitsPerPackage)
+  const unitsInCartFor = (productId: string, exceptRowId?: string) =>
+    cart
+      .filter((i) => i.productId === productId && i.id !== exceptRowId)
+      .reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
+
+  const addEntry = (entry: { kind: "product" | "package"; product: any; pkg: any }) => {
+    const { product, pkg } = entry;
+    const isPkg = entry.kind === "package";
+    const rowId = isPkg ? `pkg:${pkg.id}` : product.id;
+    const unitsPerPackage = isPkg ? Number(pkg.units_count) || 1 : 1;
+    const tracked = product.is_tracked !== false;
+    const stock = Number(product.stock_quantity) || 0;
+    const usedUnits = unitsInCartFor(product.id);
+    if (tracked && usedUnits + unitsPerPackage > stock) {
       return toast.error(`المخزون غير كافٍ (المتبقي ${stock})`);
     }
-    setCart(prev => {
-      const found = prev.find(i => i.id === p.id);
-      if (found) return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, {
-        id: p.id, name: p.name,
-        price: Number(p.retail_price) || 0,
-        cost: Number(p.cost_price) || 0, qty: 1,
-      }];
+    setCart((prev) => {
+      const found = prev.find((i) => i.id === rowId);
+      if (found) return prev.map((i) => (i.id === rowId ? { ...i, qty: i.qty + 1 } : i));
+      const row: CartItem = {
+        id: rowId,
+        productId: product.id,
+        name: isPkg ? `${product.name} [${pkg.name}]` : product.name,
+        price: Number(isPkg ? pkg.retail_price : product.retail_price) || 0,
+        cost: Number(isPkg ? pkg.cost_price : product.cost_price) || 0,
+        qty: 1,
+        ...(isPkg
+          ? { packageId: pkg.id, packageName: pkg.name, unitsPerPackage }
+          : {}),
+      };
+      return [...prev, row];
     });
     setProductQ("");
     setShowProductList(false);
     productInputRef.current?.focus();
   };
 
-  const setQty = (id: string, qty: number) => {
-    if (qty <= 0) return setCart(prev => prev.filter(i => i.id !== id));
-    if (isTracked(id) && qty > getStock(id)) {
-      return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(id)})`);
+  const setQty = (rowId: string, qty: number) => {
+    const row = cart.find((i) => i.id === rowId);
+    if (!row) return;
+    if (qty <= 0) return setCart((prev) => prev.filter((i) => i.id !== rowId));
+    const unitsPerPackage = row.unitsPerPackage || 1;
+    if (isTracked(row.productId)) {
+      const wouldUse = unitsInCartFor(row.productId, rowId) + qty * unitsPerPackage;
+      if (wouldUse > getStock(row.productId)) {
+        return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(row.productId)})`);
+      }
     }
-    setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
+    setCart((prev) => prev.map((i) => (i.id === rowId ? { ...i, qty } : i)));
   };
 
   const clearCart = () => {
