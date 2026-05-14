@@ -491,6 +491,7 @@ function buildEscPosImage(
   const widthBytes = width / 8;
   const headerBytes = [
     ...(options?.initialize === false ? [] : [0x1b, 0x40]), // ESC @ initialize
+    0x1b, 0x61, 0x02, // align right for RTL-focused receipts before raster payload
     0x1b, 0x33, 0x00, // ESC 3 n = compact line spacing for raster data
     0x1d, 0x76, 0x30, 0x00, // GS v 0 m=0 (normal)
     widthBytes & 0xff,
@@ -499,7 +500,16 @@ function buildEscPosImage(
     (height >> 8) & 0xff,
   ];
   const header = new Uint8Array(headerBytes);
-  const feed = new Uint8Array(options?.feed === false ? [] : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x1b, 0x32]); // restore default spacing, skip cut for compatibility
+  const feed = new Uint8Array(
+    options?.feed === false
+      ? []
+      : [
+          0x0a, 0x0a, 0x0a, 0x0a, 0x0a,
+          0x1b, 0x32, // restore default line spacing
+          0x1b, 0x61, 0x00, // reset alignment
+          0x1d, 0x56, 0x42, 0x00, // full cut / finalize job on printers that support it
+        ],
+  );
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
@@ -552,7 +562,7 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
     );
 
     if (index === bands.length - 1) {
-      await delay(650);
+      await delay(canvas.width <= 384 ? 1200 : 900);
       continue;
     }
 
