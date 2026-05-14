@@ -85,6 +85,8 @@ function SalePrintPage() {
         product_name: i.product_name,
         quantity: Number(i.quantity),
         unit_price: Number(i.unit_price),
+        package_qty: i.package_qty != null ? Number(i.package_qty) : null,
+        package_units_count: i.package_units_count != null ? Number(i.package_units_count) : null,
       })),
       total: Number(sale.total),
       paid: Number(sale.paid || 0),
