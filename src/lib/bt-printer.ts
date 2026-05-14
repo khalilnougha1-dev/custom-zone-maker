@@ -27,6 +27,8 @@ let activeDeviceId: string | null = null;
 let activeCharacteristic: any | null = null;
 let activeConnectionPromise: Promise<any> | null = null;
 let gattTaskQueue: Promise<unknown> = Promise.resolve();
+const BLUETOOTH_CONNECT_TIMEOUT_MS = 12_000;
+const BLUETOOTH_PRINT_TIMEOUT_MS = 20_000;
 
 export type SimpleReceiptLine = {
   text?: string;
@@ -92,6 +94,23 @@ function queueGattTask<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
+function withBluetoothTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function bindDevice(device: any) {
   if (!device) return null;
 
@@ -140,7 +159,11 @@ export async function prepareBluetoothPrinter(options?: {
 
   bindDevice(device);
   await queueGattTask(async () => {
-    await connectAndFindCharacteristic(device);
+    await withBluetoothTimeout(
+      connectAndFindCharacteristic(device),
+      BLUETOOTH_CONNECT_TIMEOUT_MS,
+      "انتهت مهلة الاتصال بالطابعة",
+    );
   });
 
   return {
@@ -586,7 +609,11 @@ export async function printHtmlBluetooth(
 
     try {
       try {
-        await sendToPrinter(device);
+        await withBluetoothTimeout(
+          sendToPrinter(device),
+          BLUETOOTH_PRINT_TIMEOUT_MS,
+          "انتهت مهلة إرسال بيانات الطباعة",
+        );
       } catch (error) {
         if (!isGattDisconnectedError(error)) throw error;
 
@@ -606,7 +633,11 @@ export async function printHtmlBluetooth(
           device = rememberDevice(picked);
         }
 
-        await sendToPrinter(device);
+        await withBluetoothTimeout(
+          sendToPrinter(device),
+          BLUETOOTH_PRINT_TIMEOUT_MS,
+          "انتهت مهلة إرسال بيانات الطباعة",
+        );
       }
     } finally {
       iframe.remove();
@@ -638,7 +669,11 @@ export async function printSimpleReceiptBluetooth(
       const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
       const raster = await canvasToRaster(canvas);
       const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
-      await writeWithReconnect(device, escposBytes);
+      await withBluetoothTimeout(
+        writeWithReconnect(device, escposBytes),
+        BLUETOOTH_PRINT_TIMEOUT_MS,
+        "انتهت مهلة إرسال بيانات الطباعة",
+      );
       await delay(500);
     } catch (error) {
       if (!isGattDisconnectedError(error)) {
@@ -664,7 +699,11 @@ export async function printSimpleReceiptBluetooth(
       const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
       const raster = await canvasToRaster(canvas);
       const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
-      await writeWithReconnect(device, escposBytes);
+      await withBluetoothTimeout(
+        writeWithReconnect(device, escposBytes),
+        BLUETOOTH_PRINT_TIMEOUT_MS,
+        "انتهت مهلة إرسال بيانات الطباعة",
+      );
       await delay(500);
     }
   });
