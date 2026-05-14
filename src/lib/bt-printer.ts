@@ -425,27 +425,22 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
 }
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
-  const chunkSize = 20;
+  // BLE printers usually accept 180-byte payloads with writeWithoutResponse.
+  // Larger chunks + smaller delays => dramatically faster prints.
   const supportsWrite = !!characteristic?.properties?.write && !!characteristic?.writeValue;
   const supportsWriteWithoutResponse =
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
   const prefersWriteWithoutResponse = supportsWriteWithoutResponse || !supportsWrite;
+
+  const chunkSize = prefersWriteWithoutResponse ? 180 : 100;
   const chunkDelay = prefersWriteWithoutResponse
-      ? isAndroidBluetoothClient()
-        ? 26
-        : 18
-    : supportsWrite
-      ? isAndroidBluetoothClient()
-        ? 14
-        : 10
-      : isAndroidBluetoothClient()
-        ? 22
-        : 16;
+    ? (isAndroidBluetoothClient() ? 6 : 4)
+    : (isAndroidBluetoothClient() ? 8 : 5);
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
     await writeChunk(characteristic, slice);
-    await delay(chunkDelay);
+    if (chunkDelay) await delay(chunkDelay);
   }
 }
 
@@ -564,7 +559,8 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 }
 
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 96 : 128);
+  // أكبر = أسرع (عدد روابط أقل)
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 192 : 256);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
@@ -580,11 +576,11 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
     );
 
     if (index === bands.length - 1) {
-      await delay(canvas.width <= 384 ? 1200 : 900);
+      await delay(canvas.width <= 384 ? 350 : 250);
       continue;
     }
 
-    await delay(canvas.width <= 384 ? 220 : 180);
+    await delay(60);
   }
 }
 
