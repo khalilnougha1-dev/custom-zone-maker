@@ -134,6 +134,7 @@ function ProductEditor({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [multiBarcode, setMultiBarcode] = useState(false);
+  const [packagesOpen, setPackagesOpen] = useState(false);
 
   const [form, setForm] = useState({
     name: editing?.name || "",
