@@ -458,25 +458,33 @@ function NewSalePage() {
                 <button onClick={() => setQty(i.id, 0)} className="text-destructive p-1"><X className="h-4 w-4" /></button>
                 <div className="font-mono font-bold text-primary w-20 text-left">{(i.price * i.qty).toFixed(2)}</div>
                 <Input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min={0}
-                  value={i.qty}
+                  value={String(i.qty)}
                   onChange={(e) => {
-                    const v = e.target.value;
+                    const v = e.target.value.replace(",", ".");
                     if (v === "") return setCart(prev => prev.map(x => x.id === i.id ? { ...x, qty: 0 } : x));
+                    if (!/^\d*\.?\d*$/.test(v)) return;
                     const n = Number(v);
                     if (!Number.isFinite(n) || n < 0) return;
-                    if (isTracked(i.id) && n > getStock(i.id)) {
-                      return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(i.id)})`);
+                    const unitsPerPackage = i.unitsPerPackage || 1;
+                    if (isTracked(i.productId)) {
+                      const wouldUse = unitsInCartFor(i.productId, i.id) + n * unitsPerPackage;
+                      if (wouldUse > getStock(i.productId)) {
+                        return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(i.productId)})`);
+                      }
                     }
                     setCart(prev => prev.map(x => x.id === i.id ? { ...x, qty: n } : x));
                   }}
                   onBlur={() => { if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id)); }}
-                  className="w-14 h-8 text-center font-mono font-bold px-1"
+                  className="w-16 h-8 text-center font-mono font-bold px-1"
                 />
-                
-                <div className="flex-1 truncate text-right text-sm">{i.name}</div>
+                <div className="flex-1 truncate text-right text-sm">
+                  {i.name}
+                  {i.unitsPerPackage && (
+                    <span className="text-xs text-muted-foreground mr-1">({i.qty}×{i.unitsPerPackage})</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
