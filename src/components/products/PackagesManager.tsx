@@ -94,7 +94,8 @@ export function PackagesManager({ productId, productName, unitPrice, unitCost = 
       {editorOpen && (
         <PackageEditor
           productId={productId}
-          unitPrice={unitPrice}
+          editorOpen={editorOpen}
+          unitCost={unitCost}
           editing={editing}
           onClose={() => setEditorOpen(false)}
           onSaved={() => { setEditorOpen(false); load(); }}
