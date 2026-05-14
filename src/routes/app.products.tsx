@@ -401,6 +401,7 @@ function ProductEditor({
           productId={editing.id}
           productName={editing.name}
           unitPrice={Number(form.retail_price) || editing.retail_price || 0}
+          unitCost={Number(form.cost_price) || editing.cost_price || 0}
           onClose={() => setPackagesOpen(false)}
         />
       )}
