@@ -54,12 +54,16 @@ export function AdminUserDataPanel({ users }: Props) {
         </div>
       ) : (
         <Tabs defaultValue="trucks" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-3 mb-3">
+          <TabsList className="grid w-full grid-cols-5 mb-3">
             <TabsTrigger value="trucks" className="gap-1 text-xs"><TruckIcon className="h-3 w-3" /> الشاحنات</TabsTrigger>
+            <TabsTrigger value="distributions" className="gap-1 text-xs"><ClipboardList className="h-3 w-3" /> التوزيعات</TabsTrigger>
+            <TabsTrigger value="warehouse" className="gap-1 text-xs"><Boxes className="h-3 w-3" /> المخزون</TabsTrigger>
             <TabsTrigger value="products" className="gap-1 text-xs"><Package className="h-3 w-3" /> الأسعار</TabsTrigger>
             <TabsTrigger value="settings" className="gap-1 text-xs"><SettingsIcon className="h-3 w-3" /> الوصل</TabsTrigger>
           </TabsList>
           <TabsContent value="trucks"><AdminTrucks userId={userId} /></TabsContent>
+          <TabsContent value="distributions"><AdminDistributions userId={userId} /></TabsContent>
+          <TabsContent value="warehouse"><AdminWarehouse userId={userId} /></TabsContent>
           <TabsContent value="products"><AdminProducts userId={userId} /></TabsContent>
           <TabsContent value="settings"><AdminSettings userId={userId} userName={selectedUser?.full_name || ""} /></TabsContent>
         </Tabs>
