@@ -20,6 +20,7 @@ function TrucksPage() {
   const [edit, setEdit] = useState<any>(null);
   const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_email: "", driver_user_id: "" });
   const [linking, setLinking] = useState(false);
+  const [matches, setMatches] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
 
   const load = async () => {
     if (!user) return;
