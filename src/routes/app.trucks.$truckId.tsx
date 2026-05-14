@@ -148,6 +148,34 @@ function TruckDetailPage() {
         </div>
       </div>
 
+      {inventory.length > 0 && (
+        <section className="mb-4">
+          <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground">
+            <Package className="h-4 w-4" /> مخزون الشاحنة (حسب المنتج)
+          </h2>
+          <div className="space-y-2">
+            {inventory.map((p) => (
+              <div key={p.name} className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold truncate">{p.name}</div>
+                    <div className="mt-1 flex flex-wrap gap-1 text-xs">
+                      <Badge className="bg-amber-500">متاح {p.pending}</Badge>
+                      <Badge className="bg-emerald-500">مُسلّم {p.delivered}</Badge>
+                      {p.cancelled > 0 && <Badge variant="destructive">ملغى {p.cancelled}</Badge>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">القيمة</div>
+                    <div className="font-mono font-bold text-primary">{p.value.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="space-y-2">
         {items.length === 0 && (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
