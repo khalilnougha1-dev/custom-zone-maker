@@ -39,6 +39,8 @@ function PrinterPage() {
   const [printers, setPrinters] = useState<SavedPrinter[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
+  const [quickTesting, setQuickTesting] = useState(false);
+  const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
 
   // Add-printer form
   const [name, setName] = useState("");
