@@ -68,6 +68,70 @@ function PrinterPage() {
     toast.success(`تم تعيين عرض وصل البيع إلى ${v === "58mm" ? "58 مم" : "80 مم"}`);
   };
 
+  const previewHtml = useMemo(
+    () => buildReceiptHtmlPreview(SAMPLE_RECEIPT, receiptPaper),
+    [receiptPaper],
+  );
+
+  // (Re)write iframe content whenever the html changes
+  useEffect(() => {
+    const iframe = previewIframeRef.current;
+    if (!iframe) return;
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    doc.open();
+    doc.write(previewHtml);
+    doc.close();
+  }, [previewHtml]);
+
+  const printSampleNow = async () => {
+    const active = printers.find((p) => p.id === activeId);
+    if (!active) {
+      const msg = "لا توجد طابعة افتراضية. اختر طابعة أولاً.";
+      setSampleResult({ ok: false, message: msg });
+      toast.error(msg);
+      return;
+    }
+    setSampleTesting(true);
+    setSampleResult(null);
+    try {
+      if (active.connection === "bluetooth") {
+        const { printHtmlBluetooth } = await import("@/lib/bt-printer");
+        const widthPx = receiptPaper === "58mm" ? 384 : 576;
+        await printHtmlBluetooth(previewHtml, widthPx);
+      } else if (active.connection === "system") {
+        previewIframeRef.current?.contentWindow?.focus();
+        previewIframeRef.current?.contentWindow?.print();
+      } else {
+        throw new Error(`نوع الاتصال "${active.connection}" غير مدعوم للطباعة المباشرة`);
+      }
+      const msg = `تم إرسال الوصل التجريبي إلى ${active.name}`;
+      setSampleResult({ ok: true, message: msg });
+      toast.success(msg);
+    } catch (e) {
+      const msg = (e as Error).message || "فشل غير معروف";
+      setSampleResult({ ok: false, message: msg });
+      toast.error(msg);
+    } finally {
+      setSampleTesting(false);
+    }
+  };
+
+  const downloadSamplePdf = () => {
+    // Open the preview HTML in a new window so the user can "Save as PDF"
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("تم منع النوافذ المنبثقة. اسمح بها ثم أعد المحاولة.");
+      return;
+    }
+    w.document.write(previewHtml);
+    w.document.close();
+    setTimeout(() => {
+      w.focus();
+      w.print();
+    }, 250);
+  };
+
   const addPrinter = () => {
     if (!name.trim()) return toast.error("أدخل اسم الطابعة");
     const p: SavedPrinter = {
