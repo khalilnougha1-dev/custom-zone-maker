@@ -46,6 +46,7 @@ import { Route as AppSalesIndexRouteImport } from './routes/app.sales.index'
 import { Route as AppTrucksTruckIdRouteImport } from './routes/app.trucks.$truckId'
 import { Route as AppSalesSaleIdRouteImport } from './routes/app.sales.$saleId'
 import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases_.new'
+import { Route as AppPurchasesPurchaseIdRouteImport } from './routes/app.purchases_.$purchaseId'
 import { Route as AppSalesSaleIdIndexRouteImport } from './routes/app.sales.$saleId.index'
 import { Route as AppSalesSaleIdPrintRouteImport } from './routes/app.sales.$saleId.print'
 
@@ -234,6 +235,11 @@ const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
   path: '/purchases/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPurchasesPurchaseIdRoute = AppPurchasesPurchaseIdRouteImport.update({
+  id: '/purchases_/$purchaseId',
+  path: '/purchases/$purchaseId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSalesSaleIdIndexRoute = AppSalesSaleIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -278,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app/': typeof AppIndexRoute
+  '/app/purchases/$purchaseId': typeof AppPurchasesPurchaseIdRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRouteWithChildren
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app': typeof AppIndexRoute
+  '/app/purchases/$purchaseId': typeof AppPurchasesPurchaseIdRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
   '/app/sales': typeof AppSalesIndexRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app/': typeof AppIndexRoute
+  '/app/purchases_/$purchaseId': typeof AppPurchasesPurchaseIdRoute
   '/app/purchases_/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRouteWithChildren
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/app/suppliers'
     | '/app/trucks-inventory'
     | '/app/'
+    | '/app/purchases/$purchaseId'
     | '/app/purchases/new'
     | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
@@ -440,6 +450,7 @@ export interface FileRouteTypes {
     | '/app/suppliers'
     | '/app/trucks-inventory'
     | '/app'
+    | '/app/purchases/$purchaseId'
     | '/app/purchases/new'
     | '/app/trucks/$truckId'
     | '/app/sales'
@@ -480,6 +491,7 @@ export interface FileRouteTypes {
     | '/app/suppliers'
     | '/app/trucks-inventory'
     | '/app/'
+    | '/app/purchases_/$purchaseId'
     | '/app/purchases_/new'
     | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
@@ -762,6 +774,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPurchasesNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/purchases_/$purchaseId': {
+      id: '/app/purchases_/$purchaseId'
+      path: '/purchases/$purchaseId'
+      fullPath: '/app/purchases/$purchaseId'
+      preLoaderRoute: typeof AppPurchasesPurchaseIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/sales/$saleId/': {
       id: '/app/sales/$saleId/'
       path: '/'
@@ -831,6 +850,7 @@ interface AppRouteChildren {
   AppSuppliersRoute: typeof AppSuppliersRoute
   AppTrucksInventoryRoute: typeof AppTrucksInventoryRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppPurchasesPurchaseIdRoute: typeof AppPurchasesPurchaseIdRoute
   AppPurchasesNewRoute: typeof AppPurchasesNewRoute
   AppTrucksTruckIdRoute: typeof AppTrucksTruckIdRoute
   AppTrucksIndexRoute: typeof AppTrucksIndexRoute
@@ -860,6 +880,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSuppliersRoute: AppSuppliersRoute,
   AppTrucksInventoryRoute: AppTrucksInventoryRoute,
   AppIndexRoute: AppIndexRoute,
+  AppPurchasesPurchaseIdRoute: AppPurchasesPurchaseIdRoute,
   AppPurchasesNewRoute: AppPurchasesNewRoute,
   AppTrucksTruckIdRoute: AppTrucksTruckIdRoute,
   AppTrucksIndexRoute: AppTrucksIndexRoute,
