@@ -61,6 +61,11 @@ function TrucksPage() {
         <Plus className="h-6 w-6" />
       </button>
     }>
+      <div className="mb-3">
+        <Button asChild className="w-full bg-gradient-primary text-primary-foreground gap-2">
+          <Link to="/app/trucks-inventory"><Package className="h-4 w-4" /> مخزون الشاحنات وسجل التغييرات</Link>
+        </Button>
+      </div>
       <div className="space-y-3">
         {trucks.length === 0 && (
           <div className="rounded-xl border border-dashed border-border p-8 text-center">
