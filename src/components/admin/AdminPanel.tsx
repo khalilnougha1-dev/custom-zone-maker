@@ -449,6 +449,9 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
             );
           })}
         </TabsContent>
+        <TabsContent value="data">
+          <AdminUserDataPanel users={users} />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
