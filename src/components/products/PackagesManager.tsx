@@ -94,6 +94,7 @@ export function PackagesManager({ productId, productName, unitPrice, unitCost = 
       {editorOpen && (
         <PackageEditor
           productId={productId}
+          productName={productName}
           unitPrice={unitPrice}
           unitCost={unitCost}
           editing={editing}
@@ -106,9 +107,10 @@ export function PackagesManager({ productId, productName, unitPrice, unitCost = 
 }
 
 function PackageEditor({
-  productId, unitPrice, unitCost, editing, onClose, onSaved,
+  productId, productName, unitPrice, unitCost, editing, onClose, onSaved,
 }: {
   productId: string;
+  productName: string;
   unitPrice: number;
   unitCost: number;
   editing: Pkg | null;
@@ -122,7 +124,7 @@ function PackageEditor({
   const [multiBarcode, setMultiBarcode] = useState(false);
 
   const [form, setForm] = useState({
-    name: editing?.name || "",
+    name: editing?.name || productName || "",
     units_count: editing ? String(editing.units_count) : "",
     apply_unit_price: editing?.apply_unit_price || false,
     cost_price: editing ? String(editing.cost_price) : "",
