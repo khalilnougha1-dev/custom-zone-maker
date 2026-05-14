@@ -613,3 +613,59 @@ export async function printHtmlBluetooth(
     }
   });
 }
+
+export async function printSimpleReceiptBluetooth(
+  lines: SimpleReceiptLine[],
+  paperWidthPx = 384,
+): Promise<void> {
+  return queueGattTask(async () => {
+    if (!isWebBluetoothSupported()) {
+      throw new Error("Web Bluetooth غير مدعوم");
+    }
+
+    let device = activeDevice ?? await getRememberedDevice();
+    if (!device) {
+      const picked = await navigator.bluetooth!.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: SERVICE_CANDIDATES,
+      });
+      device = rememberDevice(picked);
+    } else {
+      bindDevice(device);
+    }
+
+    try {
+      const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
+      const raster = await canvasToRaster(canvas);
+      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
+      await writeWithReconnect(device, escposBytes);
+      await delay(500);
+    } catch (error) {
+      if (!isGattDisconnectedError(error)) {
+        throw error;
+      }
+
+      activeCharacteristic = null;
+      activeConnectionPromise = null;
+      try {
+        device.gatt?.disconnect?.();
+      } catch {}
+
+      await delay(350);
+
+      if (localStorage.getItem(ACTIVE_KEY) === device?.id) {
+        const picked = await navigator.bluetooth!.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: SERVICE_CANDIDATES,
+        });
+        device = rememberDevice(picked);
+      }
+
+      const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
+      const raster = await canvasToRaster(canvas);
+      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
+      await writeWithReconnect(device, escposBytes);
+      await delay(500);
+    }
+  });
+}
