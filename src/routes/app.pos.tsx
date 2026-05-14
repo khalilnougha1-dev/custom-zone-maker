@@ -17,7 +17,12 @@ import { toast } from "sonner";
 import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
 import { getActivePrinter } from "@/lib/printer-config";
 
-export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
+export const Route = createFileRoute("/app/pos")({
+  component: NewSalePage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
+});
 
 type CartItem = {
   id: string; // unique row id (product id, or `pkg:<packageId>`)
@@ -34,6 +39,8 @@ type CartItem = {
 function NewSalePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { edit: editSaleId } = Route.useSearch();
+  const isEditMode = !!editSaleId;
 
   const [now, setNow] = useState({ date: "", time: "" });
   const [products, setProducts] = useState<any[]>([]);
@@ -51,6 +58,8 @@ function NewSalePage() {
   const [paid, setPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
   const [note, setNote] = useState("");
+  const [originalUnits, setOriginalUnits] = useState<Record<string, number>>({});
+  const [editLoaded, setEditLoaded] = useState(false);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,6 +92,60 @@ function NewSalePage() {
       .eq("user_id", user.id)
       .then(({ data }: any) => setPackages((data || []).filter((p: any) => !p.is_inactive)));
   }, [user]);
+
+  // Load existing sale into cart when in edit mode
+  useEffect(() => {
+    if (!user || !editSaleId || editLoaded) return;
+    if (products.length === 0) return; // wait for products
+    (async () => {
+      const { data: sale } = await supabase.from("sales").select("*").eq("id", editSaleId).maybeSingle();
+      if (!sale) { toast.error("الفاتورة غير موجودة"); return; }
+      const { data: items } = await supabase.from("sale_items").select("*").eq("sale_id", editSaleId);
+      const loadedCart: CartItem[] = [];
+      const orig: Record<string, number> = {};
+      for (const it of (items || []) as any[]) {
+        const product = products.find((p: any) => p.id === it.product_id);
+        if (!product) continue;
+        const units = Number(it.quantity);
+        orig[it.product_id] = (orig[it.product_id] || 0) + units;
+        if (it.package_id && it.package_units_count && it.package_qty) {
+          const upp = Number(it.package_units_count);
+          const qty = Number(it.package_qty);
+          loadedCart.push({
+            id: `pkg:${it.package_id}`,
+            productId: it.product_id,
+            name: it.product_name,
+            price: Number(it.unit_price) * upp,
+            cost: Number(it.cost_price || 0) * upp,
+            qty,
+            packageId: it.package_id,
+            packageName: it.package_name || "",
+            unitsPerPackage: upp,
+          });
+        } else {
+          loadedCart.push({
+            id: it.product_id,
+            productId: it.product_id,
+            name: it.product_name,
+            price: Number(it.unit_price),
+            cost: Number(it.cost_price || 0),
+            qty: units,
+          });
+        }
+      }
+      setCart(loadedCart);
+      setOriginalUnits(orig);
+      setPaid(String(Number(sale.paid || 0)));
+      setPaymentMethod((sale.payment_method as any) || "cash");
+      setNote(sale.notes || "");
+      if (sale.customer_id) {
+        setCustomerId(sale.customer_id);
+        const { data: c } = await supabase.from("customers").select("name").eq("id", sale.customer_id).maybeSingle();
+        if (c) setCustomerQ(c.name);
+      }
+      setEditLoaded(true);
+    })();
+  }, [user, editSaleId, products, editLoaded]);
 
   const filteredCustomers = useMemo(() => {
     const q = customerQ.toLowerCase().trim();
@@ -124,7 +187,8 @@ function NewSalePage() {
 
   const getStock = (productId: string) => {
     const p = products.find((x: any) => x.id === productId);
-    return p ? Number(p.stock_quantity) : 0;
+    const base = p ? Number(p.stock_quantity) : 0;
+    return base + (originalUnits[productId] || 0);
   };
   const isTracked = (productId: string) => {
     const p = products.find((x: any) => x.id === productId);
@@ -238,20 +302,34 @@ function NewSalePage() {
         }
       }
 
-      const invoiceNumber = `INV-${Date.now()}`;
-      const { data: sale, error } = await supabase.from("sales").insert({
-        user_id: user.id,
-        customer_id: customerId,
-        subtotal: totalAmount,
-        total: totalAmount,
-        paid: Number(paid) || 0,
-        payment_method: paymentMethod,
-        notes: note || null,
-        invoice_number: invoiceNumber,
-      }).select().single();
-      if (error || !sale) {
-        toast.error(error?.message || "خطأ");
-        return;
+      let saleRow: any;
+      if (isEditMode && editSaleId) {
+        const { data: sale, error } = await supabase.from("sales").update({
+          customer_id: customerId,
+          subtotal: totalAmount,
+          total: totalAmount,
+          paid: Number(paid) || 0,
+          payment_method: paymentMethod,
+          notes: note || null,
+        }).eq("id", editSaleId).select().single();
+        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
+        saleRow = sale;
+        const { error: eDel } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+        if (eDel) { toast.error(eDel.message); return; }
+      } else {
+        const invoiceNumber = `INV-${Date.now()}`;
+        const { data: sale, error } = await supabase.from("sales").insert({
+          user_id: user.id,
+          customer_id: customerId,
+          subtotal: totalAmount,
+          total: totalAmount,
+          paid: Number(paid) || 0,
+          payment_method: paymentMethod,
+          notes: note || null,
+          invoice_number: invoiceNumber,
+        }).select().single();
+        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
+        saleRow = sale;
       }
 
       const items = cart.map((i) => {
@@ -259,7 +337,7 @@ function NewSalePage() {
         const unitPrice = i.unitsPerPackage ? i.price / i.unitsPerPackage : i.price;
         const unitCost = i.unitsPerPackage ? i.cost / i.unitsPerPackage : i.cost;
         return {
-          sale_id: sale.id,
+          sale_id: saleRow.id,
           product_id: i.productId,
           product_name: i.name,
           quantity: units,
@@ -282,6 +360,13 @@ function NewSalePage() {
         return;
       }
 
+      if (isEditMode) {
+        toast.success("تم تحديث الفاتورة");
+        setConfirmOpen(false);
+        navigate({ to: "/app/sales/$saleId", params: { saleId: editSaleId! } });
+        return;
+      }
+
       toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
       const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
       await printReceiptHtml({
@@ -299,7 +384,7 @@ function NewSalePage() {
         total: totalAmount,
         paid: Number(paid) || 0,
         note,
-        createdAt: sale.created_at,
+        createdAt: saleRow.created_at,
         preparedBluetoothPrinterId,
       });
 
@@ -328,7 +413,7 @@ function NewSalePage() {
           >
             <ArrowRight className="h-6 w-6" />
           </button>
-          <h1 className="text-lg font-bold">بيع جديد</h1>
+          <h1 className="text-lg font-bold">{isEditMode ? "تعديل عملية بيع" : "بيع جديد"}</h1>
           <button
             onClick={openConfirm}
             className="rounded-lg p-2 hover:bg-white/10 transition"

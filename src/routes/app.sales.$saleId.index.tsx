@@ -153,7 +153,11 @@ function SaleDetailPage() {
 
       <main className="flex-1 px-4 pt-3 pb-6">
         <div className="mb-4 flex items-center justify-between">
-          <button className="p-1" aria-label="تعديل">
+          <button
+            onClick={() => navigate({ to: "/app/pos", search: { edit: saleId } })}
+            className="p-1"
+            aria-label="تعديل"
+          >
             <Pencil className="h-7 w-7 text-foreground/80" />
           </button>
           <div className="flex items-center gap-3">
