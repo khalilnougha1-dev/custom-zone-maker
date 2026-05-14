@@ -44,6 +44,7 @@ import { Route as AppSalesIndexRouteImport } from './routes/app.sales.index'
 import { Route as AppTrucksTruckIdRouteImport } from './routes/app.trucks.$truckId'
 import { Route as AppSalesSaleIdRouteImport } from './routes/app.sales.$saleId'
 import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
+import { Route as AppSalesSaleIdIndexRouteImport } from './routes/app.sales.$saleId.index'
 import { Route as AppSalesSaleIdPrintRouteImport } from './routes/app.sales.$saleId.print'
 
 const SignupRoute = SignupRouteImport.update({
@@ -221,6 +222,11 @@ const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppPurchasesRoute,
 } as any)
+const AppSalesSaleIdIndexRoute = AppSalesSaleIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSalesSaleIdRoute,
+} as any)
 const AppSalesSaleIdPrintRoute = AppSalesSaleIdPrintRouteImport.update({
   id: '/print',
   path: '/print',
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
   '/app/sales/': typeof AppSalesIndexRoute
   '/app/sales/$saleId/print': typeof AppSalesSaleIdPrintRoute
+  '/app/sales/$saleId/': typeof AppSalesSaleIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -296,10 +303,10 @@ export interface FileRoutesByTo {
   '/app/trucks': typeof AppTrucksRouteWithChildren
   '/app': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
-  '/app/sales/$saleId': typeof AppSalesSaleIdRouteWithChildren
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
   '/app/sales': typeof AppSalesIndexRoute
   '/app/sales/$saleId/print': typeof AppSalesSaleIdPrintRoute
+  '/app/sales/$saleId': typeof AppSalesSaleIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -339,6 +346,7 @@ export interface FileRoutesById {
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
   '/app/sales/': typeof AppSalesIndexRoute
   '/app/sales/$saleId/print': typeof AppSalesSaleIdPrintRoute
+  '/app/sales/$saleId/': typeof AppSalesSaleIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -379,6 +387,7 @@ export interface FileRouteTypes {
     | '/app/trucks/$truckId'
     | '/app/sales/'
     | '/app/sales/$saleId/print'
+    | '/app/sales/$saleId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -411,10 +420,10 @@ export interface FileRouteTypes {
     | '/app/trucks'
     | '/app'
     | '/app/purchases/new'
-    | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
     | '/app/sales'
     | '/app/sales/$saleId/print'
+    | '/app/sales/$saleId'
   id:
     | '__root__'
     | '/'
@@ -453,6 +462,7 @@ export interface FileRouteTypes {
     | '/app/trucks/$truckId'
     | '/app/sales/'
     | '/app/sales/$saleId/print'
+    | '/app/sales/$saleId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -714,6 +724,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPurchasesNewRouteImport
       parentRoute: typeof AppPurchasesRoute
     }
+    '/app/sales/$saleId/': {
+      id: '/app/sales/$saleId/'
+      path: '/'
+      fullPath: '/app/sales/$saleId/'
+      preLoaderRoute: typeof AppSalesSaleIdIndexRouteImport
+      parentRoute: typeof AppSalesSaleIdRoute
+    }
     '/app/sales/$saleId/print': {
       id: '/app/sales/$saleId/print'
       path: '/print'
@@ -738,10 +755,12 @@ const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
 
 interface AppSalesSaleIdRouteChildren {
   AppSalesSaleIdPrintRoute: typeof AppSalesSaleIdPrintRoute
+  AppSalesSaleIdIndexRoute: typeof AppSalesSaleIdIndexRoute
 }
 
 const AppSalesSaleIdRouteChildren: AppSalesSaleIdRouteChildren = {
   AppSalesSaleIdPrintRoute: AppSalesSaleIdPrintRoute,
+  AppSalesSaleIdIndexRoute: AppSalesSaleIdIndexRoute,
 }
 
 const AppSalesSaleIdRouteWithChildren = AppSalesSaleIdRoute._addFileChildren(
