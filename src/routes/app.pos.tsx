@@ -371,7 +371,6 @@ function NewSalePage() {
               <div key={i.id} className="flex items-center gap-2 rounded-lg bg-card border border-border p-2 shadow-sm">
                 <button onClick={() => setQty(i.id, 0)} className="text-destructive p-1"><X className="h-4 w-4" /></button>
                 <div className="font-mono font-bold text-primary w-20 text-left">{(i.price * i.qty).toFixed(2)}</div>
-                <button onClick={() => setQty(i.id, i.qty - 1)} className="rounded bg-muted p-1"><Minus className="h-3 w-3" /></button>
                 <Input
                   type="number"
                   inputMode="decimal"
