@@ -425,27 +425,22 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
 }
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
-  const chunkSize = 20;
+  // BLE printers usually accept 180-byte payloads with writeWithoutResponse.
+  // Larger chunks + smaller delays => dramatically faster prints.
   const supportsWrite = !!characteristic?.properties?.write && !!characteristic?.writeValue;
   const supportsWriteWithoutResponse =
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
   const prefersWriteWithoutResponse = supportsWriteWithoutResponse || !supportsWrite;
+
+  const chunkSize = prefersWriteWithoutResponse ? 180 : 100;
   const chunkDelay = prefersWriteWithoutResponse
-      ? isAndroidBluetoothClient()
-        ? 26
-        : 18
-    : supportsWrite
-      ? isAndroidBluetoothClient()
-        ? 14
-        : 10
-      : isAndroidBluetoothClient()
-        ? 22
-        : 16;
+    ? (isAndroidBluetoothClient() ? 6 : 4)
+    : (isAndroidBluetoothClient() ? 8 : 5);
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
     await writeChunk(characteristic, slice);
-    await delay(chunkDelay);
+    if (chunkDelay) await delay(chunkDelay);
   }
 }
 
