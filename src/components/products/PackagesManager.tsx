@@ -31,10 +31,11 @@ interface Props {
   productId: string;
   productName: string;
   unitPrice: number;
+  unitCost?: number;
   onClose: () => void;
 }
 
-export function PackagesManager({ productId, productName, unitPrice, onClose }: Props) {
+export function PackagesManager({ productId, productName, unitPrice, unitCost = 0, onClose }: Props) {
   const { user } = useAuth();
   const [items, setItems] = useState<Pkg[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
