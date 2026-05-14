@@ -21,7 +21,6 @@ const SERVICE_CANDIDATES = [
 ];
 
 const WRITE_CANDIDATES = [
-  "00002af1-0000-1000-8000-00805f9b34fb",
   "0000ff02-0000-1000-8000-00805f9b34fb",
   "0000ff01-0000-1000-8000-00805f9b34fb",
   "0000ff03-0000-1000-8000-00805f9b34fb",
@@ -33,6 +32,7 @@ const WRITE_CANDIDATES = [
   "0000ae01-0000-1000-8000-00805f9b34fb",
   "49535343-8841-43f4-a8d4-ecbe34729bb3",
   "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
+  "00002af1-0000-1000-8000-00805f9b34fb", // weakest fallback: keep last because some devices accept writes here without actually printing
 ];
 
 const ACTIVE_KEY = "sahla.bt.printerId";
@@ -322,6 +322,24 @@ async function connectAndFindCharacteristic(device: any) {
       else others.push(entry);
     }
   }
+
+  const rankCharacteristic = (entry: { svc: string; c: any }) => {
+    const uuid = String(entry.c?.uuid || "").toLowerCase();
+    const preferredIndex = WRITE_CANDIDATES.findIndex((candidate) => candidate.toLowerCase() === uuid);
+    const writableWithoutResponse = entry.c?.properties?.writeWithoutResponse ? 0 : 1;
+    return [writableWithoutResponse, preferredIndex === -1 ? 999 : preferredIndex] as const;
+  };
+
+  preferred.sort((a, b) => {
+    const [aFast, aIndex] = rankCharacteristic(a);
+    const [bFast, bIndex] = rankCharacteristic(b);
+    return aFast - bFast || aIndex - bIndex;
+  });
+  others.sort((a, b) => {
+    const [aFast, aIndex] = rankCharacteristic(a);
+    const [bFast, bIndex] = rankCharacteristic(b);
+    return aFast - bFast || aIndex - bIndex;
+  });
 
   const pick = preferred[0] || others[0];
   if (pick) {
