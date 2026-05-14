@@ -258,9 +258,10 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
       </div>
 
       <Tabs defaultValue="codes" className="w-full" dir="rtl">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-5 mb-4">
           <TabsTrigger value="codes" className="gap-1 text-xs"><KeyRound className="h-3 w-3" /> الرموز</TabsTrigger>
           <TabsTrigger value="users" className="gap-1 text-xs"><UsersIcon className="h-3 w-3" /> المستخدمين</TabsTrigger>
+          <TabsTrigger value="data" className="gap-1 text-xs"><Database className="h-3 w-3" /> البيانات</TabsTrigger>
           <TabsTrigger value="subs" className="gap-1 text-xs"><CalendarClock className="h-3 w-3" /> الاشتراكات</TabsTrigger>
           <TabsTrigger value="audit" className="gap-1 text-xs"><History className="h-3 w-3" /> السجل</TabsTrigger>
         </TabsList>
