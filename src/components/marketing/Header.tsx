@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/use-auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { LayoutDashboard, Sparkles, Download } from "lucide-react";
@@ -50,6 +51,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <ThemeToggle />
           <Button
             type="button"
             size="sm"
