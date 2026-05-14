@@ -497,7 +497,12 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
       "انتهت مهلة إرسال بيانات الطباعة",
     );
 
-    await delay(index === bands.length - 1 ? 500 : 140);
+    if (index === bands.length - 1) {
+      await delay(650);
+      continue;
+    }
+
+    await delay(canvas.width <= 384 ? 220 : 180);
   }
 }
 
