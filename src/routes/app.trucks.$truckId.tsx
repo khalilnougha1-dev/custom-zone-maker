@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Plus, ArrowRight, Trash2, Check, Clock, X as XIcon, Edit, Printer } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, ArrowRight, Trash2, Check, Clock, X as XIcon, Edit, Printer, Package } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
