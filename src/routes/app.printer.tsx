@@ -44,6 +44,7 @@ function PrinterPage() {
   const [scanning, setScanning] = useState(false);
   const [quickTesting, setQuickTesting] = useState(false);
   const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
+  const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
 
   // Add-printer form
   const [name, setName] = useState("");
