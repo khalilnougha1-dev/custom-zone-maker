@@ -74,9 +74,9 @@ export async function printReceipt(d: ReceiptData) {
 
     const paperWidthPx = getPaperWidthPx(activePrinter.paper || "80mm");
     const paperWidthMm = getPaperWidthMm(activePrinter.paper || "80mm");
-    const receiptWidthPx = activePrinter.paper === "A4" ? 384 : Math.min(paperWidthPx, 384);
-    const receiptWidthMm = activePrinter.paper === "A4" ? 72 : Math.min(paperWidthMm, 58);
-    const isCompactReceipt = receiptWidthPx <= 384;
+    const receiptWidthPx = activePrinter.paper === "A4" ? 576 : paperWidthPx;
+    const receiptWidthMm = activePrinter.paper === "A4" ? 72 : paperWidthMm;
+    const isCompactReceipt = false;
     let preparedBluetoothPrinterId = d.preparedBluetoothPrinterId || null;
 
     if (activePrinter.connection === "bluetooth" && !preparedBluetoothPrinterId) {
