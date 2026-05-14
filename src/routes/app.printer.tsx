@@ -331,6 +331,64 @@ function PrinterPage() {
           </div>
         </div>
 
+        {/* Sample receipt preview & test print */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">معاينة وطباعة وصل تجريبي</div>
+            <Eye className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-xs text-muted-foreground text-right">
+            معاينة دقيقة بعرض {receiptPaper === "58mm" ? "58 مم" : "80 مم"} — تأكد من التنسيق قبل طباعة وصل حقيقي.
+          </p>
+          <div className="flex justify-center">
+            <div
+              className="bg-white rounded-md shadow-sm overflow-hidden border border-border"
+              style={{ width: receiptPaper === "58mm" ? 220 : 300 }}
+            >
+              <iframe
+                ref={previewIframeRef}
+                title="معاينة الوصل"
+                style={{
+                  width: receiptPaper === "58mm" ? 220 : 300,
+                  height: 380,
+                  border: 0,
+                  display: "block",
+                  background: "#fff",
+                }}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={printSampleNow}
+              disabled={sampleTesting || !activeId}
+              className="bg-gradient-primary text-primary-foreground gap-2"
+            >
+              {sampleTesting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+              طباعة الآن
+            </Button>
+            <Button onClick={downloadSamplePdf} variant="outline" className="gap-2">
+              <FileText className="h-5 w-5" /> PDF / حفظ
+            </Button>
+          </div>
+          {sampleResult && (
+            <div
+              className={`rounded-lg border p-3 text-right text-sm flex items-start gap-2 ${
+                sampleResult.ok
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-destructive/40 bg-destructive/5 text-destructive"
+              }`}
+            >
+              {sampleResult.ok ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 font-semibold">{sampleResult.message}</div>
+            </div>
+          )}
+        </div>
+
         {/* Quick test print */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
           <div className="flex items-center justify-between">
