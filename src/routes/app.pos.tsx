@@ -405,16 +405,24 @@ function NewSalePage() {
           </div>
           {showProductList && productQ && filteredProducts.length > 0 && (
             <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-border bg-background">
-              {filteredProducts.map((p: any) => (
-                <button
-                  key={p.id}
-                  onClick={() => addProduct(p)}
-                  className="w-full text-right px-3 py-2 text-sm hover:bg-muted border-b border-border last:border-0 flex items-center justify-between gap-2"
-                >
-                  <span className="font-mono font-bold text-primary">{Number(p.retail_price).toFixed(2)}</span>
-                  <span className="flex-1 truncate">{p.name}</span>
-                </button>
-              ))}
+              {filteredProducts.map((e: any) => {
+                const isPkg = e.kind === "package";
+                const price = Number(isPkg ? e.pkg.retail_price : e.product.retail_price);
+                const label = isPkg
+                  ? `${e.product.name} — كرطون ${e.pkg.name} (${e.pkg.units_count})`
+                  : e.product.name;
+                const key = isPkg ? `pkg:${e.pkg.id}` : e.product.id;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => addEntry(e)}
+                    className={`w-full text-right px-3 py-2 text-sm hover:bg-muted border-b border-border last:border-0 flex items-center justify-between gap-2 ${isPkg ? "bg-primary/5" : ""}`}
+                  >
+                    <span className="font-mono font-bold text-primary">{price.toFixed(2)}</span>
+                    <span className="flex-1 truncate">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
