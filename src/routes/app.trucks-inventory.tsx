@@ -114,7 +114,58 @@ function TrucksInventoryPage() {
         <Stat label="القيمة" value={totals.value.toFixed(2)} className="text-primary" />
       </div>
 
-      {/* Inventory by product */}
+      {/* Main warehouse */}
+      <section className="mb-5">
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground">
+          <Package className="h-4 w-4" /> المخزون الرئيسي (المستودع)
+        </h2>
+        {(() => {
+          const filteredProducts = products.filter(p => !q || p.name.toLowerCase().includes(q.toLowerCase()));
+          const totalStockValue = filteredProducts.reduce((s, p) => s + Number(p.stock_quantity) * Number(p.cost_price || 0), 0);
+          if (filteredProducts.length === 0) {
+            return <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">لا توجد منتجات في المخزون الرئيسي</div>;
+          }
+          return (
+            <>
+              <div className="mb-2 grid grid-cols-2 gap-2">
+                <Stat label="عدد الأصناف" value={String(filteredProducts.length)} className="text-primary" />
+                <Stat label="قيمة المخزون" value={totalStockValue.toFixed(2)} className="text-emerald-600" />
+              </div>
+              <div className="space-y-2">
+                {filteredProducts.slice(0, 100).map(p => (
+                  <div key={p.id} className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold truncate">{p.name}</div>
+                        <div className="mt-1 flex flex-wrap gap-1 text-xs">
+                          <Badge className={Number(p.stock_quantity) > 0 ? "bg-emerald-500" : "bg-destructive"}>
+                            مخزون {Number(p.stock_quantity)} {p.unit || ""}
+                          </Badge>
+                          <Badge variant="secondary">تكلفة {Number(p.cost_price).toFixed(2)}</Badge>
+                          <Badge variant="secondary">بيع {Number(p.retail_price).toFixed(2)}</Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">القيمة</div>
+                        <div className="font-mono font-bold text-primary">
+                          {(Number(p.stock_quantity) * Number(p.cost_price || 0)).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {filteredProducts.length > 100 && (
+                  <div className="text-center text-xs text-muted-foreground py-2">
+                    يُعرض أول 100 من {filteredProducts.length}
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
+      </section>
+
+      {/* Inventory by product (from trucks) */}
       <section className="mb-5">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground">
           <Package className="h-4 w-4" /> المنتجات والمخزون
