@@ -333,3 +333,247 @@ function AdminSettings({ userId, userName }: { userId: string; userName: string 
     </div>
   );
 }
+
+/* ---------- Distributions per truck (admin) ---------- */
+function AdminDistributions({ userId }: { userId: string }) {
+  const [trucks, setTrucks] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [truckId, setTruckId] = useState<string>("all");
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState<any>(null);
+  const [form, setForm] = useState({ truck_id: "", customer_name: "", product_name: "", quantity: 1, unit_price: 0, paid: 0, status: "pending", notes: "" });
+
+  const load = async () => {
+    const [{ data: t }, { data: d }] = await Promise.all([
+      supabase.from("trucks").select("*").eq("owner_id", userId).order("created_at", { ascending: false }),
+      supabase.from("truck_distributions").select("*").eq("owner_id", userId).order("created_at", { ascending: false }).limit(500),
+    ]);
+    setTrucks(t || []); setItems(d || []);
+  };
+  useEffect(() => { load(); }, [userId]);
+
+  const filtered = useMemo(() => truckId === "all" ? items : items.filter((i) => i.truck_id === truckId), [items, truckId]);
+  const truckName = (id: string) => trucks.find((t) => t.id === id)?.name || "—";
+
+  const openNew = () => { setEdit(null); setForm({ truck_id: trucks[0]?.id || "", customer_name: "", product_name: "", quantity: 1, unit_price: 0, paid: 0, status: "pending", notes: "" }); setOpen(true); };
+  const openEdit = (i: any) => { setEdit(i); setForm({ truck_id: i.truck_id, customer_name: i.customer_name || "", product_name: i.product_name, quantity: Number(i.quantity), unit_price: Number(i.unit_price), paid: Number(i.paid), status: i.status, notes: i.notes || "" }); setOpen(true); };
+
+  const save = async () => {
+    if (!form.truck_id) return toast.error("اختر شاحنة");
+    if (!form.product_name.trim()) return toast.error("اسم المنتج مطلوب");
+    const total = Number(form.quantity) * Number(form.unit_price);
+    const payload: any = {
+      truck_id: form.truck_id,
+      customer_name: form.customer_name || null,
+      product_name: form.product_name,
+      quantity: form.quantity,
+      unit_price: form.unit_price,
+      total,
+      paid: form.paid,
+      status: form.status,
+      notes: form.notes || null,
+    };
+    const { error } = edit
+      ? await supabase.from("truck_distributions").update(payload).eq("id", edit.id)
+      : await supabase.from("truck_distributions").insert({ ...payload, owner_id: userId });
+    if (error) return toast.error(error.message);
+    toast.success("تم الحفظ"); setOpen(false); load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("حذف؟")) return;
+    const { error } = await supabase.from("truck_distributions").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  // group by truck for inline view
+  const byTruck = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const t of trucks) map.set(t.id, []);
+    for (const i of filtered) {
+      const arr = map.get(i.truck_id) || [];
+      arr.push(i); map.set(i.truck_id, arr);
+    }
+    return map;
+  }, [filtered, trucks]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <select value={truckId} onChange={(e) => setTruckId(e.target.value)} className="flex-1 rounded-md border border-input bg-background p-2 text-sm">
+          <option value="all">كل الشاحنات</option>
+          {trucks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <Button onClick={openNew} className="bg-gradient-primary text-primary-foreground gap-1" disabled={trucks.length === 0}>
+          <Plus className="h-4 w-4" /> توزيع
+        </Button>
+      </div>
+      {trucks.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">أضف شاحنة أولاً من تبويب الشاحنات</div>
+      )}
+      {Array.from(byTruck.entries()).map(([tid, list]) => (
+        list.length === 0 ? null : (
+          <div key={tid} className="rounded-xl border border-border bg-card p-3">
+            <div className="mb-2 flex items-center gap-2 font-bold text-sm">
+              <TruckIcon className="h-4 w-4 text-primary" /> {truckName(tid)} <Badge variant="secondary" className="text-xs">{list.length}</Badge>
+            </div>
+            <div className="space-y-2">
+              {list.map((i) => (
+                <div key={i.id} className="rounded-lg border border-border p-2 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold">{i.product_name}</div>
+                      {i.customer_name && <div className="text-muted-foreground">الزبون: {i.customer_name}</div>}
+                      <div className="text-muted-foreground">{i.quantity} × {Number(i.unit_price).toFixed(2)} = <span className="font-bold text-primary">{Number(i.total).toFixed(2)}</span> | مدفوع: {Number(i.paid).toFixed(2)}</div>
+                    </div>
+                    {i.status === "delivered" ? <Badge className="bg-emerald-500 gap-1"><Check className="h-3 w-3" /> مُسلّم</Badge>
+                      : i.status === "cancelled" ? <Badge variant="destructive" className="gap-1"><XIcon className="h-3 w-3" /> ملغى</Badge>
+                      : <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> انتظار</Badge>}
+                  </div>
+                  <div className="mt-1 flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(i)} className="h-7 text-xs gap-1"><Edit className="h-3 w-3" /> تعديل</Button>
+                    <Button size="sm" variant="destructive" onClick={() => remove(i.id)} className="h-7 text-xs gap-1"><Trash2 className="h-3 w-3" /> حذف</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      ))}
+      {filtered.length === 0 && trucks.length > 0 && (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">لا توجد توزيعات</div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader><DialogTitle>{edit ? "تعديل توزيعة" : "توزيعة جديدة"}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div>
+              <Label>الشاحنة *</Label>
+              <select value={form.truck_id} onChange={(e) => setForm({ ...form, truck_id: e.target.value })} className="w-full rounded-md border border-input bg-background p-2 text-sm">
+                <option value="">-- اختر --</option>
+                {trucks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div><Label>اسم الزبون</Label><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
+            <div><Label>المنتج *</Label><Input value={form.product_name} onChange={(e) => setForm({ ...form, product_name: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>الكمية</Label><Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: parseFloat(e.target.value) || 0 })} /></div>
+              <div><Label>السعر</Label><Input type="number" value={form.unit_price} onChange={(e) => setForm({ ...form, unit_price: parseFloat(e.target.value) || 0 })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>المدفوع</Label><Input type="number" value={form.paid} onChange={(e) => setForm({ ...form, paid: parseFloat(e.target.value) || 0 })} /></div>
+              <div>
+                <Label>الحالة</Label>
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm">
+                  <option value="pending">قيد الانتظار</option>
+                  <option value="delivered">مُسلّم</option>
+                  <option value="cancelled">ملغى</option>
+                </select>
+              </div>
+            </div>
+            <div><Label>ملاحظات</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            <div className="rounded-lg bg-muted p-2 text-center">
+              <div className="text-xs text-muted-foreground">المجموع</div>
+              <div className="font-mono text-lg font-bold text-primary">{(form.quantity * form.unit_price).toFixed(2)}</div>
+            </div>
+            <Button onClick={save} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ---------- Warehouse: main + per-truck inventory ---------- */
+function AdminWarehouse({ userId }: { userId: string }) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [trucks, setTrucks] = useState<any[]>([]);
+  const [dists, setDists] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+
+  const load = async () => {
+    const [{ data: p }, { data: t }, { data: d }] = await Promise.all([
+      supabase.from("products").select("id,name,stock_quantity,cost_price,retail_price,unit").eq("user_id", userId).order("name").limit(1000),
+      supabase.from("trucks").select("*").eq("owner_id", userId),
+      supabase.from("truck_distributions").select("*").eq("owner_id", userId).limit(2000),
+    ]);
+    setProducts(p || []); setTrucks(t || []); setDists(d || []);
+  };
+  useEffect(() => { load(); }, [userId]);
+
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
+    return list.slice(0, 200);
+  }, [products, search]);
+
+  const totalValue = useMemo(() => products.reduce((s, p) => s + Number(p.stock_quantity || 0) * Number(p.cost_price || 0), 0), [products]);
+
+  const truckInv = useMemo(() => {
+    const out = new Map<string, Map<string, { name: string; pending: number; delivered: number; value: number }>>();
+    for (const t of trucks) out.set(t.id, new Map());
+    for (const d of dists) {
+      const m = out.get(d.truck_id); if (!m) continue;
+      const cur = m.get(d.product_name) || { name: d.product_name, pending: 0, delivered: 0, value: 0 };
+      const q = Number(d.quantity) || 0;
+      if (d.status === "pending") cur.pending += q;
+      else if (d.status === "delivered") cur.delivered += q;
+      cur.value += Number(d.total) || 0;
+      m.set(d.product_name, cur);
+    }
+    return out;
+  }, [dists, trucks]);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold"><Boxes className="h-4 w-4 text-primary" /> المخزون الرئيسي</div>
+          <div className="text-xs text-muted-foreground">القيمة: <span className="font-mono font-bold text-primary">{totalValue.toFixed(2)}</span></div>
+        </div>
+        <div className="relative mb-2">
+          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث منتج..." className="pr-9 h-8 text-sm" />
+        </div>
+        <div className="space-y-1 max-h-72 overflow-auto">
+          {filteredProducts.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background p-2 text-xs">
+              <div className="min-w-0 flex-1 truncate font-semibold">{p.name}</div>
+              <Badge variant="outline" className="text-xs">{Number(p.stock_quantity).toFixed(0)} {p.unit || ""}</Badge>
+              <div className="font-mono text-muted-foreground">{(Number(p.stock_quantity) * Number(p.cost_price || 0)).toFixed(0)}</div>
+            </div>
+          ))}
+          {filteredProducts.length === 0 && <div className="p-3 text-center text-xs text-muted-foreground">لا توجد منتجات</div>}
+        </div>
+      </div>
+
+      {trucks.map((t) => {
+        const inv = Array.from(truckInv.get(t.id)?.values() || []).sort((a, b) => b.pending - a.pending);
+        return (
+          <div key={t.id} className="rounded-xl border border-border bg-card p-3">
+            <div className="mb-2 flex items-center gap-2 font-bold text-sm">
+              <TruckIcon className="h-4 w-4 text-amber-600" /> {t.name}
+              <Badge variant="secondary" className="text-xs">{inv.length}</Badge>
+            </div>
+            {inv.length === 0 ? (
+              <div className="text-center text-xs text-muted-foreground py-2">لا يوجد مخزون</div>
+            ) : (
+              <div className="space-y-1">
+                {inv.map((p) => (
+                  <div key={p.name} className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-xs">
+                    <div className="min-w-0 flex-1 truncate font-semibold">{p.name}</div>
+                    <Badge className="bg-amber-500 text-xs">متاح {p.pending}</Badge>
+                    <Badge className="bg-emerald-500 text-xs">مُسلّم {p.delivered}</Badge>
+                    <div className="font-mono text-primary">{p.value.toFixed(0)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
