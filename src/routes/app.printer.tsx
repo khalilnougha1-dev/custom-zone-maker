@@ -46,6 +46,9 @@ function PrinterPage() {
   const [quickTesting, setQuickTesting] = useState(false);
   const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
   const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
+  const [sampleTesting, setSampleTesting] = useState(false);
+  const [sampleResult, setSampleResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Add-printer form
   const [name, setName] = useState("");
