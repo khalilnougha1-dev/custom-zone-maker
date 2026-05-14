@@ -45,7 +45,7 @@ import { Route as AppTrucksIndexRouteImport } from './routes/app.trucks.index'
 import { Route as AppSalesIndexRouteImport } from './routes/app.sales.index'
 import { Route as AppTrucksTruckIdRouteImport } from './routes/app.trucks.$truckId'
 import { Route as AppSalesSaleIdRouteImport } from './routes/app.sales.$saleId'
-import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases.new'
+import { Route as AppPurchasesNewRouteImport } from './routes/app.purchases_.new'
 import { Route as AppSalesSaleIdIndexRouteImport } from './routes/app.sales.$saleId.index'
 import { Route as AppSalesSaleIdPrintRouteImport } from './routes/app.sales.$saleId.print'
 
@@ -230,9 +230,9 @@ const AppSalesSaleIdRoute = AppSalesSaleIdRouteImport.update({
   getParentRoute: () => AppSalesRoute,
 } as any)
 const AppPurchasesNewRoute = AppPurchasesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppPurchasesRoute,
+  id: '/purchases_/new',
+  path: '/purchases/new',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSalesSaleIdIndexRoute = AppSalesSaleIdIndexRouteImport.update({
   id: '/',
@@ -269,7 +269,7 @@ export interface FileRoutesByFullPath {
   '/app/printer': typeof AppPrinterRoute
   '/app/products': typeof AppProductsRoute
   '/app/profits': typeof AppProfitsRoute
-  '/app/purchases': typeof AppPurchasesRouteWithChildren
+  '/app/purchases': typeof AppPurchasesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
@@ -309,7 +309,7 @@ export interface FileRoutesByTo {
   '/app/printer': typeof AppPrinterRoute
   '/app/products': typeof AppProductsRoute
   '/app/profits': typeof AppProfitsRoute
-  '/app/purchases': typeof AppPurchasesRouteWithChildren
+  '/app/purchases': typeof AppPurchasesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/stock-adjust': typeof AppStockAdjustRoute
@@ -349,7 +349,7 @@ export interface FileRoutesById {
   '/app/printer': typeof AppPrinterRoute
   '/app/products': typeof AppProductsRoute
   '/app/profits': typeof AppProfitsRoute
-  '/app/purchases': typeof AppPurchasesRouteWithChildren
+  '/app/purchases': typeof AppPurchasesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
@@ -358,7 +358,7 @@ export interface FileRoutesById {
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app/': typeof AppIndexRoute
-  '/app/purchases/new': typeof AppPurchasesNewRoute
+  '/app/purchases_/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRouteWithChildren
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
   '/app/sales/': typeof AppSalesIndexRoute
@@ -480,7 +480,7 @@ export interface FileRouteTypes {
     | '/app/suppliers'
     | '/app/trucks-inventory'
     | '/app/'
-    | '/app/purchases/new'
+    | '/app/purchases_/new'
     | '/app/sales/$saleId'
     | '/app/trucks/$truckId'
     | '/app/sales/'
@@ -755,12 +755,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesSaleIdRouteImport
       parentRoute: typeof AppSalesRoute
     }
-    '/app/purchases/new': {
-      id: '/app/purchases/new'
-      path: '/new'
+    '/app/purchases_/new': {
+      id: '/app/purchases_/new'
+      path: '/purchases/new'
       fullPath: '/app/purchases/new'
       preLoaderRoute: typeof AppPurchasesNewRouteImport
-      parentRoute: typeof AppPurchasesRoute
+      parentRoute: typeof AppRoute
     }
     '/app/sales/$saleId/': {
       id: '/app/sales/$saleId/'
@@ -778,18 +778,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface AppPurchasesRouteChildren {
-  AppPurchasesNewRoute: typeof AppPurchasesNewRoute
-}
-
-const AppPurchasesRouteChildren: AppPurchasesRouteChildren = {
-  AppPurchasesNewRoute: AppPurchasesNewRoute,
-}
-
-const AppPurchasesRouteWithChildren = AppPurchasesRoute._addFileChildren(
-  AppPurchasesRouteChildren,
-)
 
 interface AppSalesSaleIdRouteChildren {
   AppSalesSaleIdPrintRoute: typeof AppSalesSaleIdPrintRoute
@@ -834,7 +822,7 @@ interface AppRouteChildren {
   AppPrinterRoute: typeof AppPrinterRoute
   AppProductsRoute: typeof AppProductsRoute
   AppProfitsRoute: typeof AppProfitsRoute
-  AppPurchasesRoute: typeof AppPurchasesRouteWithChildren
+  AppPurchasesRoute: typeof AppPurchasesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSalesRoute: typeof AppSalesRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
@@ -843,6 +831,7 @@ interface AppRouteChildren {
   AppSuppliersRoute: typeof AppSuppliersRoute
   AppTrucksInventoryRoute: typeof AppTrucksInventoryRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppPurchasesNewRoute: typeof AppPurchasesNewRoute
   AppTrucksTruckIdRoute: typeof AppTrucksTruckIdRoute
   AppTrucksIndexRoute: typeof AppTrucksIndexRoute
 }
@@ -862,7 +851,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPrinterRoute: AppPrinterRoute,
   AppProductsRoute: AppProductsRoute,
   AppProfitsRoute: AppProfitsRoute,
-  AppPurchasesRoute: AppPurchasesRouteWithChildren,
+  AppPurchasesRoute: AppPurchasesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSalesRoute: AppSalesRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
@@ -871,6 +860,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSuppliersRoute: AppSuppliersRoute,
   AppTrucksInventoryRoute: AppTrucksInventoryRoute,
   AppIndexRoute: AppIndexRoute,
+  AppPurchasesNewRoute: AppPurchasesNewRoute,
   AppTrucksTruckIdRoute: AppTrucksTruckIdRoute,
   AppTrucksIndexRoute: AppTrucksIndexRoute,
 }
@@ -891,3 +881,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
