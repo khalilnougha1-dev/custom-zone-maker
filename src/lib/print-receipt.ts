@@ -399,38 +399,23 @@ export async function printReceipt(d: ReceiptData) {
       ];
 
       const widthCandidates = getBluetoothWidthCandidates(receiptWidthPx);
-      const MAX_ATTEMPTS = widthCandidates.length * 2;
+      const MAX_ATTEMPTS = widthCandidates.length;
       let lastError: unknown = null;
       let printed = false;
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        const widthIndex = Math.min(widthCandidates.length - 1, Math.floor((attempt - 1) / 2));
-        const targetWidth = widthCandidates[widthIndex];
+        const targetWidth = widthCandidates[attempt - 1];
         try {
-          if (attempt > 1) {
-            const widthLabel = targetWidth === 384 ? "58مم" : "80مم";
-            toast.message(`إعادة المحاولة ${attempt} من ${MAX_ATTEMPTS} (${widthLabel})...`);
-          } else {
-            toast.message("جاري الإرسال إلى الطابعة...");
-          }
-
           await printSimpleReceiptBluetooth(simpleLines, targetWidth);
-          toast.success("تم إرسال الوصل إلى الطابعة");
+          toast.success("تمت الطباعة");
           printed = true;
           break;
         } catch (err) {
           lastError = err;
           const msg = (err as Error)?.message || "";
           console.warn(`Bluetooth print attempt ${attempt} failed:`, err);
-
-          // لا نعيد المحاولة عند إلغاء المستخدم
-          if (PRINT_ABORT_MESSAGES.some((token) => msg.toLowerCase().includes(token))) {
-            break;
-          }
-
-          if (attempt < MAX_ATTEMPTS) {
-            await new Promise((r) => setTimeout(r, 700 * attempt));
-          }
+          if (PRINT_ABORT_MESSAGES.some((token) => msg.toLowerCase().includes(token))) break;
+          if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 250));
         }
       }
 
