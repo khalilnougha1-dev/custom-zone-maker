@@ -145,10 +145,16 @@
   .shadow-card { box-shadow: var(--shadow-card); }
   .shadow-elegant { box-shadow: var(--shadow-lg); }
   .text-gradient {
+    color: oklch(0.45 0.22 275);
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
+  }
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .text-gradient {
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
   }
   .transition-smooth { transition: all 0.3s var(--ease-smooth); }
   .transition-bounce { transition: all 0.4s var(--ease-bounce); }
