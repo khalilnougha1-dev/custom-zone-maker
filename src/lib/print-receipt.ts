@@ -78,60 +78,75 @@ export async function printReceipt(d: ReceiptData) {
 
     const rows = d.items
       .map(
-        (i) => `
+        (i, index) => `
       <tr>
-        <td style="text-align:left;font-family:'Courier New',monospace;padding:6px 2px;border-bottom:1px dashed #000;white-space:nowrap;">${(i.unit_price * i.quantity).toFixed(2)}</td>
-        <td style="text-align:left;font-family:'Courier New',monospace;padding:6px 2px;border-bottom:1px dashed #000;white-space:nowrap;">${i.unit_price.toFixed(2)}</td>
-        <td style="text-align:center;padding:6px 2px;border-bottom:1px dashed #000;font-weight:bold;">${i.quantity}</td>
-        <td style="text-align:right;padding:6px 2px;border-bottom:1px dashed #000;">${i.product_name}</td>
+        <td style="padding:8px 0 6px;text-align:right;font-weight:700;font-size:18px;line-height:1.35;word-break:break-word;">${index + 1}. ${i.product_name}</td>
+      </tr>
+      <tr>
+        <td style="padding:0 0 8px;border-bottom:1px dashed #000;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'Courier New',monospace;font-size:17px;direction:ltr;">
+            <span>${(i.unit_price * i.quantity).toFixed(2)}</span>
+            <span>${i.unit_price.toFixed(2)} × ${i.quantity}</span>
+          </div>
+        </td>
       </tr>`,
       )
       .join("");
 
+    const lineStyle = "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0;";
+    const labelStyle = "font-size:18px;font-weight:700;white-space:nowrap;";
+    const valueStyle = "font-size:18px;font-family:'Courier New',monospace;font-weight:700;text-align:left;direction:ltr;unicode-bidi:embed;";
+
     // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
-      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;font-size:22px;line-height:1.4;color:#000;background:#fff;padding:6px 4px;direction:rtl;" dir="rtl">
-        <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;">
-          <span>${timeStr}&nbsp;&nbsp;${dateStr}</span>
-          <span>:التاريخ</span>
+      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:8px 6px 10px;direction:rtl;" dir="rtl">
+        <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px;">
+          <div style="font-size:30px;font-weight:900;line-height:1.2;">وصل بيع رقم</div>
+          <div style="font-size:34px;font-weight:900;line-height:1.2;margin-top:4px;">${d.saleSeq}</div>
         </div>
-        <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;">
-          <span>${d.customerName}</span>
-          <span>:الزبون</span>
+
+        <div style="border-bottom:1px dashed #000;padding-bottom:8px;margin-bottom:8px;">
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${dateStr}</span>
+            <span style="${labelStyle}">التاريخ</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${timeStr}</span>
+            <span style="${labelStyle}">الوقت</span>
+          </div>
+          <div style="${lineStyle}">
+            <span style="font-size:18px;font-weight:700;text-align:right;flex:1;word-break:break-word;">${d.customerName}</span>
+            <span style="${labelStyle}">الزبون</span>
+          </div>
         </div>
-        <div style="text-align:center;font-weight:bold;margin:10px 0 6px;font-size:26px;">وصل بيع رقم: ${d.saleSeq}</div>
-        <table style="width:100%;border-collapse:collapse;margin-top:4px;">
-          <thead>
-            <tr>
-              <th style="text-align:left;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">المبلغ</th>
-              <th style="text-align:left;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">السعر</th>
-              <th style="text-align:center;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">الكمية</th>
-              <th style="text-align:right;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">المنتج</th>
-            </tr>
-          </thead>
+
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
           <tbody>${rows}</tbody>
         </table>
-        <div style="margin-top:6px;">
-          <div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px dashed #000;margin-bottom:4px;">
-            <span style="font-family:'Courier New',monospace;font-weight:bold;">${total.toFixed(2)}</span>
-            <span style="font-weight:bold;">المجموع</span>
+
+        <div style="border-top:2px solid #000;border-bottom:2px solid #000;padding:8px 0;margin-top:8px;">
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${total.toFixed(2)}</span>
+            <span style="${labelStyle}">المجموع</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:3px 2px;">
-            <span style="font-family:'Courier New',monospace;">${prevDebt.toFixed(2)}</span>
-            <span>الديون السابقة</span>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${prevDebt.toFixed(2)}</span>
+            <span style="${labelStyle}">الديون السابقة</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:3px 2px;">
-            <span style="font-family:'Courier New',monospace;">${paidNum.toFixed(2)}</span>
-            <span>المبلغ المدفوع</span>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${paidNum.toFixed(2)}</span>
+            <span style="${labelStyle}">المدفوع</span>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:3px 2px;">
-            <span style="font-family:'Courier New',monospace;">${rest.toFixed(2)}</span>
-            <span>المبلغ المتبقى</span>
+          <div style="${lineStyle}">
+            <span style="${valueStyle}">${rest.toFixed(2)}</span>
+            <span style="${labelStyle}">المتبقي</span>
           </div>
         </div>
-        ${d.note ? `<div style="margin-top:8px;text-align:right;">ملاحظة: ${d.note}</div>` : ""}
-        <div style="text-align:center;margin-top:14px;font-weight:bold;font-size:24px;">شكرا</div>
-        ${isDemo ? `<div style="text-align:center;margin-top:6px;font-size:18px;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+
+        ${d.note ? `<div style="margin-top:10px;border-bottom:1px dashed #000;padding-bottom:8px;"><div style="font-size:18px;font-weight:700;margin-bottom:4px;">ملاحظة</div><div style="font-size:17px;line-height:1.5;word-break:break-word;">${d.note}</div></div>` : ""}
+
+        <div style="text-align:center;margin-top:12px;font-size:23px;font-weight:900;">شكراً لتعاملكم معنا</div>
+        ${isDemo ? `<div style="text-align:center;margin-top:8px;font-size:16px;line-height:1.4;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
       </div>`;
 
     const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
