@@ -318,34 +318,80 @@ export async function printReceipt(d: ReceiptData) {
         ...(isDemo ? [{ text: "KuaiPOS 9.10 Illizi - Version Demo", align: "center" as const, size: 16, direction: "ltr" as const, gapTop: 4 }] : []),
       ];
 
-      await printSimpleReceiptBluetooth(simpleLines, paperWidthPx);
-      toast.success("تم إرسال الوصل إلى الطابعة");
-      return;
-    } catch (e) {
-      console.warn("Bluetooth print failed:", e);
-      const message = (e as Error).message || "فشل الطباعة";
-      const shouldFallbackToSystemPrint =
-        message.includes("NetworkError") ||
-        message.includes("GATT Server is disconnected") ||
-        message.includes("انتهت مهلة");
+      const MAX_ATTEMPTS = 3;
+      let lastError: unknown = null;
+      let printed = false;
 
-      if (shouldFallbackToSystemPrint) {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
-          await openSystemPrintDialog(html);
-          toast.success("تعذرت طباعة البلوتوث، فتم فتح طباعة النظام كحل بديل");
-          return;
-        } catch {
-          // continue to the main error toast below
+          if (attempt > 1) {
+            toast.message(`إعادة المحاولة ${attempt} من ${MAX_ATTEMPTS}...`);
+          } else {
+            toast.message("جاري الإرسال إلى الطابعة...");
+          }
+
+          await printSimpleReceiptBluetooth(simpleLines, paperWidthPx);
+          toast.success("تم إرسال الوصل إلى الطابعة");
+          printed = true;
+          break;
+        } catch (err) {
+          lastError = err;
+          const msg = (err as Error)?.message || "";
+          console.warn(`Bluetooth print attempt ${attempt} failed:`, err);
+
+          // لا نعيد المحاولة عند إلغاء المستخدم
+          if (PRINT_ABORT_MESSAGES.some((token) => msg.toLowerCase().includes(token))) {
+            break;
+          }
+
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise((r) => setTimeout(r, 700 * attempt));
+          }
         }
       }
 
-      toast.error(
-        message.includes("GATT operation already in progress")
-          ? "الطابعة مشغولة حاليًا. أعد المحاولة بعد ثوانٍ قليلة."
-          : message.includes("NetworkError") || message.includes("GATT Server is disconnected")
-            ? "انقطع الاتصال بالطابعة. أعد تشغيل الطابعة ثم أعد المحاولة."
-          : message,
-      );
+      if (printed) return;
+
+      const message = (lastError as Error)?.message || "فشل الطباعة";
+      const isCancelled = PRINT_ABORT_MESSAGES.some((token) => message.toLowerCase().includes(token));
+      const isConnectionIssue =
+        message.includes("NetworkError") ||
+        message.includes("GATT Server is disconnected") ||
+        message.includes("gatt.connect") ||
+        message.includes("انتهت مهلة الاتصال") ||
+        message.includes("تعذر إعادة الاتصال");
+      const isSendIssue =
+        message.includes("انتهت مهلة إرسال") ||
+        message.includes("تعذر إرسال") ||
+        message.includes("تعذر إيجاد قناة الكتابة");
+      const isBusy = message.includes("GATT operation already in progress");
+
+      if (isCancelled) return;
+
+      let userMessage: string;
+      if (isBusy) {
+        userMessage = "الطابعة مشغولة حاليًا. أعد المحاولة بعد ثوانٍ قليلة.";
+      } else if (isConnectionIssue) {
+        userMessage = `فشل الاتصال بالطابعة بعد ${MAX_ATTEMPTS} محاولات. تأكد من تشغيل الطابعة وقربها من الجهاز ثم أعد المحاولة.`;
+      } else if (isSendIssue) {
+        userMessage = `فشل إرسال البيانات إلى الطابعة بعد ${MAX_ATTEMPTS} محاولات. أعد تشغيل الطابعة ثم حاول مجددًا.`;
+      } else {
+        userMessage = `فشلت الطباعة: ${message}`;
+      }
+
+      toast.error(userMessage, {
+        action: {
+          label: "طباعة عبر النظام",
+          onClick: () => {
+            openSystemPrintDialog(html).catch(() => {
+              toast.error("تعذر فتح نافذة طباعة النظام");
+            });
+          },
+        },
+      });
+    } catch (e) {
+      console.warn("Bluetooth print pipeline failed:", e);
+      toast.error((e as Error)?.message || "فشل الطباعة");
     }
   } finally {
     receiptPrintInFlight = false;
