@@ -93,6 +93,60 @@ function NewSalePage() {
       .then(({ data }: any) => setPackages((data || []).filter((p: any) => !p.is_inactive)));
   }, [user]);
 
+  // Load existing sale into cart when in edit mode
+  useEffect(() => {
+    if (!user || !editSaleId || editLoaded) return;
+    if (products.length === 0) return; // wait for products
+    (async () => {
+      const { data: sale } = await supabase.from("sales").select("*").eq("id", editSaleId).maybeSingle();
+      if (!sale) { toast.error("الفاتورة غير موجودة"); return; }
+      const { data: items } = await supabase.from("sale_items").select("*").eq("sale_id", editSaleId);
+      const loadedCart: CartItem[] = [];
+      const orig: Record<string, number> = {};
+      for (const it of items || []) {
+        const product = products.find((p: any) => p.id === it.product_id);
+        if (!product) continue;
+        const units = Number(it.quantity);
+        orig[it.product_id] = (orig[it.product_id] || 0) + units;
+        if (it.package_id && it.package_units_count && it.package_qty) {
+          const upp = Number(it.package_units_count);
+          const qty = Number(it.package_qty);
+          loadedCart.push({
+            id: `pkg:${it.package_id}`,
+            productId: it.product_id,
+            name: it.product_name,
+            price: Number(it.unit_price) * upp,
+            cost: Number(it.cost_price || 0) * upp,
+            qty,
+            packageId: it.package_id,
+            packageName: it.package_name || "",
+            unitsPerPackage: upp,
+          });
+        } else {
+          loadedCart.push({
+            id: it.product_id,
+            productId: it.product_id,
+            name: it.product_name,
+            price: Number(it.unit_price),
+            cost: Number(it.cost_price || 0),
+            qty: units,
+          });
+        }
+      }
+      setCart(loadedCart);
+      setOriginalUnits(orig);
+      setPaid(String(Number(sale.paid || 0)));
+      setPaymentMethod((sale.payment_method as any) || "cash");
+      setNote(sale.notes || "");
+      if (sale.customer_id) {
+        setCustomerId(sale.customer_id);
+        const { data: c } = await supabase.from("customers").select("name").eq("id", sale.customer_id).maybeSingle();
+        if (c) setCustomerQ(c.name);
+      }
+      setEditLoaded(true);
+    })();
+  }, [user, editSaleId, products, editLoaded]);
+
   const filteredCustomers = useMemo(() => {
     const q = customerQ.toLowerCase().trim();
     if (!q) return customers.slice(0, 20);
