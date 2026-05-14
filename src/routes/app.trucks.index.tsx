@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/trucks")({ component: TrucksPage });
+export const Route = createFileRoute("/app/trucks/")({ component: TrucksPage });
 
 function TrucksPage() {
   const { user } = useAuth();
