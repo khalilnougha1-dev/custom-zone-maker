@@ -138,12 +138,21 @@ function AdminTrucks({ userId }: { userId: string }) {
               {t.driver_name && <div className="text-xs text-muted-foreground">{t.driver_name}</div>}
             </div>
             <div className="flex gap-1">
+              <Button size="sm" variant="default" className="bg-gradient-primary text-primary-foreground gap-1 h-8 px-2" onClick={() => setAppMenuTruck(t)} title="فتح كل أقسام التطبيق لهذا المستخدم">
+                <MenuIcon className="h-3.5 w-3.5" />
+              </Button>
               <Button size="sm" variant="outline" onClick={() => openEdit(t)}><Edit className="h-3 w-3" /></Button>
               <Button size="sm" variant="destructive" onClick={() => remove(t.id)}><Trash2 className="h-3 w-3" /></Button>
             </div>
           </div>
         </div>
       ))}
+      <AdminUserAppMenu
+        open={!!appMenuTruck}
+        onOpenChange={(v) => !v && setAppMenuTruck(null)}
+        userId={userId}
+        truckName={appMenuTruck?.name}
+      />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent dir="rtl" className="max-w-md">
           <DialogHeader><DialogTitle>{edit ? "تعديل شاحنة" : "شاحنة جديدة"}</DialogTitle></DialogHeader>
