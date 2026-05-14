@@ -19,6 +19,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Package as PackageIcon } from "lucide-react";
+import { PackagesManager } from "@/components/products/PackagesManager";
 
 export const Route = createFileRoute("/app/products")({ component: ProductsPage });
 
