@@ -12,6 +12,9 @@ import {
   SAVED_PRINTERS_KEY,
   type PrinterConnection,
   getPaperWidthPx,
+  getReceiptPaperWidth,
+  setReceiptPaperWidth,
+  type ReceiptPaperWidth,
 } from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/printer")({ component: PrinterPage });
