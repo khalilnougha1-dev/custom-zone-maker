@@ -680,15 +680,13 @@ export async function printHtmlBluetooth(
 
       await writeWithReconnect(targetDevice, escposBytes);
       await delay(500);
+      return escposBytes.length;
     };
 
     try {
       try {
-        await withBluetoothTimeout(
-          sendToPrinter(device),
-          BLUETOOTH_PRINT_TIMEOUT_MS,
-          "انتهت مهلة إرسال بيانات الطباعة",
-        );
+        const timeoutHint = paperWidthPx >= 576 ? 65_000 : BLUETOOTH_PRINT_TIMEOUT_MIN_MS;
+        await withBluetoothTimeout(sendToPrinter(device), timeoutHint, "انتهت مهلة إرسال بيانات الطباعة");
       } catch (error) {
         if (!isGattDisconnectedError(error)) throw error;
 
@@ -708,11 +706,8 @@ export async function printHtmlBluetooth(
           device = rememberDevice(picked);
         }
 
-        await withBluetoothTimeout(
-          sendToPrinter(device),
-          BLUETOOTH_PRINT_TIMEOUT_MS,
-          "انتهت مهلة إرسال بيانات الطباعة",
-        );
+        const retryTimeoutHint = paperWidthPx >= 576 ? 65_000 : BLUETOOTH_PRINT_TIMEOUT_MIN_MS;
+        await withBluetoothTimeout(sendToPrinter(device), retryTimeoutHint, "انتهت مهلة إرسال بيانات الطباعة");
       }
     } finally {
       iframe.remove();
@@ -746,7 +741,7 @@ export async function printSimpleReceiptBluetooth(
       const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
       await withBluetoothTimeout(
         writeWithReconnect(device, escposBytes),
-        BLUETOOTH_PRINT_TIMEOUT_MS,
+        getBluetoothPrintTimeoutMs(escposBytes.length),
         "انتهت مهلة إرسال بيانات الطباعة",
       );
       await delay(500);
@@ -776,7 +771,7 @@ export async function printSimpleReceiptBluetooth(
       const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
       await withBluetoothTimeout(
         writeWithReconnect(device, escposBytes),
-        BLUETOOTH_PRINT_TIMEOUT_MS,
+        getBluetoothPrintTimeoutMs(escposBytes.length),
         "انتهت مهلة إرسال بيانات الطباعة",
       );
       await delay(500);
