@@ -169,23 +169,37 @@ function TrucksPage() {
             <div><Label>اسم السائق</Label><Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} /></div>
             <div><Label>هاتف السائق</Label><Input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} dir="ltr" /></div>
             <div>
-              <Label>بريد حساب السائق (Google)</Label>
+              <Label>بريد أو اسم السائق</Label>
               <div className="flex gap-2">
                 <Input
                   value={form.driver_email}
                   onChange={(e) => setForm({ ...form, driver_email: e.target.value })}
                   dir="ltr"
-                  placeholder="driver@gmail.com"
-                  type="email"
+                  placeholder="driver@gmail.com أو الاسم"
                 />
                 <Button type="button" onClick={linkByEmail} disabled={linking} variant="outline">
-                  {linking ? "..." : "ربط"}
+                  {linking ? "..." : "بحث/ربط"}
                 </Button>
               </div>
+              {matches.length > 0 && (
+                <div className="mt-2 space-y-1 rounded-md border bg-muted/30 p-2">
+                  {matches.map((u) => (
+                    <button
+                      type="button"
+                      key={u.id}
+                      onClick={() => pickMatch(u)}
+                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-right hover:bg-background"
+                    >
+                      <span className="text-xs text-muted-foreground" dir="ltr">{u.email}</span>
+                      <span className="text-sm font-medium">{u.full_name || "—"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               {form.driver_user_id && (
                 <p className="mt-1 text-xs text-emerald-600">✓ تم الربط — معرّف: <span dir="ltr">{form.driver_user_id.slice(0, 8)}…</span></p>
               )}
-              <p className="mt-1 text-xs text-muted-foreground">يجب أن يسجّل السائق دخوله مرّة واحدة عبر Google قبل الربط.</p>
+              <p className="mt-1 text-xs text-muted-foreground">يكفي إدخال جزء من الاسم أو البريد. على السائق تسجيل الدخول مرّة عبر Google قبل الربط.</p>
             </div>
             <Button onClick={save} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
           </div>
