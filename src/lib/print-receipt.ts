@@ -520,7 +520,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
       (i) => `
     <tr>
       <td style="${bodyCell}text-align:right;word-break:break-word;">${i.product_name}</td>
-      <td style="${bodyCell}${numCell}text-align:center;">${i.quantity}</td>
+      <td style="${bodyCell}${numCell}text-align:center;">${fmtQty(i)}</td>
       <td style="${bodyCell}${numCell}text-align:center;">${i.unit_price.toFixed(2)}</td>
       <td style="${bodyCell}${numCell}text-align:left;">${(i.unit_price * i.quantity).toFixed(2)}</td>
     </tr>`,
