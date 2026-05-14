@@ -139,9 +139,23 @@ function TrucksPage() {
             <div><Label>اسم السائق</Label><Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} /></div>
             <div><Label>هاتف السائق</Label><Input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} dir="ltr" /></div>
             <div>
-              <Label>معرّف حساب السائق (اختياري)</Label>
-              <Input value={form.driver_user_id} onChange={(e) => setForm({ ...form, driver_user_id: e.target.value })} dir="ltr" placeholder="UUID للسماح بدخول السائق" />
-              <p className="mt-1 text-xs text-muted-foreground">يستخدمه السائق للدخول إلى /app/driver</p>
+              <Label>بريد حساب السائق (Google)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.driver_email}
+                  onChange={(e) => setForm({ ...form, driver_email: e.target.value })}
+                  dir="ltr"
+                  placeholder="driver@gmail.com"
+                  type="email"
+                />
+                <Button type="button" onClick={linkByEmail} disabled={linking} variant="outline">
+                  {linking ? "..." : "ربط"}
+                </Button>
+              </div>
+              {form.driver_user_id && (
+                <p className="mt-1 text-xs text-emerald-600">✓ تم الربط — معرّف: <span dir="ltr">{form.driver_user_id.slice(0, 8)}…</span></p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">يجب أن يسجّل السائق دخوله مرّة واحدة عبر Google قبل الربط.</p>
             </div>
             <Button onClick={save} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
           </div>
