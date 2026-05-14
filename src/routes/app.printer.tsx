@@ -139,6 +139,49 @@ function PrinterPage() {
     } finally { setScanning(false); }
   };
 
+  const quickTest = async () => {
+    const active = printers.find((p) => p.id === activeId);
+    if (!active) {
+      const msg = "لا توجد طابعة افتراضية. اختر طابعة أولاً.";
+      setQuickResult({ ok: false, message: msg, at: new Date().toLocaleTimeString("ar") });
+      toast.error(msg);
+      return;
+    }
+    setQuickTesting(true);
+    setQuickResult(null);
+    try {
+      const html = `<div style="font-family:Arial;font-size:18px;text-align:center;padding:6px;">
+        <div style="font-weight:bold;font-size:22px;">✓ طباعة اختبارية</div>
+        <div style="margin-top:6px;">${active.name}</div>
+        <div style="margin-top:4px;font-size:14px;">${new Date().toLocaleString("ar")}</div>
+        <div style="margin-top:8px;border-top:1px dashed #000;padding-top:6px;">إذا قرأت هذا فالطابعة تعمل بنجاح</div>
+      </div>`;
+      if (active.connection === "bluetooth") {
+        const { printHtmlBluetooth } = await import("@/lib/bt-printer");
+        await printHtmlBluetooth(html, getPaperWidthPx(active.paper));
+      } else if (active.connection === "system") {
+        const w = window.open("", "_blank", "width=400,height=300");
+        if (!w) throw new Error("تم منع النوافذ المنبثقة");
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        w.print();
+        w.close();
+      } else {
+        throw new Error(`نوع الاتصال "${active.connection}" غير مدعوم للطباعة المباشرة من المتصفح`);
+      }
+      const msg = `تم الإرسال إلى ${active.name} بنجاح`;
+      setQuickResult({ ok: true, message: msg, at: new Date().toLocaleTimeString("ar") });
+      toast.success(msg);
+    } catch (e) {
+      const msg = (e as Error).message || "فشل غير معروف";
+      setQuickResult({ ok: false, message: msg, at: new Date().toLocaleTimeString("ar") });
+      toast.error(msg);
+    } finally {
+      setQuickTesting(false);
+    }
+  };
+
   const testPrint = async (p: SavedPrinter) => {
     if (p.connection === "bluetooth") {
       try {
