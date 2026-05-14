@@ -33,15 +33,44 @@ function TrucksPage() {
   const openEdit = (t: any) => { setEdit(t); setForm({ name: t.name, plate_number: t.plate_number || "", driver_name: t.driver_name || "", driver_phone: t.driver_phone || "", driver_email: "", driver_user_id: t.driver_user_id || "" }); setOpen(true); };
 
   const linkByEmail = async () => {
-    const email = form.driver_email.trim();
-    if (!email) return toast.error("أدخل بريد السائق");
+    const raw = form.driver_email.trim();
+    if (!raw) return toast.error("أدخل بريد أو اسم السائق");
     setLinking(true);
-    const { data, error } = await supabase.rpc("find_user_id_by_email", { _email: email });
+    setMatches([]);
+
+    // 1) Try exact email lookup (auto-append @gmail.com if missing)
+    const candidates = raw.includes("@") ? [raw] : [raw, `${raw}@gmail.com`];
+    for (const cand of candidates) {
+      const { data } = await supabase.rpc("find_user_id_by_email", { _email: cand });
+      if (data) {
+        setForm((f) => ({ ...f, driver_user_id: data as string, driver_email: cand }));
+        setLinking(false);
+        toast.success("تم ربط الحساب بنجاح");
+        return;
+      }
+    }
+
+    // 2) Fallback: search by name or partial email
+    const { data: list, error } = await supabase.rpc("search_linkable_users", { _q: raw });
     setLinking(false);
     if (error) return toast.error(error.message);
-    if (!data) return toast.error("لم يتم العثور على حساب بهذا البريد. اطلب من السائق التسجيل أولاً عبر Google.");
-    setForm((f) => ({ ...f, driver_user_id: data as string }));
-    toast.success("تم ربط الحساب بنجاح");
+    if (!list || (list as any[]).length === 0) {
+      return toast.error("لم يتم العثور على حساب. تأكد أن السائق سجّل دخوله مرّة عبر Google");
+    }
+    if ((list as any[]).length === 1) {
+      const u = (list as any[])[0];
+      setForm((f) => ({ ...f, driver_user_id: u.id, driver_email: u.email }));
+      toast.success(`تم الربط: ${u.full_name || u.email}`);
+      return;
+    }
+    setMatches(list as any[]);
+    toast.message("اختر الحساب من القائمة");
+  };
+
+  const pickMatch = (u: { id: string; full_name: string; email: string }) => {
+    setForm((f) => ({ ...f, driver_user_id: u.id, driver_email: u.email }));
+    setMatches([]);
+    toast.success(`تم الربط: ${u.full_name || u.email}`);
   };
 
   const save = async () => {
