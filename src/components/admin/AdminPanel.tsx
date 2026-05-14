@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX } from "lucide-react";
+import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX, Database } from "lucide-react";
+import { AdminUserDataPanel } from "./AdminUserDataPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -257,9 +258,10 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
       </div>
 
       <Tabs defaultValue="codes" className="w-full" dir="rtl">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-5 mb-4">
           <TabsTrigger value="codes" className="gap-1 text-xs"><KeyRound className="h-3 w-3" /> الرموز</TabsTrigger>
           <TabsTrigger value="users" className="gap-1 text-xs"><UsersIcon className="h-3 w-3" /> المستخدمين</TabsTrigger>
+          <TabsTrigger value="data" className="gap-1 text-xs"><Database className="h-3 w-3" /> البيانات</TabsTrigger>
           <TabsTrigger value="subs" className="gap-1 text-xs"><CalendarClock className="h-3 w-3" /> الاشتراكات</TabsTrigger>
           <TabsTrigger value="audit" className="gap-1 text-xs"><History className="h-3 w-3" /> السجل</TabsTrigger>
         </TabsList>
@@ -446,6 +448,9 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
               </div>
             );
           })}
+        </TabsContent>
+        <TabsContent value="data">
+          <AdminUserDataPanel users={users} />
         </TabsContent>
       </Tabs>
 

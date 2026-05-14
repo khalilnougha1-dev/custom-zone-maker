@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, ArrowRight, Trash2, Check, Clock, X as XIcon } from "lucide-react";
+import { Plus, ArrowRight, Trash2, Check, Clock, X as XIcon, Edit, Printer } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { printReceipt } from "@/lib/print-receipt";
 
 export const Route = createFileRoute("/app/trucks/$truckId")({ component: TruckDetailPage });
+
+const emptyForm = { customer_name: "", product_name: "", quantity: 1, unit_price: 0, paid: 0, notes: "" };
 
 function TruckDetailPage() {
   const { truckId } = Route.useParams();
@@ -19,7 +22,8 @@ function TruckDetailPage() {
   const [truck, setTruck] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ customer_name: "", product_name: "", quantity: 1, unit_price: 0, paid: 0, notes: "" });
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
 
   const load = async () => {
     const [{ data: t }, { data: d }] = await Promise.all([
@@ -30,12 +34,24 @@ function TruckDetailPage() {
   };
   useEffect(() => { load(); }, [truckId]);
 
+  const openNew = () => { setEditId(null); setForm({ ...emptyForm }); setOpen(true); };
+  const openEdit = (i: any) => {
+    setEditId(i.id);
+    setForm({
+      customer_name: i.customer_name || "",
+      product_name: i.product_name || "",
+      quantity: Number(i.quantity) || 0,
+      unit_price: Number(i.unit_price) || 0,
+      paid: Number(i.paid) || 0,
+      notes: i.notes || "",
+    });
+    setOpen(true);
+  };
+
   const save = async () => {
     if (!form.product_name.trim()) return toast.error("اسم المنتج مطلوب");
     const total = Number(form.quantity) * Number(form.unit_price);
-    const { error } = await supabase.from("truck_distributions").insert({
-      truck_id: truckId,
-      owner_id: user!.id,
+    const payload = {
       customer_name: form.customer_name || null,
       product_name: form.product_name,
       quantity: form.quantity,
@@ -43,12 +59,13 @@ function TruckDetailPage() {
       total,
       paid: form.paid,
       notes: form.notes || null,
-      status: "pending"
-    });
+    };
+    const { error } = editId
+      ? await supabase.from("truck_distributions").update(payload).eq("id", editId)
+      : await supabase.from("truck_distributions").insert({ ...payload, truck_id: truckId, owner_id: user!.id, status: "pending" });
     if (error) return toast.error(error.message);
-    toast.success("تمت الإضافة");
-    setOpen(false);
-    setForm({ customer_name: "", product_name: "", quantity: 1, unit_price: 0, paid: 0, notes: "" });
+    toast.success(editId ? "تم التعديل" : "تمت الإضافة");
+    setOpen(false); setEditId(null); setForm({ ...emptyForm });
     load();
   };
 
@@ -63,6 +80,22 @@ function TruckDetailPage() {
     load();
   };
 
+  const printOne = async (i: any) => {
+    if (!user) return;
+    await printReceipt({
+      userId: user.id,
+      saleSeq: 0,
+      customerId: null,
+      customerName: i.customer_name || truck?.name || "توزيعة",
+      items: [{ product_name: i.product_name, quantity: Number(i.quantity), unit_price: Number(i.unit_price) }],
+      total: Number(i.total),
+      paid: Number(i.paid),
+      note: i.notes || null,
+      createdAt: i.created_at,
+      prevDebt: 0,
+    });
+  };
+
   const totals = items.reduce((acc, i) => ({
     total: acc.total + Number(i.total || 0),
     paid: acc.paid + Number(i.paid || 0),
@@ -72,7 +105,7 @@ function TruckDetailPage() {
 
   return (
     <PosLayout title={truck?.name || "تفاصيل الشاحنة"} actions={
-      <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-white/10" aria-label="add">
+      <button onClick={openNew} className="rounded-lg p-2 hover:bg-white/10" aria-label="add">
         <Plus className="h-6 w-6" />
       </button>
     }>
@@ -116,6 +149,9 @@ function TruckDetailPage() {
                 <div className="mt-1 text-xs text-muted-foreground">
                   {i.quantity} × {Number(i.unit_price).toFixed(2)} = <span className="font-bold text-primary">{Number(i.total).toFixed(2)}</span>
                 </div>
+                {Number(i.paid) > 0 && (
+                  <div className="text-xs text-emerald-600">مدفوع: {Number(i.paid).toFixed(2)}</div>
+                )}
                 {i.notes && <div className="mt-1 text-xs text-muted-foreground">{i.notes}</div>}
               </div>
               {i.status === "delivered" ? (
@@ -126,10 +162,10 @@ function TruckDetailPage() {
                 <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> قيد الانتظار</Badge>
               )}
             </div>
-            <div className="mt-2 flex gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-2">
               {i.status !== "delivered" && (
-                <Button size="sm" onClick={() => setStatus(i.id, "delivered")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-1">
-                  <Check className="h-3 w-3" /> تأكيد التسليم
+                <Button size="sm" onClick={() => setStatus(i.id, "delivered")} className="bg-emerald-600 hover:bg-emerald-700 gap-1">
+                  <Check className="h-3 w-3" /> تسليم
                 </Button>
               )}
               {i.status === "pending" && (
@@ -137,17 +173,23 @@ function TruckDetailPage() {
                   <XIcon className="h-3 w-3" /> إلغاء
                 </Button>
               )}
-              <Button size="sm" variant="destructive" onClick={() => remove(i.id)}>
-                <Trash2 className="h-3 w-3" />
+              <Button size="sm" variant="outline" onClick={() => printOne(i)} className="gap-1">
+                <Printer className="h-3 w-3" /> طباعة
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => openEdit(i)} className="gap-1">
+                <Edit className="h-3 w-3" /> تعديل
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => remove(i.id)} className="gap-1">
+                <Trash2 className="h-3 w-3" /> حذف
               </Button>
             </div>
           </div>
         ))}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditId(null); }}>
         <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader><DialogTitle>توزيع جديد</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editId ? "تعديل توزيعة" : "توزيع جديد"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>اسم الزبون</Label><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
             <div><Label>المنتج *</Label><Input value={form.product_name} onChange={(e) => setForm({ ...form, product_name: e.target.value })} /></div>
