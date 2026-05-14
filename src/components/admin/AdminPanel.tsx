@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX, Database } from "lucide-react";
+import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX, Database, Settings as SettingsIcon } from "lucide-react";
 import { AdminUserDataPanel } from "./AdminUserDataPanel";
+import { AdminUserAppMenu } from "./AdminUserAppMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
   const [extendNotes, setExtendNotes] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired" | "disabled">("all");
+  const [manageUser, setManageUser] = useState<any | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,9 +348,14 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   {u.is_active ? <Badge className="bg-emerald-500">مُفعّل</Badge> : <Badge variant="secondary">معطّل</Badge>}
-                  <Button size="sm" variant={u.is_active ? "destructive" : "default"} onClick={() => toggleUser(u)} className="h-7 text-xs">
-                    {u.is_active ? <><X className="h-3 w-3 ml-1" /> تعطيل</> : <><Check className="h-3 w-3 ml-1" /> تفعيل</>}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="default" onClick={() => setManageUser(u)} className="h-7 text-xs bg-gradient-primary text-primary-foreground gap-1" title="تعديل كل بيانات هذا المستخدم">
+                      <SettingsIcon className="h-3 w-3" /> تعديل
+                    </Button>
+                    <Button size="sm" variant={u.is_active ? "destructive" : "default"} onClick={() => toggleUser(u)} className="h-7 text-xs">
+                      {u.is_active ? <><X className="h-3 w-3 ml-1" /> تعطيل</> : <><Check className="h-3 w-3 ml-1" /> تفعيل</>}
+                    </Button>
+                  </div>
                 </div>
               </div>
               {u.subscription_expires_at && (
@@ -541,6 +548,13 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
           )}
         </DialogContent>
       </Dialog>
+
+      <AdminUserAppMenu
+        open={!!manageUser}
+        onOpenChange={(v) => !v && setManageUser(null)}
+        userId={manageUser?.id || ""}
+        userName={manageUser?.full_name || manageUser?.business_name || ""}
+      />
     </Layout>
   );
 }
