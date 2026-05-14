@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX } from "lucide-react";
+import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX, Database } from "lucide-react";
+import { AdminUserDataPanel } from "./AdminUserDataPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
