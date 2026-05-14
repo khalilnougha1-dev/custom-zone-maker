@@ -46,7 +46,19 @@ export type ReceiptItem = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  package_qty?: number | null;
+  package_units_count?: number | null;
 };
+
+function fmtQty(i: ReceiptItem): string {
+  if (i.package_qty && i.package_units_count) {
+    const pq = Number(i.package_qty);
+    const pqStr = Number.isInteger(pq) ? String(pq) : String(pq);
+    return `${pqStr}×${i.package_units_count}`;
+  }
+  const q = Number(i.quantity);
+  return Number.isInteger(q) ? String(q) : String(q);
+}
 
 export type ReceiptData = {
   userId: string;
