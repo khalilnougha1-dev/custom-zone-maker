@@ -262,49 +262,69 @@ async function connectAndFindCharacteristic(device: any) {
   }
 
   const server = await ensureGattServer(device);
-  const discoveredServices: string[] = [];
 
-  // Prefer known printer UUIDs first; some devices expose other writable
-  // characteristics that accept bytes but do not trigger actual printing.
+  // 1) Try exact known service+characteristic combos first (fastest path).
   for (const sUuid of SERVICE_CANDIDATES) {
     try {
       const svc = await server.getPrimaryService(sUuid);
-      discoveredServices.push(String(svc.uuid || sUuid));
       for (const wUuid of WRITE_CANDIDATES) {
         try {
           const c = await svc.getCharacteristic(wUuid);
-          console.info("[bt-printer] matched exact write characteristic", {
-            service: String(svc.uuid || sUuid),
-            characteristic: String(c.uuid || wUuid),
-          });
+          console.info("[bt-printer] exact match", { service: sUuid, characteristic: wUuid });
           activeCharacteristic = c;
           return c;
         } catch {}
       }
-
-      const chars = await svc.getCharacteristics();
-      for (const c of chars) {
-        const isWritable = !!(c.properties.writeWithoutResponse || c.properties.write);
-        const isNotifyOnly = !!c.properties.notify && !c.properties.writeWithoutResponse && !c.properties.write;
-        if (isWritable && !isNotifyOnly) {
-          console.info("[bt-printer] matched fallback characteristic inside known printer service", {
-            service: String(svc.uuid || sUuid),
-            characteristic: String(c.uuid || "unknown"),
-            write: !!c.properties.write,
-            writeWithoutResponse: !!c.properties.writeWithoutResponse,
-          });
-          activeCharacteristic = c;
-          return c;
-        }
-      }
     } catch {}
   }
 
-  console.warn("[bt-printer] no known printer write characteristic found", {
+  // 2) Fallback: scan ALL primary services and pick any writable
+  //    characteristic. Prefer ones inside known printer services, then any.
+  let services: any[] = [];
+  try {
+    services = await server.getPrimaryServices();
+  } catch (e) {
+    console.warn("[bt-printer] getPrimaryServices failed", e);
+  }
+
+  const knownSet = new Set(SERVICE_CANDIDATES.map((s) => s.toLowerCase()));
+  const preferred: any[] = [];
+  const others: any[] = [];
+
+  for (const svc of services) {
+    let chars: any[] = [];
+    try {
+      chars = await svc.getCharacteristics();
+    } catch {
+      continue;
+    }
+    for (const c of chars) {
+      const p = c.properties || {};
+      const writable = !!(p.writeWithoutResponse || p.write);
+      if (!writable) continue;
+      const entry = { svc: String(svc.uuid || ""), c };
+      if (knownSet.has(String(svc.uuid || "").toLowerCase())) preferred.push(entry);
+      else others.push(entry);
+    }
+  }
+
+  const pick = preferred[0] || others[0];
+  if (pick) {
+    console.info("[bt-printer] fallback match", {
+      service: pick.svc,
+      characteristic: String(pick.c.uuid || ""),
+      write: !!pick.c.properties?.write,
+      writeWithoutResponse: !!pick.c.properties?.writeWithoutResponse,
+    });
+    activeCharacteristic = pick.c;
+    return pick.c;
+  }
+
+  console.warn("[bt-printer] no writable characteristic found", {
     deviceId: device?.id || null,
-    services: discoveredServices,
+    services: services.map((s) => String(s.uuid || "")),
   });
-  throw new Error("تعذر العثور على قناة الطباعة الصحيحة للطابعة. أعد الاقتران بالطابعة الحرارية المتوافقة ثم حاول مجددًا.");
+  throw new Error("تعذر العثور على قناة كتابة في هذه الطابعة. تأكد أنها طابعة حرارية ESC/POS وأعد الاقتران.");
 }
 
 async function writeWithReconnect(device: any, bytes: Uint8Array) {
