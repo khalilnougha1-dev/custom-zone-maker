@@ -3,11 +3,19 @@
 
 import html2canvas from "html2canvas";
 
-// Common ESC/POS BLE service/characteristic combinations
+// Common ESC/POS BLE service/characteristic combinations.
+// IMPORTANT: Web Bluetooth only exposes services listed in optionalServices,
+// so we list every UUID range commonly used by thermal/receipt printers.
 const SERVICE_CANDIDATES = [
   "000018f0-0000-1000-8000-00805f9b34fb", // most Xprinter / generic ESC/POS
   "0000ff00-0000-1000-8000-00805f9b34fb",
+  "0000ff10-0000-1000-8000-00805f9b34fb",
   "0000fee7-0000-1000-8000-00805f9b34fb",
+  "0000ffe0-0000-1000-8000-00805f9b34fb", // HM-10 / cheap BLE modules
+  "0000ffb0-0000-1000-8000-00805f9b34fb",
+  "0000ffd0-0000-1000-8000-00805f9b34fb",
+  "0000fff0-0000-1000-8000-00805f9b34fb",
+  "0000ae00-0000-1000-8000-00805f9b34fb",
   "49535343-fe7d-4ae5-8fa9-9fafd205e455", // ISSC / Microchip
   "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
 ];
@@ -15,7 +23,14 @@ const SERVICE_CANDIDATES = [
 const WRITE_CANDIDATES = [
   "00002af1-0000-1000-8000-00805f9b34fb",
   "0000ff02-0000-1000-8000-00805f9b34fb",
+  "0000ff01-0000-1000-8000-00805f9b34fb",
+  "0000ff03-0000-1000-8000-00805f9b34fb",
   "0000fee8-0000-1000-8000-00805f9b34fb",
+  "0000ffe1-0000-1000-8000-00805f9b34fb", // HM-10 write/notify
+  "0000ffb2-0000-1000-8000-00805f9b34fb",
+  "0000fff1-0000-1000-8000-00805f9b34fb",
+  "0000fff2-0000-1000-8000-00805f9b34fb",
+  "0000ae01-0000-1000-8000-00805f9b34fb",
   "49535343-8841-43f4-a8d4-ecbe34729bb3",
   "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
 ];
