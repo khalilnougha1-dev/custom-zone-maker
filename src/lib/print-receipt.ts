@@ -5,6 +5,39 @@ import { toast } from "sonner";
 let receiptPrintInFlight = false;
 const PRINT_ABORT_MESSAGES = ["cancel", "aborted", "notfounderror", "user gesture"];
 
+async function openSystemPrintDialog(html: string) {
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:0;height:0;border:0;";
+  document.body.appendChild(iframe);
+
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc) throw new Error("تعذر فتح نافذة الطباعة");
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const frameWindow = iframe.contentWindow;
+    if (!frameWindow) throw new Error("تعذر فتح نافذة الطباعة");
+
+    await new Promise<void>((resolve) => {
+      const done = () => {
+        frameWindow.removeEventListener?.("afterprint", done);
+        resolve();
+      };
+
+      frameWindow.addEventListener?.("afterprint", done, { once: true });
+      window.setTimeout(done, 1200);
+      frameWindow.focus();
+      frameWindow.print();
+    });
+  } finally {
+    setTimeout(() => iframe.remove(), 1500);
+  }
+}
+
 export type ReceiptItem = {
   product_name: string;
   quantity: number;
@@ -184,38 +217,8 @@ export async function printReceipt(d: ReceiptData) {
     const bodyHtml = receiptBody;
 
     if (activePrinter.connection === "system") {
-      const iframe = document.createElement("iframe");
-      iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:0;height:0;border:0;";
-      document.body.appendChild(iframe);
-
-      try {
-        const doc = iframe.contentDocument;
-        if (!doc) throw new Error("تعذر فتح نافذة الطباعة");
-
-        doc.open();
-        doc.write(html);
-        doc.close();
-
-        await new Promise((resolve) => setTimeout(resolve, 350));
-        const frameWindow = iframe.contentWindow;
-        if (!frameWindow) throw new Error("تعذر فتح نافذة الطباعة");
-
-        await new Promise<void>((resolve) => {
-          const done = () => {
-            frameWindow.removeEventListener?.("afterprint", done);
-            resolve();
-          };
-
-          frameWindow.addEventListener?.("afterprint", done, { once: true });
-          window.setTimeout(done, 1200);
-          frameWindow.focus();
-          frameWindow.print();
-        });
-
-        toast.success("تم إرسال الوصل إلى نافذة الطباعة");
-      } finally {
-        setTimeout(() => iframe.remove(), 1500);
-      }
+      await openSystemPrintDialog(html);
+      toast.success("تم إرسال الوصل إلى نافذة الطباعة");
       return;
     }
 
@@ -292,6 +295,21 @@ export async function printReceipt(d: ReceiptData) {
     } catch (e) {
       console.warn("Bluetooth print failed:", e);
       const message = (e as Error).message || "فشل الطباعة";
+      const shouldFallbackToSystemPrint =
+        message.includes("NetworkError") ||
+        message.includes("GATT Server is disconnected") ||
+        message.includes("انتهت مهلة");
+
+      if (shouldFallbackToSystemPrint) {
+        try {
+          await openSystemPrintDialog(html);
+          toast.success("تعذرت طباعة البلوتوث، فتم فتح طباعة النظام كحل بديل");
+          return;
+        } catch {
+          // continue to the main error toast below
+        }
+      }
+
       toast.error(
         message.includes("GATT operation already in progress")
           ? "الطابعة مشغولة حاليًا. أعد المحاولة بعد ثوانٍ قليلة."
