@@ -941,6 +941,14 @@ export type Database = {
         Returns: boolean
       }
       redeem_activation_code: { Args: { _code: string }; Returns: Json }
+      search_linkable_users: {
+        Args: { _q: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin" | "driver"
