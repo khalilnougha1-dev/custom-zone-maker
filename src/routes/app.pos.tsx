@@ -150,6 +150,7 @@ function NewSalePage() {
     if (!user || cart.length === 0 || isSaving) return;
 
     setIsSaving(true);
+    let preparedBluetoothPrinterId: string | null = null;
     try {
       for (const i of cart) {
         if (isTracked(i.id) && i.qty > getStock(i.id)) {
@@ -163,7 +164,8 @@ function NewSalePage() {
         try {
           const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
           if (isWebBluetoothSupported()) {
-            await prepareBluetoothPrinter({ promptIfMissing: true });
+            const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
+            preparedBluetoothPrinterId = preparedPrinter?.id || null;
           }
         } catch (error) {
           const msg = (error as Error).message || "تعذر تجهيز الطابعة";
@@ -213,6 +215,7 @@ function NewSalePage() {
         paid: Number(paid) || 0,
         note,
         createdAt: sale.created_at,
+        preparedBluetoothPrinterId,
       });
 
       setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");

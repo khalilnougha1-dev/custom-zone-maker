@@ -19,6 +19,7 @@ export type ReceiptData = {
   paid: number;
   note?: string | null;
   createdAt?: string | Date;
+  preparedBluetoothPrinterId?: string | null;
 };
 
 export async function printReceipt(d: ReceiptData) {
@@ -185,13 +186,18 @@ export async function printReceipt(d: ReceiptData) {
         return;
       }
 
-      if (activePrinter.address) {
+      const preparedPrinterId = d.preparedBluetoothPrinterId || null;
+      const rememberedPrinterId = localStorage.getItem("sahla.bt.printerId");
+
+      if (preparedPrinterId) {
+        syncRememberedBluetoothPrinter(preparedPrinterId, activePrinter.name);
+      } else if (!rememberedPrinterId && activePrinter.address) {
         syncRememberedBluetoothPrinter(activePrinter.address, activePrinter.name);
-      } else {
+      } else if (!rememberedPrinterId) {
         clearRememberedPrinter();
       }
 
-      // Auto-pair on first print (user gesture from the print button)
+      // Auto-pair only when no printer was prepared earlier in the same user click.
       if (!localStorage.getItem("sahla.bt.printerId")) {
         toast.message("اختر الطابعة من القائمة");
         try {
