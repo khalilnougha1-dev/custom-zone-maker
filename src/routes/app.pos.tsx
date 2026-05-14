@@ -45,6 +45,7 @@ function NewSalePage() {
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [showProductList, setShowProductList] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [paid, setPaid] = useState("");
