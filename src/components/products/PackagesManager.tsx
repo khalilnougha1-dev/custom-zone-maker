@@ -213,10 +213,15 @@ function PackageEditor({
           <Switch checked={form.apply_unit_price} onCheckedChange={(v) => update({ apply_unit_price: v })} />
         </Row>
 
-        <Row label="سعر الشراء (التكلفة)">
-          <Input type="number" inputMode="decimal" value={form.cost_price}
-            onChange={(e) => update({ cost_price: e.target.value })}
-            className="bg-card border-primary/40 w-40 text-right font-mono" />
+        <Row label="سعر شراء الوحدة">
+          <span className="font-mono">{unitCost.toFixed(2)}</span>
+        </Row>
+
+        <Row label="إجمالي سعر الشراء">
+          <Input type="number" inputMode="decimal"
+            value={(unitCost * (Number(form.units_count) || 0)).toFixed(2)}
+            disabled
+            className="bg-muted border-primary/40 w-40 text-right font-mono" />
         </Row>
 
         <div className="mt-4 mb-2 text-right">
