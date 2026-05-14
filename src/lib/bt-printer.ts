@@ -280,34 +280,44 @@ async function writeWithReconnect(device: any, bytes: Uint8Array) {
 }
 
 async function writeChunk(characteristic: any, slice: Uint8Array) {
-  if (characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      await characteristic.writeValueWithoutResponse(slice);
+      if (characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+        await characteristic.writeValueWithoutResponse(slice);
+        return;
+      }
+
+      if (characteristic.properties?.write && characteristic.writeValue) {
+        await characteristic.writeValue(slice);
+        return;
+      }
+
+      if (characteristic.writeValueWithoutResponse) {
+        await characteristic.writeValueWithoutResponse(slice);
+        return;
+      }
+
+      await characteristic.writeValue(slice);
       return;
-    } catch {}
+    } catch (error) {
+      lastError = error;
+      await delay(25);
+    }
   }
 
-  if (characteristic.properties?.write && characteristic.writeValue) {
-    await characteristic.writeValue(slice);
-    return;
-  }
-
-  if (characteristic.writeValueWithoutResponse) {
-    await characteristic.writeValueWithoutResponse(slice);
-    return;
-  }
-
-  await characteristic.writeValue(slice);
+  throw lastError instanceof Error ? lastError : new Error("تعذر إرسال جزء من بيانات الطباعة");
 }
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
-  const chunkSize = isAndroidBluetoothClient() ? 20 : 120;
-  const chunkDelay = isAndroidBluetoothClient() ? 12 : 30;
+  const chunkSize = 20;
+  const chunkDelay = isAndroidBluetoothClient() ? 18 : 14;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
     await writeChunk(characteristic, slice);
-    await new Promise((r) => setTimeout(r, chunkDelay));
+    await delay(chunkDelay);
   }
 }
 
@@ -357,13 +367,14 @@ function buildEscPosImage(raster: Uint8Array, width: number, height: number): Ui
   const widthBytes = width / 8;
   const header = new Uint8Array([
     0x1b, 0x40, // ESC @ initialize
+    0x1b, 0x33, 0x00, // ESC 3 n = compact line spacing for raster data
     0x1d, 0x76, 0x30, 0x00, // GS v 0 m=0 (normal)
     widthBytes & 0xff,
     (widthBytes >> 8) & 0xff,
     height & 0xff,
     (height >> 8) & 0xff,
   ]);
-  const feed = new Uint8Array([0x0a, 0x0a, 0x0a, 0x0a, 0x0a]); // line feeds only (skip cut to avoid garbage on printers without auto-cutter)
+  const feed = new Uint8Array([0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x1b, 0x32]); // restore default spacing, skip cut for compatibility
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
