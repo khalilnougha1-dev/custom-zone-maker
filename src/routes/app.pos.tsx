@@ -17,7 +17,12 @@ import { toast } from "sonner";
 import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
 import { getActivePrinter } from "@/lib/printer-config";
 
-export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
+export const Route = createFileRoute("/app/pos")({
+  component: NewSalePage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
+});
 
 type CartItem = {
   id: string; // unique row id (product id, or `pkg:<packageId>`)
