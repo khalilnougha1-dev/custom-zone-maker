@@ -433,10 +433,10 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
   const prefersWriteWithoutResponse = supportsWriteWithoutResponse && !supportsWrite;
 
-  const chunkSize = prefersWriteWithoutResponse ? 180 : 144;
+  const chunkSize = prefersWriteWithoutResponse ? 128 : 96;
   const chunkDelay = prefersWriteWithoutResponse
-    ? (isAndroidBluetoothClient() ? 7 : 5)
-    : (isAndroidBluetoothClient() ? 10 : 7);
+    ? (isAndroidBluetoothClient() ? 12 : 9)
+    : (isAndroidBluetoothClient() ? 16 : 12);
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
@@ -564,22 +564,27 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
   // Smaller bands = more reliable on cheap BLE printers. The trade-off (slightly
   // slower) is worth it to avoid garbage characters mid-receipt.
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 144 : 112);
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 96 : 72);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height, {
+      initialize: true,
       feed: index === bands.length - 1,
     });
 
-    await writeWithReconnect(device, escposBytes);
+    await withBluetoothTimeout(
+      writeWithReconnect(device, escposBytes),
+      getBluetoothPrintTimeoutMs(escposBytes.length),
+      "انتهت مهلة إرسال بيانات الطباعة",
+    );
 
     if (index === bands.length - 1) {
-      await delay(canvas.width <= 384 ? 160 : 120);
-      break;
+      await delay(canvas.width <= 384 ? 250 : 180);
+      continue;
     }
 
-    await delay(55);
+    await delay(90);
   }
 }
 
