@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap, FileText, Eye } from "lucide-react";
+import { buildReceiptHtmlPreview, SAMPLE_RECEIPT } from "@/lib/print-receipt";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,9 @@ function PrinterPage() {
   const [quickTesting, setQuickTesting] = useState(false);
   const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
   const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
+  const [sampleTesting, setSampleTesting] = useState(false);
+  const [sampleResult, setSampleResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Add-printer form
   const [name, setName] = useState("");
@@ -62,6 +66,70 @@ function PrinterPage() {
     setReceiptPaperState(v);
     setReceiptPaperWidth(v);
     toast.success(`تم تعيين عرض وصل البيع إلى ${v === "58mm" ? "58 مم" : "80 مم"}`);
+  };
+
+  const previewHtml = useMemo(
+    () => buildReceiptHtmlPreview(SAMPLE_RECEIPT, receiptPaper),
+    [receiptPaper],
+  );
+
+  // (Re)write iframe content whenever the html changes
+  useEffect(() => {
+    const iframe = previewIframeRef.current;
+    if (!iframe) return;
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    doc.open();
+    doc.write(previewHtml);
+    doc.close();
+  }, [previewHtml]);
+
+  const printSampleNow = async () => {
+    const active = printers.find((p) => p.id === activeId);
+    if (!active) {
+      const msg = "لا توجد طابعة افتراضية. اختر طابعة أولاً.";
+      setSampleResult({ ok: false, message: msg });
+      toast.error(msg);
+      return;
+    }
+    setSampleTesting(true);
+    setSampleResult(null);
+    try {
+      if (active.connection === "bluetooth") {
+        const { printHtmlBluetooth } = await import("@/lib/bt-printer");
+        const widthPx = receiptPaper === "58mm" ? 384 : 576;
+        await printHtmlBluetooth(previewHtml, widthPx);
+      } else if (active.connection === "system") {
+        previewIframeRef.current?.contentWindow?.focus();
+        previewIframeRef.current?.contentWindow?.print();
+      } else {
+        throw new Error(`نوع الاتصال "${active.connection}" غير مدعوم للطباعة المباشرة`);
+      }
+      const msg = `تم إرسال الوصل التجريبي إلى ${active.name}`;
+      setSampleResult({ ok: true, message: msg });
+      toast.success(msg);
+    } catch (e) {
+      const msg = (e as Error).message || "فشل غير معروف";
+      setSampleResult({ ok: false, message: msg });
+      toast.error(msg);
+    } finally {
+      setSampleTesting(false);
+    }
+  };
+
+  const downloadSamplePdf = () => {
+    // Open the preview HTML in a new window so the user can "Save as PDF"
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("تم منع النوافذ المنبثقة. اسمح بها ثم أعد المحاولة.");
+      return;
+    }
+    w.document.write(previewHtml);
+    w.document.close();
+    setTimeout(() => {
+      w.focus();
+      w.print();
+    }, 250);
   };
 
   const addPrinter = () => {
@@ -261,6 +329,64 @@ function PrinterPage() {
               80 مم
             </button>
           </div>
+        </div>
+
+        {/* Sample receipt preview & test print */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">معاينة وطباعة وصل تجريبي</div>
+            <Eye className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-xs text-muted-foreground text-right">
+            معاينة دقيقة بعرض {receiptPaper === "58mm" ? "58 مم" : "80 مم"} — تأكد من التنسيق قبل طباعة وصل حقيقي.
+          </p>
+          <div className="flex justify-center">
+            <div
+              className="bg-white rounded-md shadow-sm overflow-hidden border border-border"
+              style={{ width: receiptPaper === "58mm" ? 220 : 300 }}
+            >
+              <iframe
+                ref={previewIframeRef}
+                title="معاينة الوصل"
+                style={{
+                  width: receiptPaper === "58mm" ? 220 : 300,
+                  height: 380,
+                  border: 0,
+                  display: "block",
+                  background: "#fff",
+                }}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={printSampleNow}
+              disabled={sampleTesting || !activeId}
+              className="bg-gradient-primary text-primary-foreground gap-2"
+            >
+              {sampleTesting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+              طباعة الآن
+            </Button>
+            <Button onClick={downloadSamplePdf} variant="outline" className="gap-2">
+              <FileText className="h-5 w-5" /> PDF / حفظ
+            </Button>
+          </div>
+          {sampleResult && (
+            <div
+              className={`rounded-lg border p-3 text-right text-sm flex items-start gap-2 ${
+                sampleResult.ok
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-destructive/40 bg-destructive/5 text-destructive"
+              }`}
+            >
+              {sampleResult.ok ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 font-semibold">{sampleResult.message}</div>
+            </div>
+          )}
         </div>
 
         {/* Quick test print */}

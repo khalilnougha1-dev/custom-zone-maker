@@ -481,3 +481,137 @@ export async function printReceipt(d: ReceiptData) {
   }
 }
 
+
+// ===================== Receipt preview (no DB calls) =====================
+
+export type PreviewReceiptInput = {
+  saleSeq: number;
+  customerName: string;
+  items: ReceiptItem[];
+  total: number;
+  paid: number;
+  prevDebt?: number;
+  note?: string | null;
+  isDemo?: boolean;
+  createdAt?: string | Date;
+};
+
+export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | "80mm" = "80mm") {
+  const paperWidthMm = paper === "58mm" ? 58 : 80;
+  const receiptWidthMm = paperWidthMm;
+  const isCompactReceipt = paper === "58mm";
+
+  const date = d.createdAt ? new Date(d.createdAt) : new Date();
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dateStr = `${date.getFullYear()}/${mm}/${dd}`;
+  const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const total = d.total;
+  const paidNum = d.paid;
+  const prevDebt = Math.max(0, d.prevDebt ?? 0);
+  const rest = Math.max(0, total - paidNum);
+  const isDemo = d.isDemo ?? true;
+
+  const numCell = `font-family:'Courier New',monospace;font-weight:700;direction:ltr;unicode-bidi:embed;`;
+  const headerCell = `font-weight:700;padding:3px 2px;border-bottom:1px dashed #000;font-size:14px;`;
+  const bodyCell = `padding:5px 2px;border-bottom:1px dashed #000;font-size:14px;vertical-align:top;`;
+
+  const itemRows = d.items
+    .map(
+      (i) => `
+    <tr>
+      <td style="${bodyCell}text-align:right;font-weight:700;word-break:break-word;">${i.product_name}</td>
+      <td style="${bodyCell}${numCell}text-align:center;">${i.quantity}</td>
+      <td style="${bodyCell}${numCell}text-align:center;">${i.unit_price.toFixed(2)}</td>
+      <td style="${bodyCell}${numCell}text-align:left;">${(i.unit_price * i.quantity).toFixed(2)}</td>
+    </tr>`,
+    )
+    .join("");
+
+  const sumRow = (label: string, value: string, bold = false) => `
+    <tr>
+      <td style="padding:3px 2px;text-align:right;font-weight:${bold ? 800 : 700};font-size:${bold ? 15 : 14}px;">${label}</td>
+      <td style="padding:3px 2px;${numCell}text-align:left;font-weight:${bold ? 800 : 700};font-size:${bold ? 15 : 14}px;">${value}</td>
+    </tr>`;
+
+  const receiptBody = `
+    <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.35;" dir="rtl">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+        <tbody>
+          <tr>
+            <td style="padding:2px 0;text-align:right;font-size:13px;font-weight:700;">التاريخ:</td>
+            <td style="padding:2px 0;text-align:left;${numCell}font-size:13px;">${dateStr} ${timeStr}</td>
+          </tr>
+          <tr>
+            <td style="padding:2px 0;text-align:right;font-size:13px;font-weight:700;">الزبون:</td>
+            <td style="padding:2px 0;text-align:left;font-size:13px;font-weight:700;word-break:break-word;">${d.customerName}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align:center;font-size:16px;font-weight:800;margin:4px 0 6px;">وصل بيع رقم: ${d.saleSeq}</div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+        <colgroup>
+          <col style="width:46%;" />
+          <col style="width:14%;" />
+          <col style="width:18%;" />
+          <col style="width:22%;" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th style="${headerCell}text-align:right;">المنتج</th>
+            <th style="${headerCell}text-align:center;">الكمية</th>
+            <th style="${headerCell}text-align:center;">السعر</th>
+            <th style="${headerCell}text-align:left;">المبلغ</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+      <table style="width:100%;border-collapse:collapse;margin-top:6px;">
+        <tbody>${sumRow("المجموع", total.toFixed(2), true)}</tbody>
+      </table>
+      <div style="border-top:1px dashed #000;margin-top:4px;padding-top:4px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tbody>
+            ${sumRow("الديون السابقة", prevDebt.toFixed(2))}
+            ${sumRow("المبلغ المدفوع", paidNum.toFixed(2))}
+            ${sumRow("المبلغ المتبقي", rest.toFixed(2))}
+          </tbody>
+        </table>
+      </div>
+      ${d.note ? `<div style="margin-top:6px;border-top:1px dashed #000;padding-top:4px;font-size:13px;"><b>ملاحظة:</b> ${d.note}</div>` : ""}
+      <div style="text-align:center;margin-top:10px;font-size:15px;font-weight:800;">شكراً</div>
+      ${isDemo ? `<div style="text-align:center;margin-top:2px;font-size:11px;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+    </div>`;
+
+  return `<html dir="rtl"><head><meta charset="utf-8"><title>معاينة وصل ${d.saleSeq}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    @page { size: ${paperWidthMm}mm auto; margin: 0; }
+    html, body { margin:0 !important; padding:0 !important; width:${paperWidthMm}mm !important; background:#fff; }
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .receipt-sheet {
+      width:${receiptWidthMm}mm !important;
+      margin:0 auto !important;
+      padding:${isCompactReceipt ? 1.8 : 2.5}mm ${isCompactReceipt ? 1.6 : 2.5}mm 4mm !important;
+      box-sizing:border-box !important;
+      background:#fff;
+    }
+  </style>
+  </head><body><div class="receipt-sheet">${receiptBody}</div></body></html>`;
+}
+
+export const SAMPLE_RECEIPT: PreviewReceiptInput = {
+  saleSeq: 1001,
+  customerName: "زبون تجريبي",
+  items: [
+    { product_name: "منتج (أ)", quantity: 2, unit_price: 150 },
+    { product_name: "منتج (ب) باسم طويل لاختبار الالتفاف", quantity: 1, unit_price: 75.5 },
+    { product_name: "منتج (ج)", quantity: 3, unit_price: 40 },
+  ],
+  total: 495.5,
+  paid: 400,
+  prevDebt: 120,
+  note: "هذا وصل تجريبي للمعاينة فقط",
+  isDemo: true,
+};
