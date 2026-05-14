@@ -211,7 +211,7 @@ export async function printReceipt(d: ReceiptData) {
 
     // Direct Bluetooth printing — no system dialog
     try {
-      const { printHtmlBluetooth, isWebBluetoothSupported, pairPrinter, syncRememberedBluetoothPrinter, clearRememberedPrinter } =
+      const { printSimpleReceiptBluetooth, isWebBluetoothSupported, pairPrinter, syncRememberedBluetoothPrinter, clearRememberedPrinter } =
         await import("./bt-printer");
 
       if (!isWebBluetoothSupported()) {
@@ -241,7 +241,34 @@ export async function printReceipt(d: ReceiptData) {
         }
       }
 
-      await printHtmlBluetooth(bodyHtml, paperWidthPx);
+      const simpleLines = [
+        { text: `وصل بيع رقم ${d.saleSeq}`, align: "center" as const, size: 28, bold: true },
+        { dashed: true },
+        { text: `التاريخ ${dateStr}`, align: "right" as const, size: 20, bold: true },
+        { text: `الوقت ${timeStr}`, align: "right" as const, size: 20 },
+        { text: `الزبون ${d.customerName}`, align: "right" as const, size: 20, bold: true },
+        { dashed: true },
+        ...d.items.flatMap((item, index) => [
+          { text: `${index + 1}. ${item.product_name}`, align: "right" as const, size: 21, bold: true },
+          {
+            text: `${(item.unit_price * item.quantity).toFixed(2)}    ${item.unit_price.toFixed(2)} x ${item.quantity}`,
+            align: "left" as const,
+            direction: "ltr" as const,
+            size: 19,
+          },
+          { dashed: true },
+        ]),
+        { text: `المجموع ${total.toFixed(2)}`, align: "right" as const, size: 22, bold: true, gapTop: 4 },
+        { text: `الدين السابق ${prevDebt.toFixed(2)}`, align: "right" as const, size: 20 },
+        { text: `المدفوع ${paidNum.toFixed(2)}`, align: "right" as const, size: 20 },
+        { text: `المتبقي ${rest.toFixed(2)}`, align: "right" as const, size: 22, bold: true },
+        ...(d.note ? [{ text: `ملاحظة ${d.note}`, align: "right" as const, size: 19, gapTop: 4 }] : []),
+        { dashed: true, gapTop: 4 },
+        { text: "شكراً", align: "center" as const, size: 24, bold: true, gapTop: 4 },
+        ...(isDemo ? [{ text: "KuaiPOS 9.10 Illizi - Version Demo", align: "center" as const, size: 16, direction: "ltr" as const, gapTop: 4 }] : []),
+      ];
+
+      await printSimpleReceiptBluetooth(simpleLines, paperWidthPx);
       return;
     } catch (e) {
       console.warn("Bluetooth print failed:", e);

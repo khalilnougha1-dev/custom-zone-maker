@@ -28,6 +28,16 @@ let activeCharacteristic: any | null = null;
 let activeConnectionPromise: Promise<any> | null = null;
 let gattTaskQueue: Promise<unknown> = Promise.resolve();
 
+export type SimpleReceiptLine = {
+  text?: string;
+  align?: "left" | "center" | "right";
+  size?: number;
+  bold?: boolean;
+  dashed?: boolean;
+  gapTop?: number;
+  direction?: "ltr" | "rtl";
+};
+
 function isAndroidBluetoothClient() {
   return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent || "");
 }
@@ -382,6 +392,152 @@ function buildEscPosImage(raster: Uint8Array, width: number, height: number): Ui
   return out;
 }
 
+function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const normalized = (text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return [""];
+
+  const tokens = normalized.split(" ");
+  const lines: string[] = [];
+  let current = "";
+
+  for (const token of tokens) {
+    const candidate = current ? `${current} ${token}` : token;
+    if (!current || ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    lines.push(current);
+
+    if (ctx.measureText(token).width <= maxWidth) {
+      current = token;
+      continue;
+    }
+
+    let chunk = "";
+    for (const char of token) {
+      const next = chunk + char;
+      if (chunk && ctx.measureText(next).width > maxWidth) {
+        lines.push(chunk);
+        chunk = char;
+      } else {
+        chunk = next;
+      }
+    }
+    current = chunk;
+  }
+
+  if (current) lines.push(current);
+  return lines;
+}
+
+function canvasToRaster(
+  canvas: HTMLCanvasElement,
+): Promise<{ bytes: Uint8Array; width: number; height: number }> {
+  const targetW = canvas.width;
+  const targetH = canvas.height;
+  const ctx = canvas.getContext("2d")!;
+  const img = ctx.getImageData(0, 0, targetW, targetH).data;
+  const widthBytes = targetW / 8;
+  const raster = new Uint8Array(widthBytes * targetH);
+
+  for (let y = 0; y < targetH; y++) {
+    for (let x = 0; x < targetW; x++) {
+      const i = (y * targetW + x) * 4;
+      const lum = 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2];
+      const black = lum < 170 ? 1 : 0;
+      if (black) {
+        const byteIndex = y * widthBytes + Math.floor(x / 8);
+        raster[byteIndex] |= 1 << (7 - (x % 8));
+      }
+    }
+  }
+
+  return Promise.resolve({ bytes: raster, width: targetW, height: targetH });
+}
+
+function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: number) {
+  const marginX = 16;
+  const contentWidth = paperWidthPx - marginX * 2;
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d")!;
+  let height = 18;
+
+  for (const line of lines) {
+    height += line.gapTop || 0;
+    if (line.dashed) {
+      height += 14;
+      continue;
+    }
+
+    const size = line.size ?? 20;
+    const weight = line.bold ? "700" : "400";
+    measureCtx.font = `${weight} ${size}px Arial, Tahoma, sans-serif`;
+    const wrapped = wrapCanvasText(measureCtx, line.text || "", contentWidth);
+    height += wrapped.length * Math.max(24, Math.round(size * 1.45));
+  }
+
+  height += 18;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = paperWidthPx;
+  canvas.height = Math.ceil(height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  let y = 18;
+
+  for (const line of lines) {
+    y += line.gapTop || 0;
+
+    if (line.dashed) {
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(marginX, y + 4);
+      ctx.lineTo(canvas.width - marginX, y + 4);
+      ctx.stroke();
+      ctx.restore();
+      y += 14;
+      continue;
+    }
+
+    const size = line.size ?? 20;
+    const weight = line.bold ? "700" : "400";
+    const lineHeight = Math.max(24, Math.round(size * 1.45));
+    ctx.font = `${weight} ${size}px Arial, Tahoma, sans-serif`;
+    ctx.textBaseline = "top";
+    (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction = line.direction || "rtl";
+
+    const align = line.align || "right";
+    if (align === "center") {
+      ctx.textAlign = "center";
+    } else if (align === "left") {
+      ctx.textAlign = "left";
+    } else {
+      ctx.textAlign = "right";
+    }
+
+    const x =
+      align === "center"
+        ? canvas.width / 2
+        : align === "left"
+          ? marginX
+          : canvas.width - marginX;
+
+    const wrapped = wrapCanvasText(ctx, line.text || "", contentWidth);
+    for (const wrappedLine of wrapped) {
+      ctx.fillText(wrappedLine, x, y);
+      y += lineHeight;
+    }
+  }
+
+  return canvas;
+}
+
 export async function printHtmlBluetooth(
   html: string,
   paperWidthPx = 384,
@@ -454,6 +610,62 @@ export async function printHtmlBluetooth(
       }
     } finally {
       iframe.remove();
+    }
+  });
+}
+
+export async function printSimpleReceiptBluetooth(
+  lines: SimpleReceiptLine[],
+  paperWidthPx = 384,
+): Promise<void> {
+  return queueGattTask(async () => {
+    if (!isWebBluetoothSupported()) {
+      throw new Error("Web Bluetooth غير مدعوم");
+    }
+
+    let device = activeDevice ?? await getRememberedDevice();
+    if (!device) {
+      const picked = await navigator.bluetooth!.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: SERVICE_CANDIDATES,
+      });
+      device = rememberDevice(picked);
+    } else {
+      bindDevice(device);
+    }
+
+    try {
+      const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
+      const raster = await canvasToRaster(canvas);
+      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
+      await writeWithReconnect(device, escposBytes);
+      await delay(500);
+    } catch (error) {
+      if (!isGattDisconnectedError(error)) {
+        throw error;
+      }
+
+      activeCharacteristic = null;
+      activeConnectionPromise = null;
+      try {
+        device.gatt?.disconnect?.();
+      } catch {}
+
+      await delay(350);
+
+      if (localStorage.getItem(ACTIVE_KEY) === device?.id) {
+        const picked = await navigator.bluetooth!.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: SERVICE_CANDIDATES,
+        });
+        device = rememberDevice(picked);
+      }
+
+      const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
+      const raster = await canvasToRaster(canvas);
+      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
+      await writeWithReconnect(device, escposBytes);
+      await delay(500);
     }
   });
 }
