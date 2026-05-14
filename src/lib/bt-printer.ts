@@ -28,10 +28,20 @@ let activeCharacteristic: any | null = null;
 let activeConnectionPromise: Promise<any> | null = null;
 let gattTaskQueue: Promise<unknown> = Promise.resolve();
 const BLUETOOTH_CONNECT_TIMEOUT_MS = 12_000;
-const BLUETOOTH_PRINT_TIMEOUT_MS = 20_000;
+const BLUETOOTH_PRINT_TIMEOUT_MIN_MS = 45_000;
+const BLUETOOTH_PRINT_TIMEOUT_MAX_MS = 180_000;
+
+export type SimpleReceiptColumn = {
+  text: string;
+  width?: number;
+  align?: "left" | "center" | "right";
+  bold?: boolean;
+  direction?: "ltr" | "rtl";
+};
 
 export type SimpleReceiptLine = {
   text?: string;
+  columns?: SimpleReceiptColumn[];
   align?: "left" | "center" | "right";
   size?: number;
   bold?: boolean;
