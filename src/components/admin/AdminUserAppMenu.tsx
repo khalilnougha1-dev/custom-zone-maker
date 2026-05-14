@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Home, Calculator, ShoppingCart, Receipt, Truck as TruckIcon, Package,
-  Boxes, Users, Wallet, TrendingUp, Settings as SettingsIcon, X, Trash2, Edit, Save, Plus
+  Boxes, Users, Wallet, TrendingUp, Settings as SettingsIcon, X, Trash2, Edit, Save, Plus, Search, Calendar, ImageIcon
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -174,10 +175,27 @@ function SalesSection({ userId }: { userId: string }) {
 }
 
 /* ---------- Purchases ---------- */
+type Period = "today" | "yesterday" | "week" | "month" | "all";
+function getRange(period: Period): { from?: Date; to?: Date } {
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  if (period === "today") return { from: start, to: now };
+  if (period === "yesterday") {
+    const y = new Date(start); y.setDate(y.getDate() - 1);
+    return { from: y, to: start };
+  }
+  if (period === "week") { const w = new Date(start); w.setDate(w.getDate() - 7); return { from: w, to: now }; }
+  if (period === "month") { const m = new Date(start); m.setMonth(m.getMonth() - 1); return { from: m, to: now }; }
+  return {};
+}
+
 function PurchasesSection({ userId }: { userId: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [supplierMap, setSupplierMap] = useState<Record<string, string>>({});
+  const [period, setPeriod] = useState<Period>("month");
+  const [supplierQ, setSupplierQ] = useState("");
   const [open, setOpen] = useState(false);
   const [supplierId, setSupplierId] = useState<string>("");
   const [invoice, setInvoice] = useState("");
@@ -185,8 +203,13 @@ function PurchasesSection({ userId }: { userId: string }) {
     { product_id: "", quantity: "1", unit_cost: "0" },
   ]);
 
+  const range = useMemo(() => getRange(period), [period]);
+
   const load = async () => {
-    const { data } = await supabase.from("purchases").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(200);
+    let q = supabase.from("purchases").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+    if (range.from) q = q.gte("created_at", range.from.toISOString());
+    if (range.to) q = q.lte("created_at", range.to.toISOString());
+    const { data } = await q.limit(200);
     setItems(data || []);
   };
   const loadRefs = async () => {
@@ -196,8 +219,20 @@ function PurchasesSection({ userId }: { userId: string }) {
     ]);
     setProducts(pr || []);
     setSuppliers(su || []);
+    const m: Record<string, string> = {};
+    (su || []).forEach((s: any) => { m[s.id] = s.name; });
+    setSupplierMap(m);
   };
-  useEffect(() => { load(); loadRefs(); }, [userId]);
+  useEffect(() => { load(); }, [userId, period]);
+  useEffect(() => { loadRefs(); }, [userId]);
+
+  const filtered = useMemo(() => {
+    if (!supplierQ.trim()) return items;
+    const q = supplierQ.toLowerCase();
+    return items.filter((p) => (supplierMap[p.supplier_id] || "").toLowerCase().includes(q));
+  }, [items, supplierQ, supplierMap]);
+
+  const totalAll = filtered.reduce((s, x) => s + Number(x.total || 0), 0);
 
   const remove = async (id: string) => {
     if (!confirm("حذف الفاتورة؟ سيتم استرجاع المخزون.")) return;
@@ -263,22 +298,81 @@ function PurchasesSection({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="space-y-2">
-      <Button onClick={openNew} className="w-full bg-gradient-primary text-primary-foreground gap-2">
-        <Plus className="h-4 w-4" /> مشترى جديد
-      </Button>
-      <div className="font-bold mb-1">المشتريات ({items.length})</div>
-      {items.length === 0 && <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">لا توجد فواتير</div>}
-      {items.map((s) => (
-        <div key={s.id} className="rounded-xl border bg-card p-3 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="font-semibold text-sm">{s.invoice_number || s.id.slice(0, 8)}</div>
-            <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString("ar-DZ")}</div>
+    <div className="relative min-h-[60vh] pb-32">
+      {/* Filters */}
+      <div className="space-y-3 mb-3">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold w-14 text-right">الفترة</span>
+          <div className="flex-1">
+            <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+              <SelectTrigger className="bg-card border-primary/40 h-11 text-right" dir="rtl"><SelectValue /></SelectTrigger>
+              <SelectContent dir="rtl">
+                <SelectItem value="today">اليوم</SelectItem>
+                <SelectItem value="yesterday">أمس</SelectItem>
+                <SelectItem value="week">آخر 7 أيام</SelectItem>
+                <SelectItem value="month">هذا الشهر</SelectItem>
+                <SelectItem value="all">الكل</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="text-sm font-bold">{Number(s.total).toLocaleString()} دج</div>
-          <Button size="sm" variant="destructive" onClick={() => remove(s.id)}><Trash2 className="h-3 w-3" /></Button>
         </div>
-      ))}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold w-14 text-right">الممون</span>
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={supplierQ} onChange={(e) => setSupplierQ(e.target.value)} className="pr-10 h-11 bg-card border-primary/40 text-right" />
+          </div>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="py-24 text-center text-muted-foreground">لا يوجد أي عملية شراء</div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((s) => (
+            <div key={s.id} className="flex items-center gap-2 rounded-xl bg-card border border-border p-3 shadow-sm">
+              <button onClick={() => remove(s.id)} className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20" aria-label="حذف">
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <TruckIcon className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0 text-right">
+                <div className="font-semibold text-sm truncate">
+                  {s.invoice_number || s.id.slice(0, 8)}
+                  {s.supplier_id && supplierMap[s.supplier_id] && (
+                    <span className="text-muted-foreground font-normal"> — {supplierMap[s.supplier_id]}</span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1 justify-end">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(s.created_at).toLocaleString("ar")}
+                </div>
+              </div>
+              <div className="font-mono text-lg font-bold text-primary">{Number(s.total).toFixed(2)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="sticky bottom-0 mt-4 -mx-4 border-t border-border bg-card/95 backdrop-blur px-4 py-3 flex items-center gap-4">
+          <div className="font-mono text-2xl font-bold text-[#1a237e] tabular-nums">{totalAll.toFixed(2)}</div>
+          <div className="flex-1 text-right">
+            <div className="text-base font-bold">المجموع</div>
+            <div className="text-xs text-muted-foreground">{filtered.length} عملية شراء</div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating red + button */}
+      <button
+        onClick={openNew}
+        className="absolute bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
+        aria-label="شراء جديد"
+      >
+        <Plus className="h-7 w-7" />
+      </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent dir="rtl" className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -370,29 +464,73 @@ function ProductsSection({ userId }: { userId: string }) {
   );
 }
 
-/* ---------- Stock movements ---------- */
+/* ---------- Stock (main inventory + movements) ---------- */
 function StockSection({ userId }: { userId: string }) {
-  const [items, setItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [tab, setTab] = useState<"stock" | "movements">("stock");
+  const [q, setQ] = useState("");
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("stock_movements").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(200);
-      setItems(data || []);
+      const [{ data: pr }, { data: mv }] = await Promise.all([
+        supabase.from("products").select("*").eq("user_id", userId).order("name"),
+        supabase.from("stock_movements").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(200),
+      ]);
+      setProducts(pr || []);
+      setMovements(mv || []);
     })();
   }, [userId]);
+  const filtered = products.filter((p) => (p.name || "").toLowerCase().includes(q.toLowerCase()));
+  const stockColor = (n: number) => n < 0 ? "text-destructive" : n === 0 ? "text-muted-foreground" : "text-green-600";
   return (
-    <div className="space-y-2">
-      <div className="font-bold mb-1">حركات المخزون ({items.length})</div>
-      {items.map((m) => (
-        <div key={m.id} className="rounded-xl border bg-card p-3 flex items-center justify-between gap-2 text-sm">
-          <div className="min-w-0">
-            <div className="font-semibold">{m.product_name}</div>
-            <div className="text-xs text-muted-foreground">{m.movement_type} • {new Date(m.created_at).toLocaleString("ar-DZ")}</div>
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <button onClick={() => setTab("stock")} className={cn("flex-1 rounded-lg py-2 text-sm font-bold", tab === "stock" ? "bg-primary text-primary-foreground" : "bg-card border")}>المخزون الرئيسي</button>
+        <button onClick={() => setTab("movements")} className={cn("flex-1 rounded-lg py-2 text-sm font-bold", tab === "movements" ? "bg-primary text-primary-foreground" : "bg-card border")}>حركات المخزون</button>
+      </div>
+      {tab === "stock" ? (
+        <>
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث..." className="pr-10 h-11 bg-card text-right" />
           </div>
-          <div className={cn("font-bold", Number(m.quantity_change) >= 0 ? "text-green-600" : "text-destructive")}>
-            {Number(m.quantity_change) > 0 ? "+" : ""}{m.quantity_change}
+          <div className="text-xs text-muted-foreground text-right">عدد المنتجات {filtered.length}</div>
+          <div className="space-y-2">
+            {filtered.map((p) => {
+              const stock = Number(p.stock_quantity);
+              return (
+                <div key={p.id} className="flex items-stretch gap-3 rounded-xl bg-card border border-border overflow-hidden">
+                  <div className={`flex items-center justify-center w-16 shrink-0 font-mono text-3xl font-bold ${stockColor(stock)}`}>{stock}</div>
+                  <div className="flex-1 min-w-0 py-3 flex flex-col justify-between text-right">
+                    <div className="font-semibold truncate text-base">{p.name}</div>
+                    <div className="flex items-center justify-end gap-3 mt-1">
+                      <span className="font-mono text-base tabular-nums">{Number(p.retail_price).toFixed(2)}</span>
+                      <span className="text-xs text-muted-foreground">Ref. {p.reference || "-"}</span>
+                    </div>
+                  </div>
+                  <div className="h-20 w-20 shrink-0 flex items-center justify-center bg-muted/60 border-l border-border">
+                    {p.image_url ? <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" /> : <ImageIcon className="h-10 w-10 text-muted-foreground" />}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+        </>
+      ) : (
+        <div className="space-y-2">
+          {movements.map((m) => (
+            <div key={m.id} className="rounded-xl border bg-card p-3 flex items-center justify-between gap-2 text-sm">
+              <div className="min-w-0">
+                <div className="font-semibold">{m.product_name}</div>
+                <div className="text-xs text-muted-foreground">{m.movement_type} • {new Date(m.created_at).toLocaleString("ar-DZ")}</div>
+              </div>
+              <div className={cn("font-bold", Number(m.quantity_change) >= 0 ? "text-green-600" : "text-destructive")}>
+                {Number(m.quantity_change) > 0 ? "+" : ""}{m.quantity_change}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
