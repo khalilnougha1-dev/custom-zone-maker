@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Home, Calculator, ShoppingCart, Receipt, Truck as TruckIcon, Package,
-  Boxes, Users, Wallet, TrendingUp, Settings as SettingsIcon, X, Trash2, Edit, Save, Plus
+  Boxes, Users, Wallet, TrendingUp, Settings as SettingsIcon, X, Trash2, Edit, Save, Plus, Search, Calendar, ImageIcon
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
