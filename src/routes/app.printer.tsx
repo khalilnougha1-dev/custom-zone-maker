@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor } from "lucide-react";
+import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,8 @@ function PrinterPage() {
   const [printers, setPrinters] = useState<SavedPrinter[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
+  const [quickTesting, setQuickTesting] = useState(false);
+  const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
 
   // Add-printer form
   const [name, setName] = useState("");
@@ -137,6 +139,49 @@ function PrinterPage() {
     } finally { setScanning(false); }
   };
 
+  const quickTest = async () => {
+    const active = printers.find((p) => p.id === activeId);
+    if (!active) {
+      const msg = "لا توجد طابعة افتراضية. اختر طابعة أولاً.";
+      setQuickResult({ ok: false, message: msg, at: new Date().toLocaleTimeString("ar") });
+      toast.error(msg);
+      return;
+    }
+    setQuickTesting(true);
+    setQuickResult(null);
+    try {
+      const html = `<div style="font-family:Arial;font-size:18px;text-align:center;padding:6px;">
+        <div style="font-weight:bold;font-size:22px;">✓ طباعة اختبارية</div>
+        <div style="margin-top:6px;">${active.name}</div>
+        <div style="margin-top:4px;font-size:14px;">${new Date().toLocaleString("ar")}</div>
+        <div style="margin-top:8px;border-top:1px dashed #000;padding-top:6px;">إذا قرأت هذا فالطابعة تعمل بنجاح</div>
+      </div>`;
+      if (active.connection === "bluetooth") {
+        const { printHtmlBluetooth } = await import("@/lib/bt-printer");
+        await printHtmlBluetooth(html, getPaperWidthPx(active.paper));
+      } else if (active.connection === "system") {
+        const w = window.open("", "_blank", "width=400,height=300");
+        if (!w) throw new Error("تم منع النوافذ المنبثقة");
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        w.print();
+        w.close();
+      } else {
+        throw new Error(`نوع الاتصال "${active.connection}" غير مدعوم للطباعة المباشرة من المتصفح`);
+      }
+      const msg = `تم الإرسال إلى ${active.name} بنجاح`;
+      setQuickResult({ ok: true, message: msg, at: new Date().toLocaleTimeString("ar") });
+      toast.success(msg);
+    } catch (e) {
+      const msg = (e as Error).message || "فشل غير معروف";
+      setQuickResult({ ok: false, message: msg, at: new Date().toLocaleTimeString("ar") });
+      toast.error(msg);
+    } finally {
+      setQuickTesting(false);
+    }
+  };
+
   const testPrint = async (p: SavedPrinter) => {
     if (p.connection === "bluetooth") {
       try {
@@ -174,6 +219,45 @@ function PrinterPage() {
   return (
     <PosLayout title="الطابعة">
       <div className="space-y-4">
+        {/* Quick test print */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">طباعة اختبارية سريعة</div>
+            <Zap className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-xs text-muted-foreground text-right">
+            يرسل صفحة صغيرة إلى الطابعة الافتراضية ويعرض النتيجة.
+          </p>
+          <Button
+            onClick={quickTest}
+            disabled={quickTesting || !activeId}
+            className="w-full bg-gradient-primary text-primary-foreground gap-2"
+          >
+            {quickTesting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+            {quickTesting ? "جاري الإرسال..." : "إرسال صفحة اختبار"}
+          </Button>
+          {quickResult && (
+            <div
+              className={`rounded-lg border p-3 text-right text-sm flex items-start gap-2 ${
+                quickResult.ok
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-destructive/40 bg-destructive/5 text-destructive"
+              }`}
+            >
+              {quickResult.ok ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <div className="font-semibold">{quickResult.ok ? "نجحت الطباعة" : "فشلت الطباعة"}</div>
+                <div className="text-xs opacity-80 mt-0.5">{quickResult.message}</div>
+                <div className="text-[10px] opacity-60 mt-1">{quickResult.at}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Saved printers */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
           <div className="flex items-center justify-between">
