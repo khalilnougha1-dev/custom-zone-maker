@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getActivePrinter, getPaperWidthPx } from "@/lib/printer-config";
+import { getActivePrinter, getPaperWidthMm, getPaperWidthPx } from "@/lib/printer-config";
 import { toast } from "sonner";
 
 let receiptPrintInFlight = false;
@@ -73,6 +73,7 @@ export async function printReceipt(d: ReceiptData) {
     }
 
     const paperWidthPx = getPaperWidthPx(activePrinter.paper || "80mm");
+    const paperWidthMm = getPaperWidthMm(activePrinter.paper || "80mm");
     let preparedBluetoothPrinterId = d.preparedBluetoothPrinterId || null;
 
     if (activePrinter.connection === "bluetooth" && !preparedBluetoothPrinterId) {
@@ -211,10 +212,38 @@ export async function printReceipt(d: ReceiptData) {
       </div>`;
 
     const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
-    <style>@page { size: 80mm auto; margin: 3mm; } body { margin:0; }</style>
-    </head><body>${receiptBody}</body></html>`;
-
-    const bodyHtml = receiptBody;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      @page { size: ${paperWidthMm}mm auto; margin: 0; }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: ${paperWidthMm}mm !important;
+        min-width: ${paperWidthMm}mm !important;
+        max-width: ${paperWidthMm}mm !important;
+        background: #fff;
+        overflow: hidden;
+      }
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .receipt-sheet {
+        width: ${paperWidthMm}mm !important;
+        min-width: ${paperWidthMm}mm !important;
+        max-width: ${paperWidthMm}mm !important;
+        margin: 0 auto !important;
+        padding: 2.5mm 2.5mm 4mm !important;
+        box-sizing: border-box !important;
+        background: #fff;
+      }
+      @media screen {
+        html, body {
+          background: #fff;
+        }
+      }
+    </style>
+    </head><body><div class="receipt-sheet">${receiptBody}</div></body></html>`;
 
     if (activePrinter.connection === "system") {
       await openSystemPrintDialog(html);
