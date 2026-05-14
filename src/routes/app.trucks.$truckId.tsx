@@ -103,6 +103,20 @@ function TruckDetailPage() {
     delivered: acc.delivered + (i.status === "delivered" ? 1 : 0),
   }), { total: 0, paid: 0, pending: 0, delivered: 0 });
 
+  const inventory = useMemo(() => {
+    const map = new Map<string, { name: string; pending: number; delivered: number; cancelled: number; value: number }>();
+    for (const i of items) {
+      const cur = map.get(i.product_name) || { name: i.product_name, pending: 0, delivered: 0, cancelled: 0, value: 0 };
+      const q = Number(i.quantity) || 0;
+      if (i.status === "pending") cur.pending += q;
+      else if (i.status === "delivered") cur.delivered += q;
+      else if (i.status === "cancelled") cur.cancelled += q;
+      cur.value += Number(i.total) || 0;
+      map.set(i.product_name, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.pending - a.pending);
+  }, [items]);
+
   return (
     <PosLayout title={truck?.name || "تفاصيل الشاحنة"} actions={
       <button onClick={openNew} className="rounded-lg p-2 hover:bg-white/10" aria-label="add">
