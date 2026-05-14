@@ -18,7 +18,8 @@ function TrucksPage() {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_user_id: "" });
+  const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_email: "", driver_user_id: "" });
+  const [linking, setLinking] = useState(false);
 
   const load = async () => {
     if (!user) return;
