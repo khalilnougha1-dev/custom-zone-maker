@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Truck, Calendar, Plus } from "lucide-react";
+import { Search, Truck, Calendar, Plus, Pencil } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,7 +96,15 @@ function PurchasesPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map(s => (
-              <div key={s.id} className="flex items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm">
+              <div key={s.id} className="flex items-center gap-2 rounded-xl bg-card border border-border p-3 shadow-sm">
+                <Link
+                  to="/app/purchases/$purchaseId"
+                  params={{ purchaseId: s.id }}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition"
+                  aria-label="تعديل"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Link>
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Truck className="h-5 w-5" />
                 </div>
