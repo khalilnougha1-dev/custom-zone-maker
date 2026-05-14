@@ -28,8 +28,20 @@ function TrucksPage() {
   };
   useEffect(() => { load(); }, [user]);
 
-  const openNew = () => { setEdit(null); setForm({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_user_id: "" }); setOpen(true); };
-  const openEdit = (t: any) => { setEdit(t); setForm({ name: t.name, plate_number: t.plate_number || "", driver_name: t.driver_name || "", driver_phone: t.driver_phone || "", driver_user_id: t.driver_user_id || "" }); setOpen(true); };
+  const openNew = () => { setEdit(null); setForm({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_email: "", driver_user_id: "" }); setOpen(true); };
+  const openEdit = (t: any) => { setEdit(t); setForm({ name: t.name, plate_number: t.plate_number || "", driver_name: t.driver_name || "", driver_phone: t.driver_phone || "", driver_email: "", driver_user_id: t.driver_user_id || "" }); setOpen(true); };
+
+  const linkByEmail = async () => {
+    const email = form.driver_email.trim();
+    if (!email) return toast.error("أدخل بريد السائق");
+    setLinking(true);
+    const { data, error } = await supabase.rpc("find_user_id_by_email", { _email: email });
+    setLinking(false);
+    if (error) return toast.error(error.message);
+    if (!data) return toast.error("لم يتم العثور على حساب بهذا البريد. اطلب من السائق التسجيل أولاً عبر Google.");
+    setForm((f) => ({ ...f, driver_user_id: data as string }));
+    toast.success("تم ربط الحساب بنجاح");
+  };
 
   const save = async () => {
     if (!form.name.trim()) return toast.error("اسم الشاحنة مطلوب");
