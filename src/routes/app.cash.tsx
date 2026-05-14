@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarClock, ShoppingCart, Banknote, CreditCard, PackageOpen,
@@ -49,6 +49,7 @@ function getRange(period: Period): { from?: Date; to?: Date } {
 
 function CashPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>("today");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -158,6 +159,7 @@ function CashPage() {
         <Row icon={Banknote} label="المدفوعات نقدا" value={cashSales} count={sales.filter((s:any)=>!s.payment_method||s.payment_method==='cash').length} />
         <Row icon={CreditCard} label="المدفوعات (طرق أخرى)" value={otherSales} count={sales.filter((s:any)=>s.payment_method&&s.payment_method!=='cash').length} />
         <Row icon={PackageOpen} label="مجموع المشتريات" value={purchasesTotal} count={purchases.length} />
+        <Row icon={Users} label="مدفوعات الزبائن" value={customerPayments} count={cashTx.filter(x=>x.type==='customer_payment').length} onClick={() => navigate({ to: "/app/customer-payments" })} />
         <Row icon={Users} label="مدفوعات الممونين" value={supplierPayments} count={cashTx.filter(x=>x.type==='supplier_payment').length} />
         <Row icon={UtensilsCrossed} label="المصاريف" value={expensesTotal} count={expenses.length} />
         <Row icon={Building2} label="الإيداع في البنك" value={bankDeposit} count={cashTx.filter(x=>x.type==='bank_deposit').length} />
@@ -240,10 +242,11 @@ function CashPage() {
 }
 
 function Row({
-  icon: Icon, label, value, count, highlight,
-}: { icon: any; label: string; value: number; count?: number; highlight?: boolean }) {
+  icon: Icon, label, value, count, highlight, onClick,
+}: { icon: any; label: string; value: number; count?: number; highlight?: boolean; onClick?: () => void }) {
+  const Comp: any = onClick ? "button" : "div";
   return (
-    <div className={`flex items-center gap-3 rounded-xl border p-3 shadow-sm ${highlight ? "bg-primary/5 border-primary/30" : "bg-card border-border"}`}>
+    <Comp onClick={onClick} className={`w-full text-right flex items-center gap-3 rounded-xl border p-3 shadow-sm ${highlight ? "bg-primary/5 border-primary/30" : "bg-card border-border"} ${onClick ? "hover:bg-muted/50 transition active:scale-[0.99]" : ""}`}>
       <div className="font-mono text-2xl font-bold text-primary tracking-tight tabular-nums">
         {value.toFixed(2)}
       </div>
@@ -256,6 +259,6 @@ function Row({
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-foreground/80">
         <Icon className="h-5 w-5" />
       </div>
-    </div>
+    </Comp>
   );
 }
