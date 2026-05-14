@@ -19,6 +19,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppTrucksInventoryRouteImport } from './routes/app.trucks-inventory'
 import { Route as AppSuppliersRouteImport } from './routes/app.suppliers'
 import { Route as AppStockMovementsRouteImport } from './routes/app.stock-movements'
 import { Route as AppStockAdjustRouteImport } from './routes/app.stock-adjust'
@@ -95,6 +96,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTrucksInventoryRoute = AppTrucksInventoryRouteImport.update({
+  id: '/trucks-inventory',
+  path: '/trucks-inventory',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSuppliersRoute = AppSuppliersRouteImport.update({
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
+  '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app/': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRouteWithChildren
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
+  '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/trucks/$truckId': typeof AppTrucksTruckIdRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
+  '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/app/': typeof AppIndexRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
   '/app/sales/$saleId': typeof AppSalesSaleIdRouteWithChildren
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
+    | '/app/trucks-inventory'
     | '/app/'
     | '/app/purchases/new'
     | '/app/sales/$saleId'
@@ -417,6 +427,7 @@ export interface FileRouteTypes {
     | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
+    | '/app/trucks-inventory'
     | '/app'
     | '/app/purchases/new'
     | '/app/trucks/$truckId'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
+    | '/app/trucks-inventory'
     | '/app/'
     | '/app/purchases/new'
     | '/app/sales/$saleId'
@@ -547,6 +559,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/trucks-inventory': {
+      id: '/app/trucks-inventory'
+      path: '/trucks-inventory'
+      fullPath: '/app/trucks-inventory'
+      preLoaderRoute: typeof AppTrucksInventoryRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/suppliers': {
@@ -802,6 +821,7 @@ interface AppRouteChildren {
   AppStockAdjustRoute: typeof AppStockAdjustRoute
   AppStockMovementsRoute: typeof AppStockMovementsRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
+  AppTrucksInventoryRoute: typeof AppTrucksInventoryRoute
   AppIndexRoute: typeof AppIndexRoute
   AppTrucksTruckIdRoute: typeof AppTrucksTruckIdRoute
   AppTrucksIndexRoute: typeof AppTrucksIndexRoute
@@ -828,6 +848,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppStockAdjustRoute: AppStockAdjustRoute,
   AppStockMovementsRoute: AppStockMovementsRoute,
   AppSuppliersRoute: AppSuppliersRoute,
+  AppTrucksInventoryRoute: AppTrucksInventoryRoute,
   AppIndexRoute: AppIndexRoute,
   AppTrucksTruckIdRoute: AppTrucksTruckIdRoute,
   AppTrucksIndexRoute: AppTrucksIndexRoute,
@@ -849,12 +870,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

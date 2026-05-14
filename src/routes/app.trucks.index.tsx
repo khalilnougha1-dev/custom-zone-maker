@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Truck as TruckIcon, Edit, Trash2, ArrowLeft, Phone, User } from "lucide-react";
+import { Plus, Truck as TruckIcon, Edit, Trash2, ArrowLeft, Phone, User, Package } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
