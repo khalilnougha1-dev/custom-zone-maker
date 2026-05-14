@@ -153,6 +153,8 @@ function SalePrintPage() {
         note: sale.notes,
         createdAt: sale.created_at,
         preparedBluetoothPrinterId,
+        prevDebt,
+        isDemo,
       });
     } finally {
       setBusy(false);
