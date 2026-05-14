@@ -329,6 +329,15 @@ function ProductEditor({
             rows={2} className="bg-card border-primary/40 text-right" />
         </Row>
 
+        {/* Manage packages (only for existing products) */}
+        {editing && (
+          <div className="flex justify-center my-3">
+            <Button onClick={() => setPackagesOpen(true)} className="bg-gradient-primary text-primary-foreground gap-2 rounded-full px-6">
+              <PackageIcon className="h-5 w-5" /> تسيير التعبئات
+            </Button>
+          </div>
+        )}
+
         {/* Barcodes */}
         <Row label="الرموز الشريطية">
           <div className="flex items-center gap-3">
