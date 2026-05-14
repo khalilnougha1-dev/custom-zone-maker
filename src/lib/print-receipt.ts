@@ -161,7 +161,7 @@ export async function printReceipt(d: ReceiptData) {
 
     // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
-      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:8px 6px 10px;direction:rtl;" dir="rtl">
+      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;" dir="rtl">
         <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px;">
           <div style="font-size:30px;font-weight:900;line-height:1.2;">وصل بيع رقم</div>
           <div style="font-size:34px;font-weight:900;line-height:1.2;margin-top:4px;">${d.saleSeq}</div>
