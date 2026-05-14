@@ -433,10 +433,10 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
   const prefersWriteWithoutResponse = supportsWriteWithoutResponse && !supportsWrite;
 
-  const chunkSize = prefersWriteWithoutResponse ? 128 : 96;
+  const chunkSize = prefersWriteWithoutResponse ? 180 : 144;
   const chunkDelay = prefersWriteWithoutResponse
-    ? (isAndroidBluetoothClient() ? 12 : 9)
-    : (isAndroidBluetoothClient() ? 16 : 12);
+    ? (isAndroidBluetoothClient() ? 7 : 5)
+    : (isAndroidBluetoothClient() ? 10 : 7);
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
