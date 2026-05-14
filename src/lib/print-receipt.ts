@@ -42,17 +42,6 @@ async function openSystemPrintDialog(html: string) {
   }
 }
 
-async function fallbackToSystemPrint(html: string, message?: string) {
-  try {
-    await openSystemPrintDialog(html);
-    toast.success(message || "تم فتح نافذة طباعة النظام كخطة بديلة");
-    return true;
-  } catch {
-    toast.error("تعذر فتح نافذة طباعة النظام");
-    return false;
-  }
-}
-
 export type ReceiptItem = {
   product_name: string;
   quantity: number;
@@ -92,18 +81,18 @@ export async function printReceipt(d: ReceiptData) {
     const receiptWidthPx = activePrinter.paper === "A4" ? 576 : paperWidthPx;
     const receiptWidthMm = activePrinter.paper === "A4" ? 72 : paperWidthMm;
     const isCompactReceipt = false;
-    let forceSystemPrint = false;
     let preparedBluetoothPrinterId = d.preparedBluetoothPrinterId || null;
 
     if (activePrinter.connection === "bluetooth" && !preparedBluetoothPrinterId) {
       try {
         const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("./bt-printer");
         if (!isWebBluetoothSupported()) {
-          forceSystemPrint = true;
-        } else {
-          const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
-          preparedBluetoothPrinterId = preparedPrinter?.id || null;
+          toast.error("متصفحك لا يدعم الطباعة المباشرة. استخدم Chrome على أندرويد.");
+          return;
         }
+
+        const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
+        preparedBluetoothPrinterId = preparedPrinter?.id || null;
       } catch (error) {
         const message = (error as Error).message || "تعذر تجهيز الطابعة";
         if (!PRINT_ABORT_MESSAGES.some((token) => message.toLowerCase().includes(token))) {
@@ -263,14 +252,14 @@ export async function printReceipt(d: ReceiptData) {
     </style>
     </head><body><div class="receipt-sheet">${receiptBody}</div></body></html>`;
 
-    if (activePrinter.connection === "system" || forceSystemPrint) {
+    if (activePrinter.connection === "system") {
       await openSystemPrintDialog(html);
-      toast.success(forceSystemPrint ? "تم فتح نافذة طباعة النظام لهذا الجهاز" : "تم إرسال الوصل إلى نافذة الطباعة");
+      toast.success("تم إرسال الوصل إلى نافذة الطباعة");
       return;
     }
 
     if (activePrinter.connection !== "bluetooth") {
-      await fallbackToSystemPrint(html, "تم تحويل الطباعة إلى نافذة النظام لهذا النوع من الطابعات");
+      toast.error("نوع الطابعة المحدد غير مدعوم بعد للطباعة المباشرة");
       return;
     }
 
@@ -280,7 +269,7 @@ export async function printReceipt(d: ReceiptData) {
         await import("./bt-printer");
 
       if (!isWebBluetoothSupported()) {
-        await fallbackToSystemPrint(html, "الطباعة المباشرة غير مدعومة على هذا المتصفح، فتم فتح طباعة النظام");
+        toast.error("متصفحك لا يدعم الطباعة المباشرة. استخدم Chrome على أندرويد.");
         return;
       }
 
@@ -462,18 +451,16 @@ export async function printReceipt(d: ReceiptData) {
         userMessage = `فشلت الطباعة: ${message}`;
       }
 
-      const fallbackOpened = await fallbackToSystemPrint(html, `${userMessage} تم فتح طباعة النظام كبديل.`);
-
-      if (!fallbackOpened) {
-        toast.error(userMessage, {
-          action: {
-            label: "طباعة عبر النظام",
-            onClick: () => {
-              fallbackToSystemPrint(html);
-            },
+      toast.error(userMessage, {
+        action: {
+          label: "طباعة عبر النظام",
+          onClick: () => {
+            openSystemPrintDialog(html).catch(() => {
+              toast.error("تعذر فتح نافذة طباعة النظام");
+            });
           },
-        });
-      }
+        },
+      });
     } catch (e) {
       console.warn("Bluetooth print pipeline failed:", e);
       toast.error((e as Error)?.message || "فشل الطباعة");

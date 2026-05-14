@@ -1,11 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Trash2, Pencil, Printer, Clock, Calendar, ImageIcon, Loader2 } from "lucide-react";
+import { ArrowRight, Trash2, Pencil, Printer, Clock, Calendar, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -141,30 +140,21 @@ function SaleDetailPage() {
 
       <main className="flex-1 px-4 pt-3 pb-6">
         {/* Action icons row */}
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between mb-4">
           <button className="p-1" aria-label="تعديل">
             <Pencil className="h-7 w-7 text-foreground/80" />
           </button>
           <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
+            <button onClick={printReceipt} className="p-1 disabled:opacity-50" aria-label="طباعة" disabled={isPrinting}>
+              <Printer className="h-7 w-7 text-foreground/80" />
+            </button>
+            <button
               onClick={exportPdf}
-              className="h-11 min-w-20 text-xs font-bold"
+              className="flex h-9 w-12 items-center justify-center rounded bg-foreground text-background text-xs font-bold"
               aria-label="PDF"
             >
               PDF
-            </Button>
-            <Button
-              type="button"
-              onClick={printReceipt}
-              disabled={isPrinting}
-              className="h-11 min-w-36 gap-2 bg-gradient-primary text-primary-foreground shadow-card"
-              aria-label="طباعة الوصل"
-            >
-              {isPrinting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
-              <span>{isPrinting ? "جارٍ الإرسال..." : "طباعة الوصل"}</span>
-            </Button>
+            </button>
           </div>
         </div>
 
