@@ -275,27 +275,20 @@ async function connectAndFindCharacteristic(device: any) {
           return c;
         } catch {}
       }
+
+      const chars = await svc.getCharacteristics();
+      for (const c of chars) {
+        const isWritable = !!(c.properties.writeWithoutResponse || c.properties.write);
+        const isNotifyOnly = !!c.properties.notify && !c.properties.writeWithoutResponse && !c.properties.write;
+        if (isWritable && !isNotifyOnly) {
+          activeCharacteristic = c;
+          return c;
+        }
+      }
     } catch {}
   }
 
-  const services = await server.getPrimaryServices();
-  for (const svc of services) {
-    const chars = await svc.getCharacteristics();
-    for (const c of chars) {
-      if (c.properties.writeWithoutResponse) {
-        activeCharacteristic = c;
-        return c;
-      }
-    }
-    for (const c of chars) {
-      if (c.properties.write) {
-        activeCharacteristic = c;
-        return c;
-      }
-    }
-  }
-
-  throw new Error("تعذر إيجاد قناة الكتابة على الطابعة");
+  throw new Error("تعذر العثور على قناة الطباعة الصحيحة للطابعة. أعد الاقتران بالطابعة الحرارية المتوافقة ثم حاول مجددًا.");
 }
 
 async function writeWithReconnect(device: any, bytes: Uint8Array) {
