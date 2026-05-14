@@ -79,7 +79,7 @@ function AdminTrucks({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any>(null);
   const [form, setForm] = useState({ name: "", plate_number: "", driver_name: "", driver_phone: "", driver_user_id: "", is_active: true });
-
+  const [appMenuTruck, setAppMenuTruck] = useState<any | null>(null);
   const load = async () => {
     const { data } = await supabase.from("trucks").select("*").eq("owner_id", userId).order("created_at", { ascending: false });
     setItems(data || []);
