@@ -39,7 +39,6 @@ function NewSalePage() {
   const [paid, setPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
   const [note, setNote] = useState("");
-  const [preparedBluetoothPrinterId, setPreparedBluetoothPrinterId] = useState<string | null>(null);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -151,6 +150,7 @@ function NewSalePage() {
     if (!user || cart.length === 0 || isSaving) return;
 
     setIsSaving(true);
+    let preparedBluetoothPrinterId: string | null = null;
     try {
       for (const i of cart) {
         if (isTracked(i.id) && i.qty > getStock(i.id)) {
@@ -165,7 +165,7 @@ function NewSalePage() {
           const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
           if (isWebBluetoothSupported()) {
             const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
-            setPreparedBluetoothPrinterId(preparedPrinter?.id || null);
+            preparedBluetoothPrinterId = preparedPrinter?.id || null;
           }
         } catch (error) {
           const msg = (error as Error).message || "تعذر تجهيز الطابعة";
@@ -218,14 +218,11 @@ function NewSalePage() {
         preparedBluetoothPrinterId,
       });
 
-      setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ(""); setPreparedBluetoothPrinterId(null);
+      setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
       setConfirmOpen(false);
       supabase.from("products").select("*").eq("user_id", user.id).order("name")
         .then(({ data }) => setProducts(data || []));
     } finally {
-      if (!confirmOpen) {
-        setPreparedBluetoothPrinterId(null);
-      }
       setIsSaving(false);
     }
   };
