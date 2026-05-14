@@ -19,6 +19,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Package as PackageIcon } from "lucide-react";
+import { PackagesManager } from "@/components/products/PackagesManager";
 
 export const Route = createFileRoute("/app/products")({ component: ProductsPage });
 
@@ -132,6 +134,7 @@ function ProductEditor({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [multiBarcode, setMultiBarcode] = useState(false);
+  const [packagesOpen, setPackagesOpen] = useState(false);
 
   const [form, setForm] = useState({
     name: editing?.name || "",
@@ -326,6 +329,15 @@ function ProductEditor({
             rows={2} className="bg-card border-primary/40 text-right" />
         </Row>
 
+        {/* Manage packages (only for existing products) */}
+        {editing && (
+          <div className="flex justify-center my-3">
+            <Button onClick={() => setPackagesOpen(true)} className="bg-gradient-primary text-primary-foreground gap-2 rounded-full px-6">
+              <PackageIcon className="h-5 w-5" /> تسيير التعبئات
+            </Button>
+          </div>
+        )}
+
         {/* Barcodes */}
         <Row label="الرموز الشريطية">
           <div className="flex items-center gap-3">
@@ -374,6 +386,15 @@ function ProductEditor({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {packagesOpen && editing && (
+        <PackagesManager
+          productId={editing.id}
+          productName={editing.name}
+          unitPrice={Number(form.retail_price) || editing.retail_price || 0}
+          onClose={() => setPackagesOpen(false)}
+        />
+      )}
     </div>
   );
 }
