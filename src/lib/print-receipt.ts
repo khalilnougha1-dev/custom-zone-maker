@@ -351,7 +351,7 @@ export async function printReceipt(d: ReceiptData) {
           {
             columns: [
               { text: item.product_name, width: 1.55, align: "right" as const, bold: true },
-              { text: String(item.quantity), width: 0.45, align: "center" as const, direction: "ltr" as const, bold: true },
+              { text: fmtQty(item), width: 0.45, align: "center" as const, direction: "ltr" as const, bold: true },
               {
                 text: (item.unit_price * item.quantity).toFixed(2),
                 width: 0.8,
@@ -364,7 +364,7 @@ export async function printReceipt(d: ReceiptData) {
             gapTop: 3,
           },
           {
-            text: `${item.unit_price.toFixed(2)} × ${item.quantity}`,
+            text: `${item.unit_price.toFixed(2)} × ${fmtQty(item)}`,
             align: "left" as const,
             size: isCompactReceipt ? 13 : 16,
             direction: "ltr" as const,
