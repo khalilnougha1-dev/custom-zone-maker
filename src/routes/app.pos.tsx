@@ -103,7 +103,7 @@ function NewSalePage() {
       const { data: items } = await supabase.from("sale_items").select("*").eq("sale_id", editSaleId);
       const loadedCart: CartItem[] = [];
       const orig: Record<string, number> = {};
-      for (const it of items || []) {
+      for (const it of (items || []) as any[]) {
         const product = products.find((p: any) => p.id === it.product_id);
         if (!product) continue;
         const units = Number(it.quantity);
