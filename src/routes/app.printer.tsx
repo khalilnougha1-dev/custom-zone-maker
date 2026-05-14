@@ -55,7 +55,14 @@ function PrinterPage() {
   useEffect(() => {
     setPrinters(loadPrinters());
     setActiveId(localStorage.getItem(ACTIVE_KEY) || "");
+    setReceiptPaperState(getReceiptPaperWidth());
   }, []);
+
+  const changeReceiptPaper = (v: ReceiptPaperWidth) => {
+    setReceiptPaperState(v);
+    setReceiptPaperWidth(v);
+    toast.success(`تم تعيين عرض وصل البيع إلى ${v === "58mm" ? "58 مم" : "80 مم"}`);
+  };
 
   const addPrinter = () => {
     if (!name.trim()) return toast.error("أدخل اسم الطابعة");
