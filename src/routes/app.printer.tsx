@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap, FileText, Eye } from "lucide-react";
+import { buildReceiptHtmlPreview, SAMPLE_RECEIPT } from "@/lib/print-receipt";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
