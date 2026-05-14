@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/purchases/new")({ component: NewPurchasePage });
+export const Route = createFileRoute("/app/purchases_/new")({ component: NewPurchasePage });
 
 type CartLine = {
   product_id: string | null;
