@@ -19,7 +19,17 @@ import { getActivePrinter } from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/pos")({ component: NewSalePage });
 
-type CartItem = { id: string; name: string; price: number; cost: number; qty: number };
+type CartItem = {
+  id: string; // unique row id (product id, or `pkg:<packageId>`)
+  productId: string;
+  name: string;
+  price: number;
+  cost: number;
+  qty: number;
+  packageId?: string;
+  packageName?: string;
+  unitsPerPackage?: number; // when set, this is a package row
+};
 
 function NewSalePage() {
   const { user, loading } = useAuth();
@@ -27,6 +37,7 @@ function NewSalePage() {
 
   const [now, setNow] = useState({ date: "", time: "" });
   const [products, setProducts] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [customerQ, setCustomerQ] = useState("");
@@ -66,6 +77,10 @@ function NewSalePage() {
       .then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id,name,phone").eq("user_id", user.id).order("name")
       .then(({ data }) => setCustomers(data || []));
+    (supabase as any).from("product_packages")
+      .select("id,product_id,name,units_count,retail_price,cost_price,barcode,is_inactive")
+      .eq("user_id", user.id)
+      .then(({ data }: any) => setPackages((data || []).filter((p: any) => !p.is_inactive)));
   }, [user]);
 
   const filteredCustomers = useMemo(() => {
@@ -76,56 +91,95 @@ function NewSalePage() {
     ).slice(0, 20);
   }, [customers, customerQ]);
 
+  // Build a unified search list of products + their packages (cartons).
+  const searchEntries = useMemo(() => {
+    const productEntries = products.map((p: any) => ({ kind: "product" as const, product: p, pkg: null as any }));
+    const pkgEntries = packages.map((pk: any) => {
+      const product = products.find((p: any) => p.id === pk.product_id);
+      return product ? { kind: "package" as const, product, pkg: pk } : null;
+    }).filter(Boolean) as Array<{ kind: "package"; product: any; pkg: any }>;
+    return [...productEntries, ...pkgEntries];
+  }, [products, packages]);
+
   const filteredProducts = useMemo(() => {
     const q = productQ.toLowerCase().trim();
-    if (!q) return products.slice(0, 30);
-    return products.filter((p: any) =>
-      p.name?.toLowerCase().includes(q) ||
-      (p.barcode || "").includes(q) ||
-      (p.reference || "").toLowerCase().includes(q)
-    ).slice(0, 30);
-  }, [products, productQ]);
+    const match = (e: any) => {
+      if (!q) return true;
+      const name = e.kind === "package" ? `${e.product.name} ${e.pkg.name}` : e.product.name;
+      const barcode = e.kind === "package" ? (e.pkg.barcode || "") : (e.product.barcode || "");
+      return (
+        name?.toLowerCase().includes(q) ||
+        (barcode || "").includes(q) ||
+        (e.product.reference || "").toLowerCase().includes(q)
+      );
+    };
+    return searchEntries.filter(match).slice(0, 40);
+  }, [searchEntries, productQ]);
 
   const totalAmount = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const totalUnits = cart.reduce((s, i) => s + i.qty, 0);
+  const totalUnits = cart.reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
+
   const totalLines = cart.length;
 
-  const getStock = (id: string) => {
-    const p = products.find((x: any) => x.id === id);
+  const getStock = (productId: string) => {
+    const p = products.find((x: any) => x.id === productId);
     return p ? Number(p.stock_quantity) : 0;
   };
-  const isTracked = (id: string) => {
-    const p = products.find((x: any) => x.id === id);
+  const isTracked = (productId: string) => {
+    const p = products.find((x: any) => x.id === productId);
     return p ? (p.is_tracked !== false) : true;
   };
 
-  const addProduct = (p: any) => {
-    const tracked = p.is_tracked !== false;
-    const stock = Number(p.stock_quantity) || 0;
-    const inCart = cart.find(i => i.id === p.id)?.qty || 0;
-    if (tracked && inCart + 1 > stock) {
+  // Total units of a product currently held in cart (counting packages × unitsPerPackage)
+  const unitsInCartFor = (productId: string, exceptRowId?: string) =>
+    cart
+      .filter((i) => i.productId === productId && i.id !== exceptRowId)
+      .reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
+
+  const addEntry = (entry: { kind: "product" | "package"; product: any; pkg: any }) => {
+    const { product, pkg } = entry;
+    const isPkg = entry.kind === "package";
+    const rowId = isPkg ? `pkg:${pkg.id}` : product.id;
+    const unitsPerPackage = isPkg ? Number(pkg.units_count) || 1 : 1;
+    const tracked = product.is_tracked !== false;
+    const stock = Number(product.stock_quantity) || 0;
+    const usedUnits = unitsInCartFor(product.id);
+    if (tracked && usedUnits + unitsPerPackage > stock) {
       return toast.error(`المخزون غير كافٍ (المتبقي ${stock})`);
     }
-    setCart(prev => {
-      const found = prev.find(i => i.id === p.id);
-      if (found) return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, {
-        id: p.id, name: p.name,
-        price: Number(p.retail_price) || 0,
-        cost: Number(p.cost_price) || 0, qty: 1,
-      }];
+    setCart((prev) => {
+      const found = prev.find((i) => i.id === rowId);
+      if (found) return prev.map((i) => (i.id === rowId ? { ...i, qty: i.qty + 1 } : i));
+      const row: CartItem = {
+        id: rowId,
+        productId: product.id,
+        name: isPkg ? `${product.name} [${pkg.name}]` : product.name,
+        price: Number(isPkg ? pkg.retail_price : product.retail_price) || 0,
+        cost: Number(isPkg ? pkg.cost_price : product.cost_price) || 0,
+        qty: 1,
+        ...(isPkg
+          ? { packageId: pkg.id, packageName: pkg.name, unitsPerPackage }
+          : {}),
+      };
+      return [...prev, row];
     });
     setProductQ("");
     setShowProductList(false);
     productInputRef.current?.focus();
   };
 
-  const setQty = (id: string, qty: number) => {
-    if (qty <= 0) return setCart(prev => prev.filter(i => i.id !== id));
-    if (isTracked(id) && qty > getStock(id)) {
-      return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(id)})`);
+  const setQty = (rowId: string, qty: number) => {
+    const row = cart.find((i) => i.id === rowId);
+    if (!row) return;
+    if (qty <= 0) return setCart((prev) => prev.filter((i) => i.id !== rowId));
+    const unitsPerPackage = row.unitsPerPackage || 1;
+    if (isTracked(row.productId)) {
+      const wouldUse = unitsInCartFor(row.productId, rowId) + qty * unitsPerPackage;
+      if (wouldUse > getStock(row.productId)) {
+        return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(row.productId)})`);
+      }
     }
-    setCart(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
+    setCart((prev) => prev.map((i) => (i.id === rowId ? { ...i, qty } : i)));
   };
 
   const clearCart = () => {
@@ -152,9 +206,16 @@ function NewSalePage() {
     setIsSaving(true);
     let preparedBluetoothPrinterId: string | null = null;
     try {
+      // Aggregate units per product across all cart rows (incl. packages) for stock check
+      const usedByProduct = new Map<string, number>();
       for (const i of cart) {
-        if (isTracked(i.id) && i.qty > getStock(i.id)) {
-          toast.error(`المخزون غير كافٍ للمنتج ${i.name} (المتبقي ${getStock(i.id)})`);
+        const u = i.qty * (i.unitsPerPackage || 1);
+        usedByProduct.set(i.productId, (usedByProduct.get(i.productId) || 0) + u);
+      }
+      for (const [pid, units] of usedByProduct) {
+        if (isTracked(pid) && units > getStock(pid)) {
+          const name = products.find((p: any) => p.id === pid)?.name || "";
+          toast.error(`المخزون غير كافٍ للمنتج ${name} (المتبقي ${getStock(pid)})`);
           return;
         }
       }
@@ -192,11 +253,28 @@ function NewSalePage() {
         return;
       }
 
-      const items = cart.map(i => ({
-        sale_id: sale.id, product_id: i.id, product_name: i.name,
-        quantity: i.qty, unit_price: i.price, cost_price: i.cost,
-        total: i.price * i.qty,
-      }));
+      const items = cart.map((i) => {
+        const units = i.qty * (i.unitsPerPackage || 1);
+        const unitPrice = i.unitsPerPackage ? i.price / i.unitsPerPackage : i.price;
+        const unitCost = i.unitsPerPackage ? i.cost / i.unitsPerPackage : i.cost;
+        return {
+          sale_id: sale.id,
+          product_id: i.productId,
+          product_name: i.name,
+          quantity: units,
+          unit_price: unitPrice,
+          cost_price: unitCost,
+          total: i.price * i.qty,
+          ...(i.unitsPerPackage
+            ? {
+                package_id: i.packageId,
+                package_name: i.packageName,
+                package_units_count: i.unitsPerPackage,
+                package_qty: i.qty,
+              }
+            : {}),
+        };
+      });
       const { error: e2 } = await supabase.from("sale_items").insert(items);
       if (e2) {
         toast.error(e2.message);
@@ -327,16 +405,24 @@ function NewSalePage() {
           </div>
           {showProductList && productQ && filteredProducts.length > 0 && (
             <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-border bg-background">
-              {filteredProducts.map((p: any) => (
-                <button
-                  key={p.id}
-                  onClick={() => addProduct(p)}
-                  className="w-full text-right px-3 py-2 text-sm hover:bg-muted border-b border-border last:border-0 flex items-center justify-between gap-2"
-                >
-                  <span className="font-mono font-bold text-primary">{Number(p.retail_price).toFixed(2)}</span>
-                  <span className="flex-1 truncate">{p.name}</span>
-                </button>
-              ))}
+              {filteredProducts.map((e: any) => {
+                const isPkg = e.kind === "package";
+                const price = Number(isPkg ? e.pkg.retail_price : e.product.retail_price);
+                const label = isPkg
+                  ? `${e.product.name} — كرطون ${e.pkg.name} (${e.pkg.units_count})`
+                  : e.product.name;
+                const key = isPkg ? `pkg:${e.pkg.id}` : e.product.id;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => addEntry(e)}
+                    className={`w-full text-right px-3 py-2 text-sm hover:bg-muted border-b border-border last:border-0 flex items-center justify-between gap-2 ${isPkg ? "bg-primary/5" : ""}`}
+                  >
+                    <span className="font-mono font-bold text-primary">{price.toFixed(2)}</span>
+                    <span className="flex-1 truncate">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -372,25 +458,33 @@ function NewSalePage() {
                 <button onClick={() => setQty(i.id, 0)} className="text-destructive p-1"><X className="h-4 w-4" /></button>
                 <div className="font-mono font-bold text-primary w-20 text-left">{(i.price * i.qty).toFixed(2)}</div>
                 <Input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min={0}
-                  value={i.qty}
+                  value={String(i.qty)}
                   onChange={(e) => {
-                    const v = e.target.value;
+                    const v = e.target.value.replace(",", ".");
                     if (v === "") return setCart(prev => prev.map(x => x.id === i.id ? { ...x, qty: 0 } : x));
+                    if (!/^\d*\.?\d*$/.test(v)) return;
                     const n = Number(v);
                     if (!Number.isFinite(n) || n < 0) return;
-                    if (isTracked(i.id) && n > getStock(i.id)) {
-                      return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(i.id)})`);
+                    const unitsPerPackage = i.unitsPerPackage || 1;
+                    if (isTracked(i.productId)) {
+                      const wouldUse = unitsInCartFor(i.productId, i.id) + n * unitsPerPackage;
+                      if (wouldUse > getStock(i.productId)) {
+                        return toast.error(`المخزون غير كافٍ (المتبقي ${getStock(i.productId)})`);
+                      }
                     }
                     setCart(prev => prev.map(x => x.id === i.id ? { ...x, qty: n } : x));
                   }}
                   onBlur={() => { if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id)); }}
-                  className="w-14 h-8 text-center font-mono font-bold px-1"
+                  className="w-16 h-8 text-center font-mono font-bold px-1"
                 />
-                
-                <div className="flex-1 truncate text-right text-sm">{i.name}</div>
+                <div className="flex-1 truncate text-right text-sm">
+                  {i.name}
+                  {i.unitsPerPackage && (
+                    <span className="text-xs text-muted-foreground mr-1">({i.qty}×{i.unitsPerPackage})</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

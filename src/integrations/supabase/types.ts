@@ -562,6 +562,10 @@ export type Database = {
           cost_price: number | null
           discount: number | null
           id: string
+          package_id: string | null
+          package_name: string | null
+          package_qty: number | null
+          package_units_count: number | null
           product_id: string | null
           product_name: string
           quantity: number
@@ -573,6 +577,10 @@ export type Database = {
           cost_price?: number | null
           discount?: number | null
           id?: string
+          package_id?: string | null
+          package_name?: string | null
+          package_qty?: number | null
+          package_units_count?: number | null
           product_id?: string | null
           product_name: string
           quantity: number
@@ -584,6 +592,10 @@ export type Database = {
           cost_price?: number | null
           discount?: number | null
           id?: string
+          package_id?: string | null
+          package_name?: string | null
+          package_qty?: number | null
+          package_units_count?: number | null
           product_id?: string | null
           product_name?: string
           quantity?: number
