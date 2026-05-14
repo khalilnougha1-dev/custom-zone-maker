@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Truck as TruckIcon, Package, Settings as SettingsIcon, Plus, Edit, Trash2, Save, Search, Boxes, ClipboardList, Check, Clock, X as XIcon } from "lucide-react";
+import { Truck as TruckIcon, Package, Settings as SettingsIcon, Plus, Edit, Trash2, Save, Search, Boxes, ClipboardList, Check, Clock, X as XIcon, Menu as MenuIcon } from "lucide-react";
+import { AdminUserAppMenu } from "./AdminUserAppMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
