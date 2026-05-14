@@ -423,23 +423,77 @@ async function htmlToRaster(
   return { bytes: raster, width: targetW, height: targetH };
 }
 
-function buildEscPosImage(raster: Uint8Array, width: number, height: number): Uint8Array {
+function buildEscPosImage(
+  raster: Uint8Array,
+  width: number,
+  height: number,
+  options?: { initialize?: boolean; feed?: boolean },
+): Uint8Array {
   const widthBytes = width / 8;
-  const header = new Uint8Array([
-    0x1b, 0x40, // ESC @ initialize
+  const headerBytes = [
+    ...(options?.initialize === false ? [] : [0x1b, 0x40]), // ESC @ initialize
     0x1b, 0x33, 0x00, // ESC 3 n = compact line spacing for raster data
     0x1d, 0x76, 0x30, 0x00, // GS v 0 m=0 (normal)
     widthBytes & 0xff,
     (widthBytes >> 8) & 0xff,
     height & 0xff,
     (height >> 8) & 0xff,
-  ]);
-  const feed = new Uint8Array([0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x1b, 0x32]); // restore default spacing, skip cut for compatibility
+  ];
+  const header = new Uint8Array(headerBytes);
+  const feed = new Uint8Array(options?.feed === false ? [] : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x1b, 0x32]); // restore default spacing, skip cut for compatibility
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
   out.set(feed, header.length + raster.length);
   return out;
+}
+
+function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
+  const bands: HTMLCanvasElement[] = [];
+
+  for (let offsetY = 0; offsetY < canvas.height; offsetY += maxBandHeight) {
+    const bandHeight = Math.min(maxBandHeight, canvas.height - offsetY);
+    const band = document.createElement("canvas");
+    band.width = canvas.width;
+    band.height = bandHeight;
+    const bandCtx = band.getContext("2d")!;
+    bandCtx.fillStyle = "#fff";
+    bandCtx.fillRect(0, 0, band.width, band.height);
+    bandCtx.drawImage(
+      canvas,
+      0,
+      offsetY,
+      canvas.width,
+      bandHeight,
+      0,
+      0,
+      band.width,
+      band.height,
+    );
+    bands.push(band);
+  }
+
+  return bands;
+}
+
+async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 96 : 128);
+
+  for (let index = 0; index < bands.length; index++) {
+    const raster = await canvasToRaster(bands[index]);
+    const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height, {
+      initialize: index === 0,
+      feed: index === bands.length - 1,
+    });
+
+    await withBluetoothTimeout(
+      writeWithReconnect(device, escposBytes),
+      getBluetoothPrintTimeoutMs(escposBytes.length),
+      "انتهت مهلة إرسال بيانات الطباعة",
+    );
+
+    await delay(index === bands.length - 1 ? 500 : 140);
+  }
 }
 
 function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
@@ -676,11 +730,28 @@ export async function printHtmlBluetooth(
       iframe.style.height = body.scrollHeight + "px";
 
       const raster = await htmlToRaster(body, paperWidthPx);
-      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = raster.width;
+      canvas.height = raster.height;
+      const ctx = canvas.getContext("2d")!;
+      const img = ctx.createImageData(raster.width, raster.height);
 
-      await writeWithReconnect(targetDevice, escposBytes);
-      await delay(500);
-      return escposBytes.length;
+      for (let y = 0; y < raster.height; y++) {
+        for (let x = 0; x < raster.width; x++) {
+          const byteIndex = y * (raster.width / 8) + Math.floor(x / 8);
+          const bit = (raster.bytes[byteIndex] >> (7 - (x % 8))) & 1;
+          const value = bit ? 0 : 255;
+          const pixelIndex = (y * raster.width + x) * 4;
+          img.data[pixelIndex] = value;
+          img.data[pixelIndex + 1] = value;
+          img.data[pixelIndex + 2] = value;
+          img.data[pixelIndex + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(img, 0, 0);
+      await writeCanvasAsEscPosBands(targetDevice, canvas);
+      return raster.bytes.length;
     };
 
     try {
@@ -737,14 +808,7 @@ export async function printSimpleReceiptBluetooth(
 
     try {
       const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
-      const raster = await canvasToRaster(canvas);
-      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
-      await withBluetoothTimeout(
-        writeWithReconnect(device, escposBytes),
-        getBluetoothPrintTimeoutMs(escposBytes.length),
-        "انتهت مهلة إرسال بيانات الطباعة",
-      );
-      await delay(500);
+      await writeCanvasAsEscPosBands(device, canvas);
     } catch (error) {
       if (!isGattDisconnectedError(error)) {
         throw error;
@@ -767,14 +831,7 @@ export async function printSimpleReceiptBluetooth(
       }
 
       const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
-      const raster = await canvasToRaster(canvas);
-      const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height);
-      await withBluetoothTimeout(
-        writeWithReconnect(device, escposBytes),
-        getBluetoothPrintTimeoutMs(escposBytes.length),
-        "انتهت مهلة إرسال بيانات الطباعة",
-      );
-      await delay(500);
+      await writeCanvasAsEscPosBands(device, canvas);
     }
   });
 }
