@@ -247,8 +247,7 @@ export async function printReceipt(d: ReceiptData) {
 
         ${d.note ? `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;"><b>ملاحظة:</b> ${d.note}</div>` : ""}
 
-        <div style="text-align:center;margin-top:12px;font-size:${isCompactReceipt ? 20 : 24}px;font-weight:900;">شكراً</div>
-        ${isDemo ? `<div style="text-align:center;margin-top:3px;font-size:${isCompactReceipt ? 12 : 14}px;font-weight:700;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+        <div style="text-align:center;margin-top:14px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;">اعد الحساب من فضلك</div>
       </div>`;
 
     const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
@@ -394,8 +393,7 @@ export async function printReceipt(d: ReceiptData) {
           gapTop: 3,
         },
         ...(d.note ? [{ text: `ملاحظة: ${d.note}`, align: "right" as const, size: isCompactReceipt ? 14 : 17, gapTop: 8, bold: true }] : []),
-        { text: "اعد الحساب من فضلك", align: "center" as const, size: isCompactReceipt ? 14 : 17, gapTop: 10, bold: true },
-        ...(isDemo ? [{ text: "KuaiPOS 9.10 Illizi - Version Demo", align: "center" as const, size: isCompactReceipt ? 11 : 14, direction: "ltr" as const, gapTop: 6 }] : []),
+        { text: "اعد الحساب من فضلك", align: "center" as const, size: isCompactReceipt ? 14 : 17, gapTop: 14, bold: true },
       ];
 
 
