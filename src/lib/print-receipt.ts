@@ -46,7 +46,19 @@ export type ReceiptItem = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  package_qty?: number | null;
+  package_units_count?: number | null;
 };
+
+function fmtQty(i: ReceiptItem): string {
+  if (i.package_qty && i.package_units_count) {
+    const pq = Number(i.package_qty);
+    const pqStr = Number.isInteger(pq) ? String(pq) : String(pq);
+    return `${pqStr}×${i.package_units_count}`;
+  }
+  const q = Number(i.quantity);
+  return Number.isInteger(q) ? String(q) : String(q);
+}
 
 export type ReceiptData = {
   userId: string;
@@ -167,7 +179,7 @@ export async function printReceipt(d: ReceiptData) {
         (i) => `
       <tr>
         <td style="${bodyCell}text-align:right;word-break:break-word;">${i.product_name}</td>
-        <td style="${bodyCell}${numCell}text-align:center;">${i.quantity}</td>
+        <td style="${bodyCell}${numCell}text-align:center;">${fmtQty(i)}</td>
         <td style="${bodyCell}${numCell}text-align:center;">${i.unit_price.toFixed(2)}</td>
         <td style="${bodyCell}${numCell}text-align:left;">${(i.unit_price * i.quantity).toFixed(2)}</td>
       </tr>`,
@@ -339,7 +351,7 @@ export async function printReceipt(d: ReceiptData) {
           {
             columns: [
               { text: item.product_name, width: 1.55, align: "right" as const, bold: true },
-              { text: String(item.quantity), width: 0.45, align: "center" as const, direction: "ltr" as const, bold: true },
+              { text: fmtQty(item), width: 0.45, align: "center" as const, direction: "ltr" as const, bold: true },
               {
                 text: (item.unit_price * item.quantity).toFixed(2),
                 width: 0.8,
@@ -352,7 +364,7 @@ export async function printReceipt(d: ReceiptData) {
             gapTop: 3,
           },
           {
-            text: `${item.unit_price.toFixed(2)} × ${item.quantity}`,
+            text: `${item.unit_price.toFixed(2)} × ${fmtQty(item)}`,
             align: "left" as const,
             size: isCompactReceipt ? 13 : 16,
             direction: "ltr" as const,
@@ -508,7 +520,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
       (i) => `
     <tr>
       <td style="${bodyCell}text-align:right;word-break:break-word;">${i.product_name}</td>
-      <td style="${bodyCell}${numCell}text-align:center;">${i.quantity}</td>
+      <td style="${bodyCell}${numCell}text-align:center;">${fmtQty(i)}</td>
       <td style="${bodyCell}${numCell}text-align:center;">${i.unit_price.toFixed(2)}</td>
       <td style="${bodyCell}${numCell}text-align:left;">${(i.unit_price * i.quantity).toFixed(2)}</td>
     </tr>`,
