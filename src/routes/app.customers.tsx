@@ -64,18 +64,28 @@ function CustomersPage() {
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">لا يوجد زبائن</div>
         ) : filtered.map(c => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm">
-            <div className="flex-1 min-w-0 text-right">
-              <div className="font-semibold">{c.name}</div>
-              {c.phone && <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end mt-1"><span>{c.phone}</span><Phone className="h-3 w-3" /></div>}
+          <div key={c.id} className={`rounded-xl bg-card border border-border p-3 shadow-sm ${c.is_inactive ? "opacity-60" : ""}`}>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0 text-right">
+                <div className="font-semibold">{c.name}</div>
+                {c.phone && <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end mt-1"><span>{c.phone}</span><Phone className="h-3 w-3" /></div>}
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">الرصيد</div>
+                <div className={`font-mono font-bold ${Number(c.balance) > 0 ? "text-destructive" : "text-success"}`}>{Number(c.balance).toFixed(2)}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <button onClick={() => openEdit(c)} className="rounded-md p-1.5 hover:bg-muted"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => remove(c.id)} className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">الرصيد</div>
-              <div className={`font-mono font-bold ${Number(c.balance) > 0 ? "text-destructive" : "text-success"}`}>{Number(c.balance).toFixed(2)}</div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <button onClick={() => openEdit(c)} className="rounded-md p-1.5 hover:bg-muted"><Pencil className="h-4 w-4" /></button>
-              <button onClick={() => remove(c.id)} className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <div className="mt-3 pt-3 border-t border-border flex gap-2">
+              <Button onClick={() => { setSalesCustomer(c); setSalesOpen(true); }} size="sm" className="flex-1 bg-gradient-primary text-primary-foreground gap-1 rounded-full">
+                <Receipt className="h-4 w-4" /> تسيير المبيعات
+              </Button>
+              <Button onClick={() => navigate({ to: "/app/pos", search: { customerId: c.id } as any })} size="sm" variant="outline" className="flex-1 gap-1 rounded-full">
+                <ShoppingCart className="h-4 w-4" /> بيع جديد
+              </Button>
             </div>
           </div>
         ))}
