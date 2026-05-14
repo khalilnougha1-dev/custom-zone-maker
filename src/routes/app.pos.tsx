@@ -37,6 +37,7 @@ function NewSalePage() {
 
   const [now, setNow] = useState({ date: "", time: "" });
   const [products, setProducts] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [customerQ, setCustomerQ] = useState("");
@@ -76,6 +77,10 @@ function NewSalePage() {
       .then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id,name,phone").eq("user_id", user.id).order("name")
       .then(({ data }) => setCustomers(data || []));
+    (supabase as any).from("product_packages")
+      .select("id,product_id,name,units_count,retail_price,cost_price,barcode,is_inactive")
+      .eq("user_id", user.id)
+      .then(({ data }: any) => setPackages((data || []).filter((p: any) => !p.is_inactive)));
   }, [user]);
 
   const filteredCustomers = useMemo(() => {
@@ -86,18 +91,34 @@ function NewSalePage() {
     ).slice(0, 20);
   }, [customers, customerQ]);
 
+  // Build a unified search list of products + their packages (cartons).
+  const searchEntries = useMemo(() => {
+    const productEntries = products.map((p: any) => ({ kind: "product" as const, product: p, pkg: null as any }));
+    const pkgEntries = packages.map((pk: any) => {
+      const product = products.find((p: any) => p.id === pk.product_id);
+      return product ? { kind: "package" as const, product, pkg: pk } : null;
+    }).filter(Boolean) as Array<{ kind: "package"; product: any; pkg: any }>;
+    return [...productEntries, ...pkgEntries];
+  }, [products, packages]);
+
   const filteredProducts = useMemo(() => {
     const q = productQ.toLowerCase().trim();
-    if (!q) return products.slice(0, 30);
-    return products.filter((p: any) =>
-      p.name?.toLowerCase().includes(q) ||
-      (p.barcode || "").includes(q) ||
-      (p.reference || "").toLowerCase().includes(q)
-    ).slice(0, 30);
-  }, [products, productQ]);
+    const match = (e: any) => {
+      if (!q) return true;
+      const name = e.kind === "package" ? `${e.product.name} ${e.pkg.name}` : e.product.name;
+      const barcode = e.kind === "package" ? (e.pkg.barcode || "") : (e.product.barcode || "");
+      return (
+        name?.toLowerCase().includes(q) ||
+        (barcode || "").includes(q) ||
+        (e.product.reference || "").toLowerCase().includes(q)
+      );
+    };
+    return searchEntries.filter(match).slice(0, 40);
+  }, [searchEntries, productQ]);
 
   const totalAmount = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const totalUnits = cart.reduce((s, i) => s + i.qty, 0);
+  const totalUnits = cart.reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
+
   const totalLines = cart.length;
 
   const getStock = (id: string) => {
