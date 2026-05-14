@@ -425,17 +425,18 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
 }
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
-  // BLE printers usually accept 180-byte payloads with writeWithoutResponse.
-  // Larger chunks + smaller delays => dramatically faster prints.
+  // بعض الطابعات الحرارية الرخيصة تفسد آخر الوصل عندما نرسل بسرعة عالية
+  // أو باستعمال writeWithoutResponse. نفضّل الإرسال المؤكّد chunks أصغر لتفادي
+  // ظهور رموز/حروف عشوائية أسفل الوصل.
   const supportsWrite = !!characteristic?.properties?.write && !!characteristic?.writeValue;
   const supportsWriteWithoutResponse =
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
-  const prefersWriteWithoutResponse = supportsWriteWithoutResponse || !supportsWrite;
+  const prefersWriteWithoutResponse = supportsWriteWithoutResponse && !supportsWrite;
 
-  const chunkSize = prefersWriteWithoutResponse ? 180 : 100;
+  const chunkSize = prefersWriteWithoutResponse ? 96 : 64;
   const chunkDelay = prefersWriteWithoutResponse
-    ? (isAndroidBluetoothClient() ? 6 : 4)
-    : (isAndroidBluetoothClient() ? 8 : 5);
+    ? (isAndroidBluetoothClient() ? 18 : 14)
+    : (isAndroidBluetoothClient() ? 22 : 16);
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
@@ -558,7 +559,7 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
   // أكبر = أسرع (عدد روابط أقل)
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 192 : 256);
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 128 : 96);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
