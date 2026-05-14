@@ -187,7 +187,8 @@ function NewSalePage() {
 
   const getStock = (productId: string) => {
     const p = products.find((x: any) => x.id === productId);
-    return p ? Number(p.stock_quantity) : 0;
+    const base = p ? Number(p.stock_quantity) : 0;
+    return base + (originalUnits[productId] || 0);
   };
   const isTracked = (productId: string) => {
     const p = products.find((x: any) => x.id === productId);
