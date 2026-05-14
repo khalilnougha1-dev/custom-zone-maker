@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getActivePrinter, getPaperWidthMm, getPaperWidthPx } from "@/lib/printer-config";
+import { getActivePrinter, getPaperWidthMm, getPaperWidthPx, getReceiptPaperWidth } from "@/lib/printer-config";
 import { toast } from "sonner";
 
 let receiptPrintInFlight = false;
@@ -76,11 +76,14 @@ export async function printReceipt(d: ReceiptData) {
       return;
     }
 
-    const paperWidthPx = getPaperWidthPx(activePrinter.paper || "80mm");
-    const paperWidthMm = getPaperWidthMm(activePrinter.paper || "80mm");
-    const receiptWidthPx = activePrinter.paper === "A4" ? 576 : paperWidthPx;
-    const receiptWidthMm = activePrinter.paper === "A4" ? 72 : paperWidthMm;
-    const isCompactReceipt = false;
+    // عرض الورق المختار من المستخدم لوصل البيع — يطغى على إعداد الطابعة (إلا A4)
+    const receiptPaper = getReceiptPaperWidth(); // "58mm" | "80mm"
+    const effectivePaper = activePrinter.paper === "A4" ? "A4" : receiptPaper;
+    const paperWidthPx = getPaperWidthPx(effectivePaper);
+    const paperWidthMm = getPaperWidthMm(effectivePaper);
+    const receiptWidthPx = effectivePaper === "A4" ? 576 : paperWidthPx;
+    const receiptWidthMm = effectivePaper === "A4" ? 72 : paperWidthMm;
+    const isCompactReceipt = effectivePaper === "58mm";
     let preparedBluetoothPrinterId = d.preparedBluetoothPrinterId || null;
 
     if (activePrinter.connection === "bluetooth" && !preparedBluetoothPrinterId) {

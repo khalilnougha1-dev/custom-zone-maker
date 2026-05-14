@@ -10,6 +10,20 @@ export type SavedPrinter = {
 
 export const SAVED_PRINTERS_KEY = "sahla.printers";
 export const ACTIVE_PRINTER_KEY = "sahla.printer.active";
+export const RECEIPT_PAPER_KEY = "sahla.receipt.paper";
+
+export type ReceiptPaperWidth = "58mm" | "80mm";
+
+export function getReceiptPaperWidth(): ReceiptPaperWidth {
+  if (typeof window === "undefined") return "80mm";
+  const v = localStorage.getItem(RECEIPT_PAPER_KEY);
+  return v === "58mm" || v === "80mm" ? v : "80mm";
+}
+
+export function setReceiptPaperWidth(value: ReceiptPaperWidth) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(RECEIPT_PAPER_KEY, value);
+}
 
 export function getSavedPrinters(): SavedPrinter[] {
   if (typeof window === "undefined") return [];

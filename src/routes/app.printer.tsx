@@ -12,6 +12,9 @@ import {
   SAVED_PRINTERS_KEY,
   type PrinterConnection,
   getPaperWidthPx,
+  getReceiptPaperWidth,
+  setReceiptPaperWidth,
+  type ReceiptPaperWidth,
 } from "@/lib/printer-config";
 
 export const Route = createFileRoute("/app/printer")({ component: PrinterPage });
@@ -41,6 +44,7 @@ function PrinterPage() {
   const [scanning, setScanning] = useState(false);
   const [quickTesting, setQuickTesting] = useState(false);
   const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
+  const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
 
   // Add-printer form
   const [name, setName] = useState("");
@@ -51,7 +55,14 @@ function PrinterPage() {
   useEffect(() => {
     setPrinters(loadPrinters());
     setActiveId(localStorage.getItem(ACTIVE_KEY) || "");
+    setReceiptPaperState(getReceiptPaperWidth());
   }, []);
+
+  const changeReceiptPaper = (v: ReceiptPaperWidth) => {
+    setReceiptPaperState(v);
+    setReceiptPaperWidth(v);
+    toast.success(`تم تعيين عرض وصل البيع إلى ${v === "58mm" ? "58 مم" : "80 مم"}`);
+  };
 
   const addPrinter = () => {
     if (!name.trim()) return toast.error("أدخل اسم الطابعة");
@@ -219,6 +230,39 @@ function PrinterPage() {
   return (
     <PosLayout title="الطابعة">
       <div className="space-y-4">
+        {/* Receipt paper width */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">عرض ورق وصل البيع</div>
+            <Printer className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-xs text-muted-foreground text-right">
+            يتم تطبيقه تلقائيًا على الطباعة المباشرة وعلى ملف PDF.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => changeReceiptPaper("58mm")}
+              className={`rounded-lg border p-3 text-sm font-bold transition ${
+                receiptPaper === "58mm"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:bg-muted"
+              }`}
+            >
+              58 مم
+            </button>
+            <button
+              onClick={() => changeReceiptPaper("80mm")}
+              className={`rounded-lg border p-3 text-sm font-bold transition ${
+                receiptPaper === "80mm"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:bg-muted"
+              }`}
+            >
+              80 مم
+            </button>
+          </div>
+        </div>
+
         {/* Quick test print */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
           <div className="flex items-center justify-between">
