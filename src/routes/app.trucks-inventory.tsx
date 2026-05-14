@@ -19,11 +19,13 @@ type Dist = {
   customer_name: string | null; quantity: number; unit_price: number; total: number;
   paid: number; status: string; notes: string | null; created_at: string; updated_at: string;
 };
+type Product = { id: string; name: string; stock_quantity: number; cost_price: number; retail_price: number; unit: string | null };
 
 function TrucksInventoryPage() {
   const { user } = useAuth();
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [dists, setDists] = useState<Dist[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [truckId, setTruckId] = useState<string>("all");
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
@@ -31,12 +33,14 @@ function TrucksInventoryPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: ts }, { data: ds }] = await Promise.all([
+    const [{ data: ts }, { data: ds }, { data: ps }] = await Promise.all([
       supabase.from("trucks").select("*").eq("owner_id", user.id).order("name"),
       supabase.from("truck_distributions").select("*").eq("owner_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("products").select("id,name,stock_quantity,cost_price,retail_price,unit").eq("user_id", user.id).eq("is_inactive", false).order("name").limit(500),
     ]);
     setTrucks((ts as any) || []);
     setDists((ds as any) || []);
+    setProducts((ps as any) || []);
     setLoading(false);
   };
   useEffect(() => { load(); }, [user]);
