@@ -327,13 +327,13 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      if (characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
-        await characteristic.writeValueWithoutResponse(slice);
+      if (characteristic.properties?.write && characteristic.writeValue) {
+        await characteristic.writeValue(slice);
         return;
       }
 
-      if (characteristic.properties?.write && characteristic.writeValue) {
-        await characteristic.writeValue(slice);
+      if (characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+        await characteristic.writeValueWithoutResponse(slice);
         return;
       }
 
@@ -355,15 +355,20 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
 
 async function writeChunks(characteristic: any, bytes: Uint8Array) {
   const chunkSize = 20;
+  const supportsWrite = !!characteristic?.properties?.write && !!characteristic?.writeValue;
   const supportsWriteWithoutResponse =
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
-  const chunkDelay = supportsWriteWithoutResponse
+  const chunkDelay = supportsWrite
     ? isAndroidBluetoothClient()
-      ? 10
-      : 6
-    : isAndroidBluetoothClient()
-      ? 16
-      : 12;
+      ? 14
+      : 10
+    : supportsWriteWithoutResponse
+      ? isAndroidBluetoothClient()
+        ? 26
+        : 18
+      : isAndroidBluetoothClient()
+        ? 22
+        : 16;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
