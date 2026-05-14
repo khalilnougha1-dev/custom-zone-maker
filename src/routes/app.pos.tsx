@@ -39,6 +39,8 @@ type CartItem = {
 function NewSalePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { edit: editSaleId } = Route.useSearch();
+  const isEditMode = !!editSaleId;
 
   const [now, setNow] = useState({ date: "", time: "" });
   const [products, setProducts] = useState<any[]>([]);
@@ -56,6 +58,8 @@ function NewSalePage() {
   const [paid, setPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "check" | "card" | "phone">("cash");
   const [note, setNote] = useState("");
+  const [originalUnits, setOriginalUnits] = useState<Record<string, number>>({});
+  const [editLoaded, setEditLoaded] = useState(false);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
