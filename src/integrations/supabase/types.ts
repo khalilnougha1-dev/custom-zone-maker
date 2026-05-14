@@ -468,6 +468,10 @@ export type Database = {
       purchase_items: {
         Row: {
           id: string
+          package_id: string | null
+          package_name: string | null
+          package_qty: number | null
+          package_units_count: number | null
           product_id: string | null
           product_name: string
           purchase_id: string
@@ -477,6 +481,10 @@ export type Database = {
         }
         Insert: {
           id?: string
+          package_id?: string | null
+          package_name?: string | null
+          package_qty?: number | null
+          package_units_count?: number | null
           product_id?: string | null
           product_name: string
           purchase_id: string
@@ -486,6 +494,10 @@ export type Database = {
         }
         Update: {
           id?: string
+          package_id?: string | null
+          package_name?: string | null
+          package_qty?: number | null
+          package_units_count?: number | null
           product_id?: string | null
           product_name?: string
           purchase_id?: string
