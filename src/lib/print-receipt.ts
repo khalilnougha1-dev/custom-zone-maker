@@ -79,66 +79,69 @@ export async function printReceipt(d: ReceiptData) {
       .map(
         (i) => `
       <tr>
-        <td class="num">${(i.unit_price * i.quantity).toFixed(2)}</td>
-        <td class="num">${i.unit_price.toFixed(2)}</td>
-        <td class="qty">${i.quantity}</td>
-        <td class="name">${i.product_name}</td>
+        <td style="text-align:left;font-family:'Courier New',monospace;padding:6px 2px;border-bottom:1px dashed #000;white-space:nowrap;">${(i.unit_price * i.quantity).toFixed(2)}</td>
+        <td style="text-align:left;font-family:'Courier New',monospace;padding:6px 2px;border-bottom:1px dashed #000;white-space:nowrap;">${i.unit_price.toFixed(2)}</td>
+        <td style="text-align:center;padding:6px 2px;border-bottom:1px dashed #000;font-weight:bold;">${i.quantity}</td>
+        <td style="text-align:right;padding:6px 2px;border-bottom:1px dashed #000;">${i.product_name}</td>
       </tr>`,
       )
       .join("");
 
-    const html = `
-    <html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
-    <style>
-      @page { size: 80mm auto; margin: 3mm; }
-      body { font-family: Arial, sans-serif; font-size: 13px; color:#000; margin:0; }
-      .head { display:flex; justify-content:space-between; margin: 2px 0; }
-      .center { text-align:center; font-weight:bold; margin: 6px 0; font-size:14px; }
-      table { width:100%; border-collapse:collapse; }
-      th { text-align:right; border-bottom:1px dashed #000; padding:4px 2px; font-weight:normal; }
-      .num { text-align:left; font-family:monospace; padding:2px 4px; }
-      .qty { text-align:center; padding:2px 4px; }
-      .name { text-align:right; padding:2px 4px; }
-      tbody tr td { border-bottom:1px dashed #000; }
-      .totals { margin-top:4px; }
-      .totals .row { display:flex; justify-content:space-between; padding:2px 2px; }
-      .totals .row.sum { border-bottom:1px dashed #000; padding-bottom:4px; margin-bottom:2px; }
-      .mono { font-family:monospace; }
-      .thanks { text-align:center; margin-top:10px; }
-      .footer { text-align:center; margin-top:4px; font-size:12px; }
-    </style></head><body>
-      <div class="head"><b>${timeStr}&nbsp;&nbsp;${dateStr}</b><b>:التاريخ</b></div>
-      <div class="head"><b>${d.customerName}</b><b>:الزبون</b></div>
-      <div class="center">وصل بيع رقم: ${d.saleSeq}</div>
-      <table>
-        <thead>
-          <tr>
-            <th class="num">المبلغ</th>
-            <th class="num">السعر</th>
-            <th class="qty">الكمية</th>
-            <th>المنتج</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="totals">
-        <div class="row sum"><span class="mono">${total.toFixed(2)}</span><span>المجموع</span></div>
-        <div class="row"><span class="mono">${prevDebt.toFixed(2)}</span><span>الديون السابقة</span></div>
-        <div class="row"><span class="mono">${paidNum.toFixed(2)}</span><span>المبلغ المدفوع</span></div>
-        <div class="row"><span class="mono">${rest.toFixed(2)}</span><span>المبلغ المتبقى</span></div>
-      </div>
-      ${d.note ? `<div style="margin-top:6px;text-align:right;">ملاحظة: ${d.note}</div>` : ""}
-      <div class="thanks">شكرا</div>
-      ${isDemo ? `<div class="footer">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
-    </body></html>`;
+    // Single inline-styled block — used for both system print and bluetooth raster
+    const receiptBody = `
+      <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;font-size:22px;line-height:1.4;color:#000;background:#fff;padding:6px 4px;direction:rtl;" dir="rtl">
+        <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;">
+          <span>${timeStr}&nbsp;&nbsp;${dateStr}</span>
+          <span>:التاريخ</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin:2px 0;font-weight:bold;">
+          <span>${d.customerName}</span>
+          <span>:الزبون</span>
+        </div>
+        <div style="text-align:center;font-weight:bold;margin:10px 0 6px;font-size:26px;">وصل بيع رقم: ${d.saleSeq}</div>
+        <table style="width:100%;border-collapse:collapse;margin-top:4px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">المبلغ</th>
+              <th style="text-align:left;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">السعر</th>
+              <th style="text-align:center;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">الكمية</th>
+              <th style="text-align:right;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 2px;font-weight:normal;">المنتج</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div style="margin-top:6px;">
+          <div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px dashed #000;margin-bottom:4px;">
+            <span style="font-family:'Courier New',monospace;font-weight:bold;">${total.toFixed(2)}</span>
+            <span style="font-weight:bold;">المجموع</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 2px;">
+            <span style="font-family:'Courier New',monospace;">${prevDebt.toFixed(2)}</span>
+            <span>الديون السابقة</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 2px;">
+            <span style="font-family:'Courier New',monospace;">${paidNum.toFixed(2)}</span>
+            <span>المبلغ المدفوع</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 2px;">
+            <span style="font-family:'Courier New',monospace;">${rest.toFixed(2)}</span>
+            <span>المبلغ المتبقى</span>
+          </div>
+        </div>
+        ${d.note ? `<div style="margin-top:8px;text-align:right;">ملاحظة: ${d.note}</div>` : ""}
+        <div style="text-align:center;margin-top:14px;font-weight:bold;font-size:24px;">شكرا</div>
+        ${isDemo ? `<div style="text-align:center;margin-top:6px;font-size:18px;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+      </div>`;
 
-    // Body-only HTML for the bluetooth raster path
-    const bodyHtml = `<div style="width:100%;font-family:Arial,sans-serif;font-size:18px;color:#000;background:#fff;padding:4px;">${html
-      .split("<body>")[1]
-      .split("</body>")[0]}</div>`;
+    const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
+    <style>@page { size: 80mm auto; margin: 3mm; } body { margin:0; }</style>
+    </head><body>${receiptBody}</body></html>`;
+
+    const bodyHtml = receiptBody;
 
     const activePrinter = getActivePrinter();
-    const paperWidthPx = getPaperWidthPx(activePrinter?.paper);
+    // Force 80mm raster width (user requirement) when no explicit paper set
+    const paperWidthPx = getPaperWidthPx(activePrinter?.paper || "80mm");
 
     if (!activePrinter) {
       toast.error("لم يتم تحديد طابعة افتراضية من صفحة الطابعة");
