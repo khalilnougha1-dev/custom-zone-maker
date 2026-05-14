@@ -272,8 +272,30 @@ function NewSalePage() {
               onFocus={() => setShowCustomerList(true)}
               className="pr-10 h-12 bg-card border-primary/40 text-right"
             />
-            {showCustomerList && filteredCustomers.length > 0 && (
+            {showCustomerList && (filteredCustomers.length > 0 || (customerQ.trim() && !customerId)) && (
               <div className="absolute top-full left-0 right-0 mt-1 z-30 max-h-64 overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
+                {customerQ.trim() && !filteredCustomers.some((c: any) => c.name?.toLowerCase() === customerQ.trim().toLowerCase()) && (
+                  <button
+                    onClick={async () => {
+                      const name = customerQ.trim();
+                      if (!name || !user) return;
+                      const { data, error } = await supabase
+                        .from("customers")
+                        .insert({ user_id: user.id, name })
+                        .select("id,name,phone")
+                        .single();
+                      if (error || !data) { toast.error(error?.message || "خطأ"); return; }
+                      setCustomers((prev) => [data, ...prev]);
+                      setCustomerId(data.id);
+                      setCustomerQ(data.name);
+                      setShowCustomerList(false);
+                      toast.success("تمت إضافة الزبون");
+                    }}
+                    className="w-full text-right px-3 py-2 text-sm bg-primary/10 hover:bg-primary/20 border-b border-border font-semibold text-primary"
+                  >
+                    + إضافة زبون جديد: «{customerQ.trim()}»
+                  </button>
+                )}
                 {filteredCustomers.map((c: any) => (
                   <button
                     key={c.id}
