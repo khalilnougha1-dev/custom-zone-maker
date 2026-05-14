@@ -161,7 +161,7 @@ function PackageEditor({
       name: form.name.trim(),
       units_count: units,
       apply_unit_price: form.apply_unit_price,
-      cost_price: Number(form.cost_price) || 0,
+      cost_price: unitCost * units,
       retail_price: retail,
       image_url: form.image_url || null,
       notes: form.notes.trim() || null,
