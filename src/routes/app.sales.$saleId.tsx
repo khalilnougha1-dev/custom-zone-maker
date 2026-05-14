@@ -72,6 +72,31 @@ function SaleDetailPage() {
     if (!user || !sale || isPrinting) return;
     setIsPrinting(true);
     try {
+      let preparedBluetoothPrinterId: string | null = null;
+      const activePrinterRaw = localStorage.getItem("sahla.printer.active");
+      if (activePrinterRaw) {
+        try {
+          const rawPrinters = JSON.parse(localStorage.getItem("sahla.printers") || "[]") as Array<{
+            id: string;
+            connection: string;
+          }>;
+          const activePrinter = rawPrinters.find((printer) => printer.id === activePrinterRaw);
+          if (activePrinter?.connection === "bluetooth") {
+            const { isWebBluetoothSupported, prepareBluetoothPrinter } = await import("@/lib/bt-printer");
+            if (isWebBluetoothSupported()) {
+              const preparedPrinter = await prepareBluetoothPrinter({ promptIfMissing: true });
+              preparedBluetoothPrinterId = preparedPrinter?.id || null;
+            }
+          }
+        } catch (error) {
+          const message = (error as Error).message || "تعذر تجهيز الطابعة";
+          if (!message.toLowerCase().includes("cancel")) {
+            toast.error(message);
+          }
+          return;
+        }
+      }
+
       await printReceiptHtml({
         userId: user.id,
         saleSeq: seq ?? 1,
@@ -86,6 +111,7 @@ function SaleDetailPage() {
         paid: Number(sale.paid || 0),
         note: sale.notes,
         createdAt: sale.created_at,
+        preparedBluetoothPrinterId,
       });
     } finally {
       setIsPrinting(false);
