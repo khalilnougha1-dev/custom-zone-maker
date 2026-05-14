@@ -325,18 +325,18 @@ export async function printReceipt(d: ReceiptData) {
             { text: `التاريخ:`, width: 0.6, align: "right" as const, bold: true },
             { text: `${dateStr} ${timeStr}`, width: 1.4, align: "left" as const, direction: "ltr" as const, bold: true },
           ],
-          size: isCompactReceipt ? 15 : 18,
+          size: isCompactReceipt ? 20 : 24,
         },
         {
           columns: [
             { text: `الزبون:`, width: 0.5, align: "right" as const, bold: true },
             { text: d.customerName, width: 1.5, align: "left" as const, bold: true },
           ],
-          size: isCompactReceipt ? 15 : 18,
-          gapTop: 3,
+          size: isCompactReceipt ? 20 : 24,
+          gapTop: 4,
         },
-        { text: `وصل بيع رقم: ${d.saleSeq}`, align: "center" as const, size: isCompactReceipt ? 20 : 24, bold: true, gapTop: 8 },
-        { dashed: true, gapTop: 4 },
+        { text: `وصل بيع رقم: ${d.saleSeq}`, align: "center" as const, size: isCompactReceipt ? 26 : 30, bold: true, gapTop: 10 },
+        { dashed: true, gapTop: 6 },
         {
           columns: [
             { text: "المنتج", width: 1.4, align: "right" as const, bold: true },
@@ -344,10 +344,10 @@ export async function printReceipt(d: ReceiptData) {
             { text: "السعر", width: 0.55, align: "center" as const, bold: true },
             { text: "المبلغ", width: 0.7, align: "left" as const, bold: true },
           ],
-          size: isCompactReceipt ? 14 : 17,
-          gapTop: 3,
+          size: isCompactReceipt ? 19 : 22,
+          gapTop: 4,
         },
-        { dashed: true, gapTop: 3 },
+        { dashed: true, gapTop: 4 },
         ...d.items.map((item) => ({
           columns: [
             { text: item.product_name, width: 1.4, align: "right" as const, bold: true },
@@ -355,45 +355,45 @@ export async function printReceipt(d: ReceiptData) {
             { text: item.unit_price.toFixed(2), width: 0.55, align: "center" as const, direction: "ltr" as const, bold: true },
             { text: (item.unit_price * item.quantity).toFixed(2), width: 0.7, align: "left" as const, direction: "ltr" as const, bold: true },
           ],
-          size: isCompactReceipt ? 15 : 18,
-          gapTop: 4,
+          size: isCompactReceipt ? 20 : 24,
+          gapTop: 6,
         })),
-        { dashed: true, gapTop: 4 },
+        { dashed: true, gapTop: 6 },
         {
           columns: [
             { text: "المجموع", width: 1.2, align: "right" as const, bold: true },
             { text: total.toFixed(2), width: 1.0, align: "left" as const, bold: true, direction: "ltr" as const },
           ],
-          size: isCompactReceipt ? 20 : 24,
-          gapTop: 4,
+          size: isCompactReceipt ? 26 : 30,
+          gapTop: 6,
         },
-        { dashed: true, gapTop: 4 },
+        { dashed: true, gapTop: 6 },
         {
           columns: [
             { text: "الديون السابقة", width: 1.3, align: "right" as const, bold: true },
             { text: prevDebt.toFixed(2), width: 0.9, align: "left" as const, direction: "ltr" as const, bold: true },
           ],
-          size: isCompactReceipt ? 15 : 18,
-          gapTop: 4,
+          size: isCompactReceipt ? 20 : 24,
+          gapTop: 6,
         },
         {
           columns: [
             { text: "المبلغ المدفوع", width: 1.3, align: "right" as const, bold: true },
             { text: paidNum.toFixed(2), width: 0.9, align: "left" as const, direction: "ltr" as const, bold: true },
           ],
-          size: isCompactReceipt ? 15 : 18,
-          gapTop: 3,
+          size: isCompactReceipt ? 20 : 24,
+          gapTop: 4,
         },
         {
           columns: [
             { text: "المبلغ المتبقي", width: 1.3, align: "right" as const, bold: true },
             { text: rest.toFixed(2), width: 0.9, align: "left" as const, direction: "ltr" as const, bold: true },
           ],
-          size: isCompactReceipt ? 15 : 18,
-          gapTop: 3,
+          size: isCompactReceipt ? 20 : 24,
+          gapTop: 4,
         },
-        ...(d.note ? [{ text: `ملاحظة: ${d.note}`, align: "right" as const, size: isCompactReceipt ? 14 : 17, gapTop: 8, bold: true }] : []),
-        { text: "اعد الحساب من فضلك", align: "center" as const, size: isCompactReceipt ? 14 : 17, gapTop: 14, bold: true },
+        ...(d.note ? [{ text: `ملاحظة: ${d.note}`, align: "right" as const, size: isCompactReceipt ? 18 : 22, gapTop: 8, bold: true }] : []),
+        { text: "اعد الحساب من فضلك", align: "center" as const, size: isCompactReceipt ? 20 : 24, gapTop: 16, bold: true },
       ];
 
 

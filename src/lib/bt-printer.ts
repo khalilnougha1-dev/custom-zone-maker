@@ -513,15 +513,13 @@ function buildEscPosImage(
     (height >> 8) & 0xff,
   ];
   const header = new Uint8Array(headerBytes);
+  // NOTE: Avoid GS V (cut) and ESC @ (re-init) at the end — many cheap BT thermal
+  // printers don't implement them and print the raw bytes as garbage characters
+  // (Chinese-looking glyphs) at the bottom of the receipt. Plain line feeds only.
   const feed = new Uint8Array(
     options?.feed === false
       ? []
-      : [
-          0x0a, 0x0a, 0x0a, 0x0a, 0x0a,
-          0x1b, 0x32, // restore default line spacing
-          0x1b, 0x61, 0x00, // reset alignment
-          0x1d, 0x56, 0x42, 0x00, // full cut / finalize job on printers that support it
-        ],
+      : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a],
   );
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
