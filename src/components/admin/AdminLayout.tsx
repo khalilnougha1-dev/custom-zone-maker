@@ -18,7 +18,7 @@ export function AdminLayout({ title = "لوحة المسؤول العامة", em
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-gradient-to-l from-primary to-primary/80 text-primary-foreground shadow-md">
+      <header className="sticky top-0 z-40 border-b border-border bg-linear-to-l from-primary to-primary/80 text-primary-foreground shadow-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6" />

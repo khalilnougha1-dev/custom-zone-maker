@@ -58,7 +58,7 @@ function AppHome() {
       <div className="grid grid-cols-3 gap-3">
         {TILES.map((t) => (
           <Link key={t.to} to={t.to} className="group rounded-2xl bg-card p-3 shadow-card border border-border hover:border-primary/40 transition">
-            <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${t.color} text-white shadow-md group-hover:scale-110 transition`}>
+            <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${t.color} text-white shadow-md group-hover:scale-110 transition`}>
               <t.icon className="h-6 w-6" />
             </div>
             <div className="text-center text-xs font-semibold text-foreground">{t.label}</div>

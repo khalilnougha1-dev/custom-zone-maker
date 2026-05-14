@@ -75,7 +75,7 @@ function TrucksPage() {
           <div key={t.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-3 min-w-0 flex-1">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-orange-600 text-white shrink-0">
                   <TruckIcon className="h-6 w-6" />
                 </div>
                 <div className="min-w-0 flex-1">

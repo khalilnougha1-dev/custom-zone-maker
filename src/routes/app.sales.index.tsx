@@ -126,7 +126,7 @@ function SalesPage() {
       {/* Floating red cart button -> new sale */}
       <button
         onClick={() => navigate({ to: "/app/pos" })}
-        className="fixed bottom-44 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
+        className="fixed bottom-44 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
         aria-label="بيع جديد"
       >
         <ShoppingCart className="h-6 w-6" />
