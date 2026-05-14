@@ -41,7 +41,7 @@ function ExpensesPage() {
     <PosLayout title="المصاريف" actions={
       <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-white/10"><Plus className="h-5 w-5" /></button>
     }>
-      <div className="rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 p-4 text-white shadow-card mb-4">
+      <div className="rounded-2xl bg-linear-to-br from-red-500 to-pink-600 p-4 text-white shadow-card mb-4">
         <div className="text-sm opacity-90">إجمالي المصاريف</div>
         <div className="font-mono text-3xl font-bold mt-1">{total.toFixed(2)}</div>
       </div>

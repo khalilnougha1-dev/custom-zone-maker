@@ -29,7 +29,7 @@ export function InstallAppSection() {
   return (
     <section className="py-20 md:py-28">
       <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-bl from-primary/10 via-card to-card shadow-elegant">
+        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-linear-to-bl from-primary/10 via-card to-card shadow-elegant">
           <div className="grid md:grid-cols-2 gap-8 p-8 md:p-12">
             {/* Right: Text + CTA */}
             <div className="space-y-5 text-right">
