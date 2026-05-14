@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getActivePrinter, getPaperWidthMm, getPaperWidthPx } from "@/lib/printer-config";
+import { getActivePrinter, getPaperWidthMm, getPaperWidthPx, getReceiptPaperWidth } from "@/lib/printer-config";
 import { toast } from "sonner";
 
 let receiptPrintInFlight = false;
