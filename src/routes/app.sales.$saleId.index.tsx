@@ -216,7 +216,14 @@ function SaleDetailPage() {
                   <span className="font-mono text-xl text-muted-foreground" style={digitFont}>
                     {Number(i.total).toFixed(2)}
                   </span>
-                  <span className="text-lg">{Number(i.quantity)}</span>
+                  <span className="text-lg">
+                    {Number(i.quantity)}
+                    {i.package_units_count ? (
+                      <span className="text-sm text-primary mr-2 font-mono">
+                        ({Number(i.package_qty)}×{i.package_units_count})
+                      </span>
+                    ) : null}
+                  </span>
                 </div>
               </div>
             </div>
