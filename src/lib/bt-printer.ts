@@ -503,11 +503,15 @@ function buildEscPosImage(
   options?: { initialize?: boolean; feed?: boolean },
 ): Uint8Array {
   const widthBytes = width / 8;
+  // IMPORTANT: re-initialize printer state BEFORE every raster band.
+  // Cheap BT thermal printers (XP-P323B and similar) lose raster mode between
+  // BLE chunks if any byte is dropped or re-ordered, then interpret subsequent
+  // raster bytes as text glyphs (Chinese-looking garbage in the middle of the
+  // receipt). ESC @ on every band guarantees a clean state for GS v 0.
   const headerBytes = [
-    ...(options?.initialize === false ? [] : [0x1b, 0x40]), // ESC @ initialize
-    0x1b, 0x61, 0x02, // align right for RTL-focused receipts before raster payload
-    0x1b, 0x33, 0x00, // ESC 3 n = compact line spacing for raster data
-    0x1d, 0x76, 0x30, 0x00, // GS v 0 m=0 (normal)
+    0x1b, 0x40, // ESC @ initialize (always, every band)
+    0x1b, 0x33, 0x00, // ESC 3 0 = compact line spacing for raster data
+    0x1d, 0x76, 0x30, 0x00, // GS v 0 m=0 (normal raster)
     widthBytes & 0xff,
     (widthBytes >> 8) & 0xff,
     height & 0xff,
@@ -558,13 +562,14 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 }
 
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
-  // أكبر = أسرع (عدد روابط أقل)
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 128 : 96);
+  // Smaller bands = more reliable on cheap BLE printers. The trade-off (slightly
+  // slower) is worth it to avoid garbage characters mid-receipt.
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 64 : 48);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height, {
-      initialize: index === 0,
+      initialize: true,
       feed: index === bands.length - 1,
     });
 
@@ -574,12 +579,14 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
       "انتهت مهلة إرسال بيانات الطباعة",
     );
 
+    // Give the printer time to fully process and print this band before the
+    // next one arrives — prevents buffer overflow / state-loss garbage.
     if (index === bands.length - 1) {
       await delay(canvas.width <= 384 ? 350 : 250);
       continue;
     }
 
-    await delay(60);
+    await delay(140);
   }
 }
 
