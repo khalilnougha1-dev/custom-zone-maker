@@ -228,7 +228,7 @@ function PurchasesSection({ userId }: { userId: string }) {
         invoice_number: invoice || null,
         total,
         subtotal: total,
-        payment_status: "paid",
+        paid: total,
       })
       .select()
       .single();
@@ -242,7 +242,7 @@ function PurchasesSection({ userId }: { userId: string }) {
         product_name: p?.name || "",
         quantity: Number(l.quantity),
         unit_cost: Number(l.unit_cost),
-        subtotal: Number(l.quantity) * Number(l.unit_cost),
+        total: Number(l.quantity) * Number(l.unit_cost),
       };
     });
     const { error: e2 } = await supabase.from("purchase_items").insert(itemsPayload);
