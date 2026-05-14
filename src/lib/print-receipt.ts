@@ -74,6 +74,9 @@ export async function printReceipt(d: ReceiptData) {
 
     const paperWidthPx = getPaperWidthPx(activePrinter.paper || "80mm");
     const paperWidthMm = getPaperWidthMm(activePrinter.paper || "80mm");
+    const receiptWidthPx = activePrinter.paper === "A4" ? 384 : Math.min(paperWidthPx, 384);
+    const receiptWidthMm = activePrinter.paper === "A4" ? 72 : Math.min(paperWidthMm, 58);
+    const isCompactReceipt = receiptWidthPx <= 384;
     let preparedBluetoothPrinterId = d.preparedBluetoothPrinterId || null;
 
     if (activePrinter.connection === "bluetooth" && !preparedBluetoothPrinterId) {
@@ -142,11 +145,11 @@ export async function printReceipt(d: ReceiptData) {
       .map(
         (i, index) => `
       <tr>
-        <td style="padding:8px 0 6px;text-align:right;font-weight:700;font-size:18px;line-height:1.35;word-break:break-word;">${index + 1}. ${i.product_name}</td>
+        <td style="padding:5px 0 3px;text-align:right;font-weight:700;font-size:${isCompactReceipt ? 15 : 18}px;line-height:1.3;word-break:break-word;">${index + 1}. ${i.product_name}</td>
       </tr>
       <tr>
-        <td style="padding:0 0 8px;border-bottom:1px dashed #000;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'Courier New',monospace;font-size:17px;direction:ltr;">
+        <td style="padding:0 0 6px;border-bottom:1px dashed #000;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:'Courier New',monospace;font-size:${isCompactReceipt ? 12 : 17}px;direction:ltr;">
             <span>${(i.unit_price * i.quantity).toFixed(2)}</span>
             <span>${i.unit_price.toFixed(2)} × ${i.quantity}</span>
           </div>
@@ -155,19 +158,19 @@ export async function printReceipt(d: ReceiptData) {
       )
       .join("");
 
-    const lineStyle = "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0;";
-    const labelStyle = "font-size:18px;font-weight:700;white-space:nowrap;";
-    const valueStyle = "font-size:18px;font-family:'Courier New',monospace;font-weight:700;text-align:left;direction:ltr;unicode-bidi:embed;";
+    const lineStyle = `display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:${isCompactReceipt ? 2 : 4}px 0;`;
+    const labelStyle = `font-size:${isCompactReceipt ? 14 : 18}px;font-weight:700;white-space:nowrap;`;
+    const valueStyle = `font-size:${isCompactReceipt ? 13 : 18}px;font-family:'Courier New',monospace;font-weight:700;text-align:left;direction:ltr;unicode-bidi:embed;`;
 
     // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
       <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;" dir="rtl">
-        <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px;">
-          <div style="font-size:30px;font-weight:900;line-height:1.2;">وصل بيع رقم</div>
-          <div style="font-size:34px;font-weight:900;line-height:1.2;margin-top:4px;">${d.saleSeq}</div>
+        <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:${isCompactReceipt ? 6 : 8}px;margin-bottom:${isCompactReceipt ? 6 : 8}px;">
+          <div style="font-size:${isCompactReceipt ? 20 : 30}px;font-weight:900;line-height:1.2;">وصل بيع رقم</div>
+          <div style="font-size:${isCompactReceipt ? 24 : 34}px;font-weight:900;line-height:1.2;margin-top:3px;">${d.saleSeq}</div>
         </div>
 
-        <div style="border-bottom:1px dashed #000;padding-bottom:8px;margin-bottom:8px;">
+        <div style="border-bottom:1px dashed #000;padding-bottom:${isCompactReceipt ? 6 : 8}px;margin-bottom:${isCompactReceipt ? 6 : 8}px;">
           <div style="${lineStyle}">
             <span style="${valueStyle}">${dateStr}</span>
             <span style="${labelStyle}">التاريخ</span>
@@ -177,7 +180,7 @@ export async function printReceipt(d: ReceiptData) {
             <span style="${labelStyle}">الوقت</span>
           </div>
           <div style="${lineStyle}">
-            <span style="font-size:18px;font-weight:700;text-align:right;flex:1;word-break:break-word;">${d.customerName}</span>
+            <span style="font-size:${isCompactReceipt ? 14 : 18}px;font-weight:700;text-align:right;flex:1;word-break:break-word;">${d.customerName}</span>
             <span style="${labelStyle}">الزبون</span>
           </div>
         </div>
@@ -186,7 +189,7 @@ export async function printReceipt(d: ReceiptData) {
           <tbody>${rows}</tbody>
         </table>
 
-        <div style="border-top:2px solid #000;border-bottom:2px solid #000;padding:8px 0;margin-top:8px;">
+        <div style="border-top:2px solid #000;border-bottom:2px solid #000;padding:${isCompactReceipt ? 6 : 8}px 0;margin-top:${isCompactReceipt ? 6 : 8}px;">
           <div style="${lineStyle}">
             <span style="${valueStyle}">${total.toFixed(2)}</span>
             <span style="${labelStyle}">المجموع</span>
@@ -205,10 +208,10 @@ export async function printReceipt(d: ReceiptData) {
           </div>
         </div>
 
-        ${d.note ? `<div style="margin-top:10px;border-bottom:1px dashed #000;padding-bottom:8px;"><div style="font-size:18px;font-weight:700;margin-bottom:4px;">ملاحظة</div><div style="font-size:17px;line-height:1.5;word-break:break-word;">${d.note}</div></div>` : ""}
+        ${d.note ? `<div style="margin-top:${isCompactReceipt ? 8 : 10}px;border-bottom:1px dashed #000;padding-bottom:${isCompactReceipt ? 6 : 8}px;"><div style="font-size:${isCompactReceipt ? 14 : 18}px;font-weight:700;margin-bottom:4px;">ملاحظة</div><div style="font-size:${isCompactReceipt ? 13 : 17}px;line-height:1.5;word-break:break-word;">${d.note}</div></div>` : ""}
 
-        <div style="text-align:center;margin-top:12px;font-size:23px;font-weight:900;">شكراً لتعاملكم معنا</div>
-        ${isDemo ? `<div style="text-align:center;margin-top:8px;font-size:16px;line-height:1.4;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
+        <div style="text-align:center;margin-top:${isCompactReceipt ? 9 : 12}px;font-size:${isCompactReceipt ? 16 : 23}px;font-weight:900;">شكراً لتعاملكم معنا</div>
+        ${isDemo ? `<div style="text-align:center;margin-top:6px;font-size:${isCompactReceipt ? 11 : 16}px;line-height:1.4;">KuaiPOS 9.10 Illizi - Version Demo</div>` : ""}
       </div>`;
 
     const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
@@ -229,11 +232,11 @@ export async function printReceipt(d: ReceiptData) {
         -webkit-print-color-adjust: exact;
       }
       .receipt-sheet {
-        width: ${paperWidthMm}mm !important;
-        min-width: ${paperWidthMm}mm !important;
-        max-width: ${paperWidthMm}mm !important;
+        width: ${receiptWidthMm}mm !important;
+        min-width: ${receiptWidthMm}mm !important;
+        max-width: ${receiptWidthMm}mm !important;
         margin: 0 auto !important;
-        padding: 2.5mm 2.5mm 4mm !important;
+        padding: ${isCompactReceipt ? 1.8 : 2.5}mm ${isCompactReceipt ? 1.6 : 2.5}mm 4mm !important;
         box-sizing: border-box !important;
         background: #fff;
       }
