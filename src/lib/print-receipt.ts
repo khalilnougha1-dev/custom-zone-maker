@@ -334,6 +334,9 @@ ${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 2
       }
 
       const simpleLines: any[] = [
+        ...(businessName
+          ? [{ text: businessName, align: "center" as const, size: isCompactReceipt ? 26 : 30, bold: true, gapTop: 0 }]
+          : []),
         {
           columns: [
             { text: `التاريخ:`, width: 0.6, align: "right" as const, bold: true },
