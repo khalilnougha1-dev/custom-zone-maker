@@ -5,29 +5,25 @@ const config: CapacitorConfig = {
   appName: "SAHLAPOS",
   webDir: "android-shell",
   server: {
-    // التطبيق يفتح الموقع المنشور مباشرة (الموقع يحتاج خادم)
+    // التطبيق يفتح الموقع المنشور مباشرة
     url: "https://custom-zone-maker.lovable.app",
     cleartext: false,
     androidScheme: "https",
-    // إبقاء كل التنقّل داخل التطبيق (تسجيل الدخول عبر Google/Apple/Supabase)
+    // إبقاء كل التنقّل داخل التطبيق (Google / Apple / قاعدة البيانات)
     allowNavigation: [
-      "custom-zone-maker.lovable.app",
       "*.lovable.app",
-      "accounts.google.com",
       "*.google.com",
+      "accounts.google.com",
       "*.googleusercontent.com",
       "*.gstatic.com",
       "appleid.apple.com",
       "*.apple.com",
-      "dpvxhydfwmgxeyhtrwdk.supabase.co",
       "*.supabase.co",
     ],
   },
   android: {
-    allowMixedContent: false,
-    // ضروري لتسجيل الدخول داخل WebView
-    appendUserAgent: "Chrome/120.0.0.0 Mobile SahlaposApp",
-    webContentsDebuggingEnabled: false,
+    allowMixedContent: true,
+    webContentsDebuggingEnabled: true,
   },
 };
 
