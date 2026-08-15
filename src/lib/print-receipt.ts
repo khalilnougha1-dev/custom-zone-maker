@@ -75,6 +75,8 @@ export type ReceiptData = {
   prevDebt?: number;
   /** Pass to skip subscription query */
   isDemo?: boolean;
+  /** الاسم التجاري أعلى الوصل — يُجلب من الإعدادات إذا لم يُمرَّر */
+  businessName?: string | null;
 };
 
 export async function printReceipt(d: ReceiptData) {
@@ -170,6 +172,17 @@ export async function printReceipt(d: ReceiptData) {
     const paidNum = d.paid;
     const rest = Math.max(0, total - paidNum);
 
+    // الاسم التجاري (رأس الوصل)
+    let businessName = (d.businessName || "").trim();
+    if (!d.businessName) {
+      const { data: st } = await supabase
+        .from("app_settings")
+        .select("business_name")
+        .eq("user_id", d.userId)
+        .maybeSingle();
+      businessName = (st?.business_name || "").trim();
+    }
+
     const numCell = `font-family:'Courier New',monospace;font-weight:900;direction:ltr;unicode-bidi:embed;`;
     const headerCell = `font-weight:900;padding:5px 2px;border-bottom:2px solid #000;font-size:${isCompactReceipt ? 16 : 19}px;`;
     const bodyCell = `padding:7px 2px;border-bottom:1px dashed #000;font-size:${isCompactReceipt ? 17 : 20}px;vertical-align:top;font-weight:900;`;
@@ -195,6 +208,7 @@ export async function printReceipt(d: ReceiptData) {
     // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
       <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.4;font-weight:900;" dir="rtl">
+${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${businessName}</div>` : ""}
 
         <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
           <tbody>
@@ -320,6 +334,9 @@ export async function printReceipt(d: ReceiptData) {
       }
 
       const simpleLines: any[] = [
+        ...(businessName
+          ? [{ text: businessName, align: "center" as const, size: isCompactReceipt ? 26 : 30, bold: true, gapTop: 0 }]
+          : []),
         {
           columns: [
             { text: `التاريخ:`, width: 0.6, align: "right" as const, bold: true },
@@ -479,6 +496,7 @@ export type PreviewReceiptInput = {
   note?: string | null;
   isDemo?: boolean;
   createdAt?: string | Date;
+  businessName?: string | null;
 };
 
 export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | "80mm" = "80mm") {
@@ -522,6 +540,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
 
   const receiptBody = `
     <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.4;font-weight:900;" dir="rtl">
+      ${(d.businessName || "").trim() ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${(d.businessName || "").trim()}</div>` : ""}
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <tbody>
           <tr>

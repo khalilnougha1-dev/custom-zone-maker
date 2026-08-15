@@ -26,6 +26,7 @@ function SalePrintPage() {
   const [seq, setSeq] = useState<number>(1);
   const [prevDebt, setPrevDebt] = useState(0);
   const [isDemo, setIsDemo] = useState(true);
+  const [businessName, setBusinessName] = useState("");
   const [paper, setPaper] = useState<"58mm" | "80mm">(getReceiptPaperWidth());
   const [busy, setBusy] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -73,6 +74,13 @@ function SalePrintPage() {
         const active = prof.is_active && (prof.subscription_status === "permanent" || exp > Date.now());
         setIsDemo(!active);
       }
+
+      const { data: st } = await supabase
+        .from("app_settings")
+        .select("business_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setBusinessName((st?.business_name || "").trim());
     })();
   }, [user, saleId]);
 
@@ -94,8 +102,9 @@ function SalePrintPage() {
       note: sale.notes,
       createdAt: sale.created_at,
       isDemo,
+      businessName,
     };
-  }, [sale, items, customerName, seq, prevDebt, isDemo]);
+  }, [sale, items, customerName, seq, prevDebt, isDemo, businessName]);
 
   const previewHtml = useMemo(
     () => (previewInput ? buildReceiptHtmlPreview(previewInput, paper) : ""),
@@ -159,6 +168,7 @@ function SalePrintPage() {
         preparedBluetoothPrinterId,
         prevDebt,
         isDemo,
+        businessName,
       });
     } finally {
       setBusy(false);
