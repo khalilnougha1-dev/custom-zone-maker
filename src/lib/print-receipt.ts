@@ -172,6 +172,17 @@ export async function printReceipt(d: ReceiptData) {
     const paidNum = d.paid;
     const rest = Math.max(0, total - paidNum);
 
+    // الاسم التجاري (رأس الوصل)
+    let businessName = (d.businessName || "").trim();
+    if (!d.businessName) {
+      const { data: st } = await supabase
+        .from("app_settings")
+        .select("business_name")
+        .eq("user_id", d.userId)
+        .maybeSingle();
+      businessName = (st?.business_name || "").trim();
+    }
+
     const numCell = `font-family:'Courier New',monospace;font-weight:900;direction:ltr;unicode-bidi:embed;`;
     const headerCell = `font-weight:900;padding:5px 2px;border-bottom:2px solid #000;font-size:${isCompactReceipt ? 16 : 19}px;`;
     const bodyCell = `padding:7px 2px;border-bottom:1px dashed #000;font-size:${isCompactReceipt ? 17 : 20}px;vertical-align:top;font-weight:900;`;
