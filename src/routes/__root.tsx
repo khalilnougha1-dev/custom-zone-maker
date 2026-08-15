@@ -72,7 +72,11 @@ function RootComponent() {
     if ("serviceWorker" in navigator && import.meta.env.PROD) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
+    import("@/lib/native-bluetooth")
+      .then((m) => m.installNativeBluetooth())
+      .catch(() => {});
   }, []);
+
   return (
     <I18nProvider>
       <Outlet />
