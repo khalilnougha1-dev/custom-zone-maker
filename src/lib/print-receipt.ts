@@ -75,6 +75,8 @@ export type ReceiptData = {
   prevDebt?: number;
   /** Pass to skip subscription query */
   isDemo?: boolean;
+  /** الاسم التجاري أعلى الوصل — يُجلب من الإعدادات إذا لم يُمرَّر */
+  businessName?: string | null;
 };
 
 export async function printReceipt(d: ReceiptData) {
