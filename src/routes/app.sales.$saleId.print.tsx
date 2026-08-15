@@ -74,6 +74,13 @@ function SalePrintPage() {
         const active = prof.is_active && (prof.subscription_status === "permanent" || exp > Date.now());
         setIsDemo(!active);
       }
+
+      const { data: st } = await supabase
+        .from("app_settings")
+        .select("business_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setBusinessName((st?.business_name || "").trim());
     })();
   }, [user, saleId]);
 
@@ -95,8 +102,9 @@ function SalePrintPage() {
       note: sale.notes,
       createdAt: sale.created_at,
       isDemo,
+      businessName,
     };
-  }, [sale, items, customerName, seq, prevDebt, isDemo]);
+  }, [sale, items, customerName, seq, prevDebt, isDemo, businessName]);
 
   const previewHtml = useMemo(
     () => (previewInput ? buildReceiptHtmlPreview(previewInput, paper) : ""),
