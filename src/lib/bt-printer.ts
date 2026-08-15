@@ -77,8 +77,23 @@ declare global {
 }
 
 export function isWebBluetoothSupported() {
-  return typeof navigator !== "undefined" && !!navigator.bluetooth;
+  if (typeof navigator === "undefined") return false;
+  if (navigator.bluetooth) return true;
+  // داخل تطبيق أندرويد نستعمل بلوتوث الأصلي عبر Capacitor
+  return !!(typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.());
 }
+
+/** يضمن توفّر navigator.bluetooth (جسر أصلي داخل التطبيق) قبل أي عملية. */
+export async function ensureBluetoothReady(): Promise<boolean> {
+  if (typeof navigator === "undefined") return false;
+  if (navigator.bluetooth) return true;
+  try {
+    const { installNativeBluetooth } = await import("@/lib/native-bluetooth");
+    await installNativeBluetooth();
+  } catch {}
+  return !!navigator.bluetooth;
+}
+
 
 export function getRememberedPrinterName(): string | null {
   return localStorage.getItem(NAME_KEY);
