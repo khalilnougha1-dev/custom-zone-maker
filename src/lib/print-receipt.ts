@@ -496,6 +496,7 @@ export type PreviewReceiptInput = {
   note?: string | null;
   isDemo?: boolean;
   createdAt?: string | Date;
+  businessName?: string | null;
 };
 
 export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | "80mm" = "80mm") {
@@ -539,6 +540,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
 
   const receiptBody = `
     <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.4;font-weight:900;" dir="rtl">
+      ${(d.businessName || "").trim() ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${(d.businessName || "").trim()}</div>` : ""}
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <tbody>
           <tr>
