@@ -168,6 +168,7 @@ function SalePrintPage() {
         preparedBluetoothPrinterId,
         prevDebt,
         isDemo,
+        businessName,
       });
     } finally {
       setBusy(false);
