@@ -26,6 +26,7 @@ function SalePrintPage() {
   const [seq, setSeq] = useState<number>(1);
   const [prevDebt, setPrevDebt] = useState(0);
   const [isDemo, setIsDemo] = useState(true);
+  const [businessName, setBusinessName] = useState("");
   const [paper, setPaper] = useState<"58mm" | "80mm">(getReceiptPaperWidth());
   const [busy, setBusy] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
