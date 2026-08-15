@@ -183,7 +183,8 @@ function rememberDevice(device: any) {
 export async function prepareBluetoothPrinter(options?: {
   promptIfMissing?: boolean;
 }): Promise<{ id: string; name: string } | null> {
-  if (!isWebBluetoothSupported()) return null;
+  await ensureBluetoothReady();
+  if (!navigator.bluetooth) return null;
 
   const promptIfMissing = options?.promptIfMissing ?? true;
   let device = activeDevice ?? await getRememberedDevice();
@@ -214,7 +215,8 @@ export async function prepareBluetoothPrinter(options?: {
 }
 
 export async function pairPrinter(): Promise<{ id: string; name: string }> {
-  if (!isWebBluetoothSupported()) {
+  await ensureBluetoothReady();
+  if (!navigator.bluetooth) {
     throw new Error("متصفحك لا يدعم Web Bluetooth. استخدم Chrome على أندرويد.");
   }
   const device = await navigator.bluetooth!.requestDevice({
@@ -802,7 +804,8 @@ export async function printHtmlBluetooth(
   paperWidthPx = 384,
 ): Promise<void> {
   return queueGattTask(async () => {
-    if (!isWebBluetoothSupported()) {
+    await ensureBluetoothReady();
+    if (!navigator.bluetooth) {
       throw new Error("Web Bluetooth غير مدعوم");
     }
 
@@ -898,7 +901,8 @@ export async function printSimpleReceiptBluetooth(
   paperWidthPx = 384,
 ): Promise<void> {
   return queueGattTask(async () => {
-    if (!isWebBluetoothSupported()) {
+    await ensureBluetoothReady();
+    if (!navigator.bluetooth) {
       throw new Error("Web Bluetooth غير مدعوم");
     }
 
