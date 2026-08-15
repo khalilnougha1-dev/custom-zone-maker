@@ -300,6 +300,12 @@ function ProductEditor({
               onClick={() => update({ sale_mode: "fraction" })}
               label="بالأجزاء"
             />
+            <RadioOption
+              checked={form.sale_mode === "weight"}
+              onClick={() => update({ sale_mode: "weight" })}
+              label="بالوزن (kg)"
+            />
+
           </div>
         </Row>
 
