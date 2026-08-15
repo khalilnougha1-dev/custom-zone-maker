@@ -208,6 +208,7 @@ export async function printReceipt(d: ReceiptData) {
     // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
       <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.4;font-weight:900;" dir="rtl">
+${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${businessName}</div>` : ""}
 
         <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
           <tbody>
