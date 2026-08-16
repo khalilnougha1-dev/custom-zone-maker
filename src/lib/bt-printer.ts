@@ -854,6 +854,10 @@ export async function printHtmlBluetooth(html: string, paperWidthPx = 384): Prom
       bindDevice(device);
     }
 
+    // Warm up the GATT connection while the receipt is still rendering, so the
+    // slow part (connect + service discovery) overlaps with canvas generation.
+    void connectAndFindCharacteristic(device).catch(() => {});
+
     // Render HTML inside an isolated iframe so app-level oklch tokens don't leak in
     const iframe = document.createElement("iframe");
     iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${paperWidthPx}px;height:10px;border:0;background:#fff;`;
