@@ -43,6 +43,15 @@ function PrinterPage() {
   const [printers, setPrinters] = useState<SavedPrinter[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
+  const [btStatus, setBtStatus] = useState<{ supported: boolean; native: boolean; connected: boolean; deviceName: string | null; deviceId: string | null }>({
+    supported: false, native: false, connected: false, deviceName: null, deviceId: null,
+  });
+  const [permState, setPermState] = useState<{ ok: boolean; message: string } | null>(null);
+  const [permBusy, setPermBusy] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [found, setFound] = useState<{ id: string; name: string; rssi?: number }[]>([]);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const stopScanRef = useRef<null | (() => void)>(null);
   const [quickTesting, setQuickTesting] = useState(false);
   const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
   const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
