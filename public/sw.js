@@ -1,5 +1,5 @@
 // SAHLAPOS service worker — offline-first app shell
-const VERSION = "sahlapos-v3";
+const VERSION = "sahlapos-v4";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = ["/", "/app", "/manifest.webmanifest"];
@@ -42,6 +42,7 @@ self.addEventListener("fetch", (e) => {
   // Never intercept backend / API traffic — those need the network.
   if (
     url.origin !== self.location.origin ||
+    url.pathname.startsWith("/~oauth") ||
     url.pathname.startsWith("/api") ||
     url.pathname.startsWith("/_serverFn") ||
     url.hostname.includes("supabase")

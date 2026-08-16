@@ -43,8 +43,10 @@ export async function installNativeOAuthListener(onSignedIn?: () => void) {
     if (!access_token || !refresh_token) return;
     const { error } = await supabase.auth.setSession({ access_token, refresh_token });
     if (!error) {
+      const { enrollBiometric } = await import("@/lib/biometric-auth");
+      await enrollBiometric().catch(() => false);
       onSignedIn?.();
-      window.location.href = "/app";
+      window.location.replace("/app");
     }
   };
 

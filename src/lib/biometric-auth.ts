@@ -6,9 +6,11 @@ export type BiometricRecord = {
   credentialId: string;
   email: string;
   userId: string;
-  refreshToken: string;
+  refreshToken?: string;
   savedAt: number;
 };
+
+const NATIVE_CREDENTIAL_SERVER = "app.lovable.sahlapos.biometric";
 
 function b64(buf: ArrayBuffer) {
   return btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -36,6 +38,9 @@ export function clearBiometric() {
   } catch {
     /* ignore */
   }
+  void nativeBiometric().then((NB) =>
+    NB?.deleteCredentials({ server: NATIVE_CREDENTIAL_SERVER }).catch(() => {}),
+  );
 }
 
 function isNative() {
@@ -97,16 +102,22 @@ export async function enrollBiometric(): Promise<boolean> {
 
   const existing = getBiometricRecord();
   if (isNative()) {
+    const NB = await nativeBiometric();
+    if (!NB) return false;
     if (existing && existing.userId !== session.user.id) return false;
     const ok = await nativeVerify();
     if (!ok) return false;
+    await NB?.setCredentials({
+      username: session.user.id,
+      password: session.refresh_token,
+      server: NATIVE_CREDENTIAL_SERVER,
+    });
     localStorage.setItem(
       KEY,
       JSON.stringify({
         credentialId: "native",
         email: session.user.email,
         userId: session.user.id,
-        refreshToken: session.refresh_token,
         savedAt: Date.now(),
       } satisfies BiometricRecord),
     );
@@ -190,14 +201,38 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
     return { ok: false, error: "يلزم الاتصال بالإنترنت لأول فتح بعد تسجيل الخروج" };
   }
 
+  let refreshToken = record.refreshToken;
+  if (isNative()) {
+    const NB = await nativeBiometric();
+    try {
+      const credentials = await NB?.getCredentials({ server: NATIVE_CREDENTIAL_SERVER });
+      if (!credentials || credentials.username !== record.userId) {
+        return { ok: false, error: "الحساب المحفوظ لا يطابق بصمة هذا الهاتف" };
+      }
+      refreshToken = credentials.password;
+    } catch {
+      return { ok: false, error: "أعد تسجيل الدخول عبر Google لربط الحساب بالبصمة" };
+    }
+  }
+  if (!refreshToken) {
+    return { ok: false, error: "أعد تسجيل الدخول عبر Google لربط الحساب بالبصمة" };
+  }
+
   const { data: refreshed, error } = await supabase.auth.refreshSession({
-    refresh_token: record.refreshToken,
+    refresh_token: refreshToken,
   });
   if (error || !refreshed.session) {
     return { ok: false, error: "انتهت صلاحية الجلسة، سجّل الدخول بكلمة المرور مرة واحدة" };
   }
   const rec = getBiometricRecord();
-  if (rec) {
+  if (rec && isNative()) {
+    const NB = await nativeBiometric();
+    await NB?.setCredentials({
+      username: rec.userId,
+      password: refreshed.session.refresh_token,
+      server: NATIVE_CREDENTIAL_SERVER,
+    });
+  } else if (rec) {
     localStorage.setItem(
       KEY,
       JSON.stringify({ ...rec, refreshToken: refreshed.session.refresh_token, savedAt: Date.now() }),
