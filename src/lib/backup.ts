@@ -58,43 +58,78 @@ export function isNativeApp(): boolean {
   return !!(window as any).Capacitor?.isNativePlatform?.();
 }
 
-/** Saves the backup file. On the Android app it writes to Documents and opens
- *  the share sheet (blob downloads do nothing inside a WebView). */
+/** Saves the backup file. On the Android app it tries the native filesystem,
+ *  then the share sheet, then falls back to an in-app download. */
 export async function downloadBackup(file: BackupFile): Promise<string> {
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
   const name = `sahlapos-backup-${stamp}.json`;
   const json = JSON.stringify(file, null, 2);
 
+  const cap = typeof window !== "undefined" ? (window as any).Capacitor : undefined;
+  const hasPlugin = (p: string) =>
+    !!cap && (cap.isPluginAvailable ? cap.isPluginAvailable(p) : true);
+
   if (isNativeApp()) {
-    const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
-    const res = await Filesystem.writeFile({
-      path: name,
-      data: json,
-      directory: Directory.Documents,
-      encoding: Encoding.UTF8,
-      recursive: true,
-    });
-    try {
-      const { Share } = await import("@capacitor/share");
-      await Share.share({ title: name, url: res.uri });
-    } catch {
-      /* المشاركة اختيارية */
+    // 1) الكتابة في مجلد المستندات (إن كانت الإضافة متوفرة في النسخة المثبّتة)
+    if (hasPlugin("Filesystem")) {
+      try {
+        const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
+        const res = await Filesystem.writeFile({
+          path: name,
+          data: json,
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+        if (hasPlugin("Share")) {
+          try {
+            const { Share } = await import("@capacitor/share");
+            await Share.share({ title: name, url: res.uri });
+          } catch {
+            /* المشاركة اختيارية */
+          }
+        }
+        return res.uri;
+      } catch {
+        /* نكمل إلى البدائل */
+      }
     }
-    return res.uri;
+
+    // 2) مشاركة المحتوى كنص
+    if (hasPlugin("Share")) {
+      try {
+        const { Share } = await import("@capacitor/share");
+        await Share.share({ title: name, text: json, dialogTitle: name });
+        return name;
+      } catch {
+        /* نكمل إلى البديل الأخير */
+      }
+    }
   }
 
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  // 3) تنزيل عادي (يعمل في المتصفح وفي أغلب WebView عبر data URL)
+  try {
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch {
+    const a = document.createElement("a");
+    a.href = "data:application/json;charset=utf-8," + encodeURIComponent(json);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
   return name;
 }
+
 
 
 async function clearUserData(userId: string) {
