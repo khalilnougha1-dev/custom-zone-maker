@@ -102,6 +102,8 @@ export async function enrollBiometric(): Promise<boolean> {
 
   const existing = getBiometricRecord();
   if (isNative()) {
+    const NB = await nativeBiometric();
+    if (!NB) return false;
     if (existing && existing.userId !== session.user.id) return false;
     const ok = await nativeVerify();
     if (!ok) return false;
