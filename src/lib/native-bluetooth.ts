@@ -108,22 +108,30 @@ export async function installNativeBluetooth(): Promise<boolean> {
 
       async connect() {
         if (!this.connected) {
-          // Android GATT is unreliable when a connection starts while scanning is
-          // still being stopped. Close any scan, release a stale GATT instance,
-          // then give the Bluetooth stack a short settling period.
-          await BleClient.stopLEScan().catch(() => {});
-          await BleClient.disconnect(this.device.id).catch(() => {});
-          await new Promise((resolve) => setTimeout(resolve, 700));
-
-          try {
-            await BleClient.connect(
+          this.servicesCache = null;
+          // Fast path first: a direct connect usually succeeds immediately when the
+          // printer is idle. Only when it fails do we pay for the slow cleanup
+          // (stop scan + release stale GATT + settling delay).
+          const tryConnect = async () =>
+            BleClient.connect(
               this.device.id,
               () => {
                 this.connected = false;
+                this.servicesCache = null;
                 this.device.__emit("gattserverdisconnected");
               },
-              { timeout: 12_000, skipDescriptorDiscovery: false },
+              { timeout: 12_000, skipDescriptorDiscovery: true },
             );
+
+          try {
+            try {
+              await tryConnect();
+            } catch {
+              await BleClient.stopLEScan().catch(() => {});
+              await BleClient.disconnect(this.device.id).catch(() => {});
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              await tryConnect();
+            }
             this.connected = true;
 
             // Use the actual negotiated MTU. Many Android printers legitimately
