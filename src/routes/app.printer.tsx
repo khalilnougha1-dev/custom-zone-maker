@@ -263,6 +263,7 @@ function PrinterPage() {
   };
 
   const scanBluetooth = async () => {
+    if (btStatus.native) { await startNativeScan(); return; }
     setScanning(true);
     try {
       const { pairPrinter, syncRememberedBluetoothPrinter } = await import("@/lib/bt-printer");
