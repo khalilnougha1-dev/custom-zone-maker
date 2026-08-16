@@ -19,6 +19,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AuthNativeRouteImport } from './routes/auth.native'
 import { Route as AppTrucksInventoryRouteImport } from './routes/app.trucks-inventory'
 import { Route as AppSuppliersRouteImport } from './routes/app.suppliers'
 import { Route as AppStockMovementsRouteImport } from './routes/app.stock-movements'
@@ -99,6 +100,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const AuthNativeRoute = AuthNativeRouteImport.update({
+  id: '/auth/native',
+  path: '/auth/native',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppTrucksInventoryRoute = AppTrucksInventoryRouteImport.update({
   id: '/trucks-inventory',
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
+  '/auth/native': typeof AuthNativeRoute
   '/app/': typeof AppIndexRoute
   '/app/purchases/$purchaseId': typeof AppPurchasesPurchaseIdRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
+  '/auth/native': typeof AuthNativeRoute
   '/app': typeof AppIndexRoute
   '/app/purchases/$purchaseId': typeof AppPurchasesPurchaseIdRoute
   '/app/purchases/new': typeof AppPurchasesNewRoute
@@ -365,6 +373,7 @@ export interface FileRoutesById {
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
+  '/auth/native': typeof AuthNativeRoute
   '/app/': typeof AppIndexRoute
   '/app/purchases_/$purchaseId': typeof AppPurchasesPurchaseIdRoute
   '/app/purchases_/new': typeof AppPurchasesNewRoute
@@ -409,6 +418,7 @@ export interface FileRouteTypes {
     | '/app/stock-movements'
     | '/app/suppliers'
     | '/app/trucks-inventory'
+    | '/auth/native'
     | '/app/'
     | '/app/purchases/$purchaseId'
     | '/app/purchases/new'
@@ -449,6 +459,7 @@ export interface FileRouteTypes {
     | '/app/stock-movements'
     | '/app/suppliers'
     | '/app/trucks-inventory'
+    | '/auth/native'
     | '/app'
     | '/app/purchases/$purchaseId'
     | '/app/purchases/new'
@@ -490,6 +501,7 @@ export interface FileRouteTypes {
     | '/app/stock-movements'
     | '/app/suppliers'
     | '/app/trucks-inventory'
+    | '/auth/native'
     | '/app/'
     | '/app/purchases_/$purchaseId'
     | '/app/purchases_/new'
@@ -511,6 +523,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
+  AuthNativeRoute: typeof AuthNativeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -584,6 +597,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/auth/native': {
+      id: '/auth/native'
+      path: '/auth/native'
+      fullPath: '/auth/native'
+      preLoaderRoute: typeof AuthNativeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/trucks-inventory': {
       id: '/app/trucks-inventory'
@@ -898,6 +918,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
+  AuthNativeRoute: AuthNativeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -30,6 +30,14 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Add deep link scheme (sahlapos://)
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          if ! grep -q "sahlapos" "$MANIFEST"; then
+            perl -0pi -e 's|</activity>|    <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="sahlapos" />\n            </intent-filter>\n        </activity>|' "$MANIFEST"
+          fi
+          cat "$MANIFEST"
+
       - name: Sync Capacitor
         run: npx cap sync android
 
