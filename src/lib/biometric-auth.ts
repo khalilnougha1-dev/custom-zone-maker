@@ -12,7 +12,11 @@ export type BiometricRecord = {
 };
 
 function isNative() {
-  return typeof window !== "undefined" && Boolean(window.Capacitor?.isNativePlatform?.());
+  if (typeof window === "undefined") return false;
+  const nativeWindow = window as typeof window & {
+    Capacitor?: { isNativePlatform?: () => boolean };
+  };
+  return Boolean(nativeWindow.Capacitor?.isNativePlatform?.());
 }
 
 function b64(buf: ArrayBuffer) {
