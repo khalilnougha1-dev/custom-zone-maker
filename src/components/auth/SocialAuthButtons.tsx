@@ -1,17 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable/index";
 
+function isNativeApp() {
+  if (typeof window === "undefined") return false;
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
 export function SocialAuthButtons() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<"google" | "apple" | null>(null);
+  const [native, setNative] = useState(false);
+
+  useEffect(() => {
+    setNative(isNativeApp());
+  }, []);
 
   const handleSignIn = async (provider: "google" | "apple") => {
     setLoading(provider);
     const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: `${window.location.origin}/dashboard`,
+      redirect_uri: window.location.origin,
     });
     if (result.error) {
       setLoading(null);
@@ -33,7 +43,14 @@ export function SocialAuthButtons() {
         </div>
       </div>
 
+      {native && (
+        <p className="rounded-lg border border-border/60 bg-muted/40 p-3 text-center text-xs text-muted-foreground">
+          داخل التطبيق، تسجيل الدخول بحساب Google غير مدعوم من Google (خطأ 400). استخدم البريد وكلمة المرور هنا، أو سجّل عبر Google من المتصفح مرة واحدة.
+        </p>
+      )}
+
       <Button
+        style={native ? { display: "none" } : undefined}
         type="button"
         variant="outline"
         className="w-full h-11 gap-2"
@@ -50,6 +67,7 @@ export function SocialAuthButtons() {
       </Button>
 
       <Button
+        style={native ? { display: "none" } : undefined}
         type="button"
         variant="outline"
         className="w-full h-11 gap-2"
