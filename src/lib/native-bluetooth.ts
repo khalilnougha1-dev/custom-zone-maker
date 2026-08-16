@@ -126,10 +126,9 @@ export async function installNativeBluetooth(): Promise<boolean> {
             );
             this.connected = true;
 
-            // Ask Android for a practical printer MTU first, then use the actual
-            // negotiated value. The request can legitimately stay at 23 bytes.
+            // Use the actual negotiated MTU. Many Android printers legitimately
+            // stay at 23 bytes, so writes must then remain at 20 payload bytes.
             try {
-              await BleClient.requestMtu(this.device.id, 185).catch(() => 23);
               const mtu = await BleClient.getMtu(this.device.id);
               this.maxChunkSize = Math.max(20, Math.min(64, Number(mtu || 23) - 3));
             } catch {
