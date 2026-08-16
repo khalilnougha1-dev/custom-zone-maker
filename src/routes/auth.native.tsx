@@ -38,6 +38,7 @@ function NativeAuthBridge() {
     const run = async () => {
       const params = new URLSearchParams(window.location.search);
       const provider = (params.get("provider") as "google" | "apple") || "google";
+      const phase = params.get("phase") || "start";
       const providerName = provider === "apple" ? "Apple" : "Google";
 
       const waitForSession = () =>
@@ -53,15 +54,20 @@ function NativeAuthBridge() {
           authSubscription = data.subscription;
         });
 
-      // إن كانت هناك جلسة أصلاً (بعد العودة من Google) نعود مباشرة للتطبيق
+      // لا نعيد استخدام جلسة المتصفح القديمة عند بدء محاولة جديدة؛ قد تكون
+      // منتهية أو لحساب آخر. جلسة callback فقط هي التي تعاد إلى التطبيق.
       const { data } = await supabase.auth.getSession();
-      if (data.session?.access_token && data.session?.refresh_token) {
+      if (phase === "callback" && data.session?.access_token && data.session?.refresh_token) {
         backToApp(data.session.access_token, data.session.refresh_token);
         return;
       }
 
+      if (phase === "start" && data.session) {
+        await supabase.auth.signOut({ scope: "local" });
+      }
+
       setStatus(`جارٍ فتح تسجيل الدخول عبر ${providerName}…`);
-      const redirect_uri = `${window.location.origin}/auth/native?provider=${provider}&native=1`;
+      const redirect_uri = `${window.location.origin}/auth/native?provider=${provider}&native=1&phase=callback`;
       const sessionWaiter = waitForSession();
       const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri });
 

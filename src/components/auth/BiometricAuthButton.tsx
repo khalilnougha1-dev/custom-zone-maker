@@ -27,7 +27,7 @@ export function BiometricAuthButton() {
       return;
     }
     if (!record) {
-      toast.info("سجّل الدخول بالبريد أو Google أول مرة لربط هذا الحساب بالبصمة");
+      toast.info("سجّل الدخول أولًا ثم فعّل بصمة التطبيق من الإعدادات");
       return;
     }
     setLoading(true);
@@ -59,7 +59,7 @@ export function BiometricAuthButton() {
           ? "البصمة غير مفعّلة على هذا الهاتف"
           : record
           ? `مرتبط بالحساب: ${record.email}`
-          : "سجّل الدخول مرة واحدة لتفعيل الدخول ببصمة الهاتف"}
+          : "بعد الدخول فعّل بصمة التطبيق من الإعدادات"}
       </p>
     </div>
   );

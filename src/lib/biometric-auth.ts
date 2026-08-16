@@ -83,6 +83,10 @@ export function clearBiometric() {
   }
 }
 
+export function isBiometricEnabled() {
+  return getBiometricRecord() !== null;
+}
+
 export async function isBiometricSupported() {
   if (typeof window === "undefined") return false;
   if (isNative()) {
@@ -172,9 +176,21 @@ export async function enrollBiometric() {
   return true;
 }
 
+/** يعطّل دخول التطبيق بالبصمة ويحذف رمز الجلسة المحمي من هذا الجهاز فقط. */
+export async function disableBiometric() {
+  if (typeof window !== "undefined") localStorage.removeItem(RECORD_KEY);
+  if (!isNative()) return;
+  try {
+    const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+    await SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY });
+  } catch {
+    // The local enrollment marker is already removed, so biometric login is disabled.
+  }
+}
+
 export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }> {
   const record = getBiometricRecord();
-  if (!record) return { ok: false, error: "سجّل الدخول عبر Google أول مرة لربط الحساب بالبصمة" };
+  if (!record) return { ok: false, error: "سجّل الدخول أولًا ثم فعّل بصمة التطبيق من الإعدادات" };
 
   if (isNative()) {
     if (!(await verifyNativeBiometric())) return { ok: false, error: "لم يتم التحقق من بصمة الهاتف" };
@@ -204,13 +220,13 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
   const refreshToken = isNative() ? await getSecureRefreshToken() : record.refreshToken;
   if (!refreshToken) {
     clearBiometric();
-    return { ok: false, error: "سجّل الدخول عبر Google من جديد ثم فعّل البصمة" };
+    return { ok: false, error: "سجّل الدخول من جديد ثم فعّل بصمة التطبيق من الإعدادات" };
   }
 
   const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
   if (error || !data.session || data.session.user.id !== record.userId) {
     clearBiometric();
-    return { ok: false, error: "انتهت الجلسة المحفوظة، سجّل الدخول عبر Google من جديد" };
+    return { ok: false, error: "انتهت الجلسة المحفوظة، سجّل الدخول من جديد ثم أعد تفعيل البصمة" };
   }
 
   if (isNative()) await setSecureRefreshToken(data.session.refresh_token);

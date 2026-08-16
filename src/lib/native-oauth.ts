@@ -11,7 +11,7 @@ export function isNativeApp() {
 /** يفتح تدفق OAuth في متصفح النظام (Custom Tab) ثم يعود للتطبيق عبر رابط عميق */
 export async function startNativeOAuth(provider: "google" | "apple") {
   const { Browser } = await import("@capacitor/browser");
-  const url = `${WEB_ORIGIN}/auth/native?provider=${provider}&native=1`;
+  const url = `${WEB_ORIGIN}/auth/native?provider=${provider}&native=1&phase=start`;
   await Browser.open({ url, presentationStyle: "popover" });
 }
 
@@ -47,10 +47,8 @@ export async function installNativeOAuthListener(onSignedIn?: () => void) {
       window.location.replace("/login?oauth=failed");
       return;
     }
-    const { enrollBiometric } = await import("@/lib/biometric-auth");
-    await enrollBiometric().catch(() => false);
     onSignedIn?.();
-    window.location.replace(`${WEB_ORIGIN}/app`);
+    window.location.replace("/app");
   };
 
   await App.addListener("appUrlOpen", (event: { url: string }) => {
