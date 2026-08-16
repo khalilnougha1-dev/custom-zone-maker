@@ -28,7 +28,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
 
   installing = (async () => {
     const { BleClient } = await import("@capacitor-community/bluetooth-le");
-    await BleClient.initialize({ androidNeverForLocation: true });
+    await BleClient.initialize({ androidNeverForLocation: false });
 
     class NativeCharacteristic {
       uuid: string;
