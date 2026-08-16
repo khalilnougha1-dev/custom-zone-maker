@@ -43,7 +43,14 @@ export function SocialAuthButtons() {
         </div>
       </div>
 
+      {native && (
+        <p className="rounded-lg border border-border/60 bg-muted/40 p-3 text-center text-xs text-muted-foreground">
+          داخل التطبيق، تسجيل الدخول بحساب Google غير مدعوم من Google (خطأ 400). استخدم البريد وكلمة المرور هنا، أو سجّل عبر Google من المتصفح مرة واحدة.
+        </p>
+      )}
+
       <Button
+        style={native ? { display: "none" } : undefined}
         type="button"
         variant="outline"
         className="w-full h-11 gap-2"
