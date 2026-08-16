@@ -272,7 +272,7 @@ async function ensureGattServer(device: any) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const server = await device.gatt.connect();
-        await delay(250);
+        await delay(60);
         return server;
       } catch (error) {
         lastError = error;
@@ -868,7 +868,7 @@ export async function printHtmlBluetooth(html: string, paperWidthPx = 384): Prom
       </style></head><body>${html}</body></html>`);
       doc.close();
 
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
       const body = doc.body as HTMLElement;
       iframe.style.height = body.scrollHeight + "px";
 
