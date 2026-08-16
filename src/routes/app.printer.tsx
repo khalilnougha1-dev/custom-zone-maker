@@ -127,8 +127,8 @@ function PrinterPage() {
       stopScanRef.current?.();
       stopScanRef.current = await scanNativeDevices((d) => {
         setFound((prev) => (prev.some((x) => x.id === d.id) ? prev : [...prev, d]));
-      }, 12_000);
-      window.setTimeout(() => setScanning(false), 12_000);
+      }, 20_000);
+      window.setTimeout(() => setScanning(false), 20_000);
     } catch (e) {
       setScanning(false);
       toast.error((e as Error).message || "تعذّر بدء البحث");
@@ -469,7 +469,10 @@ function PrinterPage() {
                 {scanning ? "جاري البحث... تظهر الأجهزة تلقائيًا" : `انتهى البحث — ${found.length} جهاز`}
               </div>
               {found.length === 0 && !scanning && (
-                <div className="text-center text-sm text-muted-foreground py-4">لم يتم العثور على أجهزة. تأكد من تشغيل الطابعة.</div>
+                <div className="text-center text-sm text-muted-foreground py-4 leading-relaxed">
+                  لم يتم العثور على أجهزة. شغّل الطابعة XP-P323B، ثم اقترنها أولًا من
+                  «إعدادات الهاتف ← البلوتوث» (BT:A3F3) وأعد البحث — ستظهر هنا ضمن الأجهزة المقترنة.
+                </div>
               )}
               <div className="space-y-2">
                 {found.map((d) => (
