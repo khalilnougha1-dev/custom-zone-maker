@@ -76,7 +76,10 @@ export function getBiometricRecord(): BiometricRecord | null {
 }
 
 export function clearBiometric() {
-  if (typeof window !== "undefined") localStorage.removeItem(RECORD_KEY);
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(RECORD_KEY);
+    localStorage.removeItem(LOCK_KEY);
+  }
   if (isNative()) {
     void import("capacitor-secure-storage-plugin")
       .then(({ SecureStoragePlugin }) => SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY }))

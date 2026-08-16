@@ -85,7 +85,13 @@ function RootComponent() {
     void Promise.all([import("@capacitor/app"), import("@/lib/biometric-auth")])
       .then(async ([{ App }, { lockApp }]) => {
         appStateListener = await App.addListener("appStateChange", ({ isActive }) => {
-          if (!isActive) lockApp();
+          if (!isActive) {
+            lockApp();
+            return;
+          }
+          if (window.location.pathname.startsWith("/app")) {
+            window.location.replace("/login");
+          }
         });
       })
       .catch(() => {});
