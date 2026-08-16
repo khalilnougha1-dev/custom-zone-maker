@@ -53,16 +53,49 @@ export async function exportBackup(userId: string): Promise<BackupFile> {
   };
 }
 
-export function downloadBackup(file: BackupFile) {
-  const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+export function isNativeApp(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
+/** Saves the backup file. On the Android app it writes to Documents and opens
+ *  the share sheet (blob downloads do nothing inside a WebView). */
+export async function downloadBackup(file: BackupFile): Promise<string> {
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const name = `sahlapos-backup-${stamp}.json`;
+  const json = JSON.stringify(file, null, 2);
+
+  if (isNativeApp()) {
+    const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
+    const res = await Filesystem.writeFile({
+      path: name,
+      data: json,
+      directory: Directory.Documents,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    });
+    try {
+      const { Share } = await import("@capacitor/share");
+      await Share.share({ title: name, url: res.uri });
+    } catch {
+      /* المشاركة اختيارية */
+    }
+    return res.uri;
+  }
+
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  a.download = `sahlapos-backup-${stamp}.json`;
+  a.download = name;
+  a.rel = "noopener";
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return name;
 }
+
 
 async function clearUserData(userId: string) {
   await supabase.from("stock_movements").delete().eq("user_id", userId);
