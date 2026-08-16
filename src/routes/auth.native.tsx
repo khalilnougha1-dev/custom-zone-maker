@@ -24,6 +24,7 @@ function NativeAuthBridge() {
 
   useEffect(() => {
     let cancelled = false;
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
     const backToApp = (access_token: string, refresh_token: string) => {
       const link = `sahlapos://auth?access_token=${encodeURIComponent(
@@ -37,6 +38,20 @@ function NativeAuthBridge() {
     const run = async () => {
       const params = new URLSearchParams(window.location.search);
       const provider = (params.get("provider") as "google" | "apple") || "google";
+      const providerName = provider === "apple" ? "Apple" : "Google";
+
+      const waitForSession = () =>
+        new Promise<boolean>((resolve) => {
+          const timeout = window.setTimeout(() => resolve(false), 10_000);
+          const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+            authSubscription = data.subscription;
+            if (!session?.access_token || !session.refresh_token) return;
+            window.clearTimeout(timeout);
+            backToApp(session.access_token, session.refresh_token);
+            resolve(true);
+          });
+          authSubscription = data.subscription;
+        });
 
       // إن كانت هناك جلسة أصلاً (بعد العودة من Google) نعود مباشرة للتطبيق
       const { data } = await supabase.auth.getSession();
@@ -45,8 +60,9 @@ function NativeAuthBridge() {
         return;
       }
 
-      setStatus("جارٍ فتح تسجيل الدخول عبر Google…");
+      setStatus(`جارٍ فتح تسجيل الدخول عبر ${providerName}…`);
       const redirect_uri = `${window.location.origin}/auth/native?provider=${provider}&native=1`;
+      const sessionWaiter = waitForSession();
       const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri });
 
       if (cancelled) return;
@@ -59,7 +75,7 @@ function NativeAuthBridge() {
       const { data: after } = await supabase.auth.getSession();
       if (after.session?.access_token && after.session?.refresh_token) {
         backToApp(after.session.access_token, after.session.refresh_token);
-      } else {
+      } else if (!(await sessionWaiter) && !cancelled) {
         setStatus("لم يتم استلام الجلسة. أعد المحاولة من التطبيق.");
       }
     };
@@ -67,6 +83,7 @@ function NativeAuthBridge() {
     void run();
     return () => {
       cancelled = true;
+      authSubscription?.unsubscribe();
     };
   }, []);
 

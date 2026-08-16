@@ -53,6 +53,10 @@ jobs:
           if ! grep -q "sahlapos" "$MANIFEST"; then
             perl -0pi -e 's|</activity>|    <intent-filter android:autoVerify="true">\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="sahlapos" android:host="auth" />\n            </intent-filter>\n        </activity>|' "$MANIFEST"
           fi
+          grep -q 'android:scheme="sahlapos"' "$MANIFEST" || {
+            echo "Native OAuth deep link was not added to AndroidManifest.xml"
+            exit 1
+          }
 
       - name: Build debug APK
         working-directory: android
