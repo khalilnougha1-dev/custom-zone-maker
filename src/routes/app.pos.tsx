@@ -582,14 +582,15 @@ function NewSalePage() {
                     setQtyDraft(prev => { const { [i.id]: _, ...rest } = prev; return rest; });
                     if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id));
                   }}
-                  className="w-16 h-8 text-center font-mono font-bold px-1"
+                  className="w-14 sm:w-16 shrink-0 h-8 text-center font-mono font-bold px-1"
                 />
-                <div className="flex-1 truncate text-right text-sm">
+                <div className="min-w-0 flex-1 truncate text-right text-sm">
                   {i.name}
                   {i.unitsPerPackage && (
                     <span className="text-xs text-muted-foreground mr-1">({i.qty}×{i.unitsPerPackage})</span>
                   )}
                 </div>
+
               </div>
             ))}
           </div>
