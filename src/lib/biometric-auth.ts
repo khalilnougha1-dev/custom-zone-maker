@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { withNativeInteraction } from "@/lib/native-interaction";
 
 const RECORD_KEY = "sahlapos.biometric";
 const REFRESH_TOKEN_KEY = "sahlapos.biometric.refresh-token";
@@ -50,15 +51,17 @@ async function verifyNativeBiometric() {
     const { AndroidBiometryStrength, BiometricAuth } = await import(
       "@aparajita/capacitor-biometric-auth"
     );
-    await BiometricAuth.authenticate({
-      reason: "الدخول إلى SAHLAPOS",
-      cancelTitle: "إلغاء",
-      allowDeviceCredential: false,
-      androidTitle: "تأكيد الهوية",
-      androidSubtitle: "استعمل بصمة الهاتف",
-      androidConfirmationRequired: false,
-      androidBiometryStrength: AndroidBiometryStrength.weak,
-    });
+    await withNativeInteraction(() =>
+      BiometricAuth.authenticate({
+        reason: "الدخول إلى SAHLAPOS",
+        cancelTitle: "إلغاء",
+        allowDeviceCredential: false,
+        androidTitle: "تأكيد الهوية",
+        androidSubtitle: "استعمل بصمة الهاتف",
+        androidConfirmationRequired: false,
+        androidBiometryStrength: AndroidBiometryStrength.weak,
+      }),
+    );
     return true;
   } catch {
     return false;

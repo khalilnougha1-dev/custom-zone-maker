@@ -82,15 +82,16 @@ function RootComponent() {
       .then((m) => m.installNativeOAuthListener())
       .catch(() => {});
     let appStateListener: { remove: () => Promise<void> } | undefined;
-    void Promise.all([import("@capacitor/app"), import("@/lib/biometric-auth")])
-      .then(async ([{ App }, { lockApp }]) => {
+    void Promise.all([
+      import("@capacitor/app"),
+      import("@/lib/biometric-auth"),
+      import("@/lib/native-interaction"),
+    ])
+      .then(async ([{ App }, { lockApp }, { isNativeInteractionActive }]) => {
         appStateListener = await App.addListener("appStateChange", ({ isActive }) => {
           if (!isActive) {
+            if (isNativeInteractionActive()) return;
             lockApp();
-            return;
-          }
-          if (window.location.pathname.startsWith("/app")) {
-            window.location.replace("/login");
           }
         });
       })

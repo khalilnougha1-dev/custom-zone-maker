@@ -7,6 +7,8 @@
 
 let installing: Promise<boolean> | null = null;
 
+import { withNativeInteraction } from "@/lib/native-interaction";
+
 function toDataView(value: any): DataView {
   if (value instanceof DataView) return value;
   if (value instanceof ArrayBuffer) return new DataView(value);
@@ -235,10 +237,12 @@ export async function installNativeBluetooth(): Promise<boolean> {
         return true;
       },
       async requestDevice(options: any = {}) {
-        const picked = await BleClient.requestDevice({
-          optionalServices: options.optionalServices || [],
-          ...(options.filters?.[0]?.services ? { services: options.filters[0].services } : {}),
-        });
+        const picked = await withNativeInteraction(() =>
+          BleClient.requestDevice({
+            optionalServices: options.optionalServices || [],
+            ...(options.filters?.[0]?.services ? { services: options.filters[0].services } : {}),
+          }),
+        );
         return getDevice(picked.deviceId, picked.name);
       },
       async getDevices() {
@@ -287,7 +291,7 @@ export async function ensureBlePermissions(): Promise<{ ok: boolean; message: st
     } catch {}
     if (!enabled) {
       try {
-        await BleClient.requestEnable();
+        await withNativeInteraction(() => BleClient.requestEnable());
       } catch {
         return { ok: false, message: "البلوتوث مطفأ — فعّله من إعدادات الهاتف" };
       }
