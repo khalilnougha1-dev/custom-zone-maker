@@ -32,12 +32,12 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
+      <div className="container mx-auto flex h-14 items-center justify-between gap-2 px-3 sm:h-16 sm:px-4">
+        <Link to="/" className="flex min-w-0 items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-primary shadow-glow sm:h-9 sm:w-9">
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold tracking-tight">{t("brand.name")}</span>
+          <span className="truncate text-base font-bold tracking-tight sm:text-xl">{t("brand.name")}</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -49,14 +49,14 @@ export function Header() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="hidden gap-2 sm:inline-flex"
             onClick={handleInstall}
           >
             <Download className="h-4 w-4" />
