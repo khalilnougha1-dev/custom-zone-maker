@@ -305,12 +305,16 @@ async function connectAndFindCharacteristic(device: any) {
   const server = await ensureGattServer(device);
 
   // 1) Try exact known service+characteristic combos first (fastest path).
+  // Some printers expose a characteristic with a familiar UUID for status or
+  // notifications only. Never cache it unless Android reports it as writable.
   for (const sUuid of SERVICE_CANDIDATES) {
     try {
       const svc = await server.getPrimaryService(sUuid);
       for (const wUuid of WRITE_CANDIDATES) {
         try {
           const c = await svc.getCharacteristic(wUuid);
+          const properties = c?.properties || {};
+          if (!properties.write && !properties.writeWithoutResponse) continue;
           console.info("[bt-printer] exact match", { service: sUuid, characteristic: wUuid });
           activeCharacteristic = c;
           return c;
@@ -416,18 +420,23 @@ async function writeWithReconnect(device: any, bytes: Uint8Array) {
 }
 
 async function writeChunk(characteristic: any, slice: Uint8Array) {
-  const writers = [
-    characteristic.properties?.writeWithoutResponse && characteristic.writeValueWithoutResponse
-      ? () => characteristic.writeValueWithoutResponse(slice)
-      : null,
-    characteristic.properties?.write && characteristic.writeValue
-      ? () => characteristic.writeValue(slice)
-      : null,
-    characteristic.writeValueWithoutResponse
-      ? () => characteristic.writeValueWithoutResponse(slice)
-      : null,
-    characteristic.writeValue ? () => characteristic.writeValue(slice) : null,
-  ].filter(Boolean) as Array<() => Promise<void>>;
+  const canWrite = !!characteristic.properties?.write && !!characteristic.writeValue;
+  const canWriteWithoutResponse =
+    !!characteristic.properties?.writeWithoutResponse &&
+    !!characteristic.writeValueWithoutResponse;
+  const isNative = !!characteristic?.__sahlaNative;
+
+  // Android's write-with-response confirms every packet reached the printer.
+  // Prefer it in the native app when available; writeWithoutResponse can report
+  // success while the Android BLE buffer silently drops the receipt data.
+  const confirmedWriter = canWrite ? () => characteristic.writeValue(slice) : null;
+  const fastWriter = canWriteWithoutResponse
+    ? () => characteristic.writeValueWithoutResponse(slice)
+    : null;
+  const writers = (isNative
+    ? [confirmedWriter, fastWriter]
+    : [fastWriter, confirmedWriter]
+  ).filter(Boolean) as Array<() => Promise<void>>;
 
   if (writers.length === 0) {
     throw new Error("تعذر إيجاد أسلوب إرسال مناسب للطابعة");
@@ -468,11 +477,15 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
   // MTU 23, so sending the old 96/128-byte chunks failed despite successful pairing.
   const nativeMaxChunk = Number(characteristic?.maxChunkSize || 20);
   const chunkSize = characteristic?.__sahlaNative
-    ? Math.max(20, Math.min(180, nativeMaxChunk))
+    ? Math.max(20, Math.min(64, nativeMaxChunk))
     : prefersWriteWithoutResponse
       ? 128
       : 96;
-  const chunkDelay = prefersWriteWithoutResponse
+  const chunkDelay = characteristic?.__sahlaNative
+    ? supportsWrite
+      ? 8
+      : 22
+    : prefersWriteWithoutResponse
     ? isAndroidBluetoothClient()
       ? 12
       : 9
