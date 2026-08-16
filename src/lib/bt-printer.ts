@@ -962,6 +962,9 @@ export async function printSimpleReceiptBluetooth(
       bindDevice(device);
     }
 
+    // Start connecting while the receipt canvas is being rendered.
+    void connectAndFindCharacteristic(device).catch(() => {});
+
     try {
       const canvas = renderSimpleReceiptToCanvas(lines, paperWidthPx);
       await writeCanvasAsEscPosBands(device, canvas);

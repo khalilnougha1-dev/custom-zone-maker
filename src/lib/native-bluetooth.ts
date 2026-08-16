@@ -101,6 +101,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
       connected = false;
       private device: NativeDevice;
       private maxChunkSize = 20;
+      private servicesCache: Promise<NativeService[]> | null = null;
 
       constructor(device: NativeDevice) {
         this.device = device;
@@ -108,22 +109,30 @@ export async function installNativeBluetooth(): Promise<boolean> {
 
       async connect() {
         if (!this.connected) {
-          // Android GATT is unreliable when a connection starts while scanning is
-          // still being stopped. Close any scan, release a stale GATT instance,
-          // then give the Bluetooth stack a short settling period.
-          await BleClient.stopLEScan().catch(() => {});
-          await BleClient.disconnect(this.device.id).catch(() => {});
-          await new Promise((resolve) => setTimeout(resolve, 700));
-
-          try {
-            await BleClient.connect(
+          this.servicesCache = null;
+          // Fast path first: a direct connect usually succeeds immediately when the
+          // printer is idle. Only when it fails do we pay for the slow cleanup
+          // (stop scan + release stale GATT + settling delay).
+          const tryConnect = async () =>
+            BleClient.connect(
               this.device.id,
               () => {
                 this.connected = false;
+                this.servicesCache = null;
                 this.device.__emit("gattserverdisconnected");
               },
-              { timeout: 12_000, skipDescriptorDiscovery: false },
+              { timeout: 12_000, skipDescriptorDiscovery: true },
             );
+
+          try {
+            try {
+              await tryConnect();
+            } catch {
+              await BleClient.stopLEScan().catch(() => {});
+              await BleClient.disconnect(this.device.id).catch(() => {});
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              await tryConnect();
+            }
             this.connected = true;
 
             // Use the actual negotiated MTU. Many Android printers legitimately
@@ -158,12 +167,25 @@ export async function installNativeBluetooth(): Promise<boolean> {
       }
 
       disconnect() {
+        this.servicesCache = null;
         if (!this.connected) return;
         this.connected = false;
         BleClient.disconnect(this.device.id).catch(() => {});
       }
 
-      private async loadServices() {
+      private loadServices(): Promise<NativeService[]> {
+        // Service discovery is a slow native round-trip; the printer lookup asks
+        // for many candidate UUIDs, so cache the discovery per connection.
+        if (!this.servicesCache) {
+          this.servicesCache = this.discoverServices().catch((error) => {
+            this.servicesCache = null;
+            throw error;
+          });
+        }
+        return this.servicesCache;
+      }
+
+      private async discoverServices() {
         const services = await BleClient.getServices(this.device.id);
         return services.map(
           (s: any) =>
