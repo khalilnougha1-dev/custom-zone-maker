@@ -605,9 +605,9 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 }
 
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
-  // Smaller bands = more reliable on cheap BLE printers. The trade-off (slightly
-  // slower) is worth it to avoid garbage characters mid-receipt.
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 96 : 72);
+  // Larger bands = fewer round-trips and much faster printing, while still small
+  // enough to stay reliable on cheap BLE printers.
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 192 : 144);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
@@ -623,11 +623,11 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
     );
 
     if (index === bands.length - 1) {
-      await delay(canvas.width <= 384 ? 250 : 180);
+      await delay(120);
       continue;
     }
 
-    await delay(90);
+    await delay(25);
   }
 }
 
