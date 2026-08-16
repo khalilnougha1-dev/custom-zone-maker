@@ -75,6 +75,9 @@ function RootComponent() {
     import("@/lib/native-bluetooth")
       .then((m) => m.installNativeBluetooth())
       .catch(() => {});
+    import("@/lib/native-oauth")
+      .then((m) => m.installNativeOAuthListener())
+      .catch(() => {});
   }, []);
 
   return (

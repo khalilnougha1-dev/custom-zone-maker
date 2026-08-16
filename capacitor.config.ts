@@ -13,12 +13,6 @@ const config: CapacitorConfig = {
     allowNavigation: [
       "custom-zone-maker.lovable.app",
       "*.lovable.app",
-      "accounts.google.com",
-      "*.google.com",
-      "*.googleusercontent.com",
-      "*.gstatic.com",
-      "appleid.apple.com",
-      "*.apple.com",
       "dpvxhydfwmgxeyhtrwdk.supabase.co",
       "*.supabase.co",
     ],

@@ -30,6 +30,23 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Add deep link scheme (sahlapos://)
+        run: |
+          python3 - <<'PY'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          if "sahlapos" not in s:
+              intent = """            <intent-filter>
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="sahlapos" />
+              </intent-filter>
+          </activity>"""
+              s = s.replace("</activity>", intent, 1)
+              open(p, "w").write(s)
+          PY
+
       - name: Sync Capacitor
         run: npx cap sync android
 
