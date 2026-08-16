@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isAppLocked } from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/app")({
   beforeLoad: async () => {
+    if (isAppLocked()) throw redirect({ to: "/login" });
     // أوفلاين: اعتمد على الجلسة المحفوظة محليًا حتى يفتح التطبيق بدون إنترنت
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       const { data } = await supabase.auth.getSession();
@@ -23,22 +24,5 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppLayout() {
-  useEffect(() => {
-    const ASKED = "sahlapos.biometric.asked";
-    if (localStorage.getItem(ASKED)) return;
-    let cancelled = false;
-    (async () => {
-      const { getBiometricRecord, isBiometricSupported, enrollBiometric } = await import(
-        "@/lib/biometric-auth"
-      );
-      if (cancelled || getBiometricRecord() || !(await isBiometricSupported())) return;
-      localStorage.setItem(ASKED, "1");
-      await enrollBiometric().catch(() => false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return <Outlet />;
 }

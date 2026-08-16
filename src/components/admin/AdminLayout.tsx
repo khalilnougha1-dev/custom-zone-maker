@@ -12,7 +12,7 @@ interface AdminLayoutProps {
 export function AdminLayout({ title = "لوحة المسؤول العامة", email, children }: AdminLayoutProps) {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/auth";
+    window.location.href = "/login";
   };
 
   return (

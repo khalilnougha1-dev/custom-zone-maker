@@ -11,10 +11,20 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { BiometricAuthButton } from "@/components/auth/BiometricAuthButton";
 import { supabase } from "@/integrations/supabase/client";
-import { enrollBiometric } from "@/lib/biometric-auth";
+import { isAppLocked, unlockApp } from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  head: () => ({
+    meta: [
+      { title: "تسجيل الدخول | SAHLAPOS" },
+      { name: "description", content: "تسجيل الدخول الآمن إلى تطبيق SAHLAPOS بالبريد أو Google أو بصمة التطبيق." },
+      { property: "og:title", content: "تسجيل الدخول | SAHLAPOS" },
+      { property: "og:description", content: "تسجيل الدخول الآمن إلى تطبيق SAHLAPOS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const schema = z.object({
@@ -34,7 +44,7 @@ function LoginPage() {
       toast.error("تعذّر إكمال تسجيل الدخول. أعد المحاولة.");
     }
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate({ to: "/dashboard" });
+      if (session && !isAppLocked()) navigate({ to: "/dashboard" });
     });
   }, [navigate]);
 
@@ -52,7 +62,7 @@ function LoginPage() {
       toast.error(error.message);
       return;
     }
-    await enrollBiometric().catch(() => false);
+    unlockApp();
     toast.success(t("auth.success"));
     navigate({ to: "/dashboard" });
   };

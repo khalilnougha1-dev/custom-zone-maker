@@ -43,13 +43,13 @@ function AccountPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/auth";
+    window.location.href = "/login";
   };
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/auth`,
+      redirectTo: `${window.location.origin}/login`,
     });
     if (error) return toast.error(error.message);
     toast.success("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك");

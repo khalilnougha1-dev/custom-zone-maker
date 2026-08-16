@@ -17,6 +17,7 @@ on:
       - "src/routes/login.tsx"
       - "src/routes/signup.tsx"
       - "src/routes/app.tsx"
+      - "src/routes/app.settings.tsx"
       - "src/routes/__root.tsx"
       - "public/sw.js"
       - "src/routes/app.printer.tsx"

@@ -195,7 +195,7 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
           <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-amber-600" />
           <h3 className="text-lg font-bold">يجب تسجيل الدخول أولاً</h3>
           <p className="mt-2 text-sm text-muted-foreground">للوصول إلى لوحة المسؤول، يرجى تسجيل الدخول بحساب يملك صلاحيات الإدارة.</p>
-          <Button asChild className="mt-4 bg-gradient-primary text-primary-foreground"><a href="/auth">تسجيل الدخول</a></Button>
+          <Button asChild className="mt-4 bg-gradient-primary text-primary-foreground"><a href="/login">تسجيل الدخول</a></Button>
         </div>
       </Layout>
     );
@@ -207,7 +207,7 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
       await supabase.auth.refreshSession();
       window.location.reload();
     };
-    const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
+    const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = "/login"; };
     return (
       <Layout title={layoutTitle} email={user.email}>
         <div className="space-y-4" dir="rtl">

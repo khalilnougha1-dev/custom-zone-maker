@@ -9,6 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Fingerprint } from "lucide-react";
+import {
+  disableBiometric,
+  enrollBiometric,
+  isBiometricEnabled,
+  isBiometricSupported,
+} from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/app/settings")({ component: SettingsPage });
 
@@ -22,6 +29,9 @@ function SettingsPage() {
     print_language: "ar", printer_type: "58mm", print_margin: 0, print_partial_total: true,
     receipt_footer: "شكرا", auto_print: false,
   });
+  const [biometricSupported, setBiometricSupported] = useState<boolean | null>(null);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -29,6 +39,39 @@ function SettingsPage() {
       if (data) setS(data);
     });
   }, [user]);
+
+  useEffect(() => {
+    setBiometricEnabled(isBiometricEnabled());
+    void isBiometricSupported()
+      .then(setBiometricSupported)
+      .catch(() => setBiometricSupported(false));
+  }, []);
+
+  const toggleBiometric = async () => {
+    if (biometricLoading) return;
+    setBiometricLoading(true);
+    try {
+      if (biometricEnabled) {
+        await disableBiometric();
+        setBiometricEnabled(false);
+        toast.success("تم تعطيل بصمة التطبيق على هذا الهاتف");
+        return;
+      }
+      if (biometricSupported === false) {
+        toast.error("البصمة غير متاحة أو غير مفعّلة في إعدادات الهاتف");
+        return;
+      }
+      const enabled = await enrollBiometric();
+      if (!enabled) {
+        toast.error("تعذّر تفعيل البصمة. تأكد من وجود بصمة مسجلة في الهاتف ثم حاول مجددًا");
+        return;
+      }
+      setBiometricEnabled(true);
+      toast.success("تم تفعيل بصمة التطبيق لهذا الحساب");
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
 
   const save = async () => {
     if (!user) return;
@@ -65,6 +108,32 @@ function SettingsPage() {
           <Input value={s.business_name || ""} onChange={(e) => setS({ ...s, business_name: e.target.value })} placeholder="لم يتم تحديد قيمة" className="mt-1" />
         </div>
         <Row title="أول يوم في الأسبوع" desc="السبت" control={<div />} />
+
+        <Section title="الأمان" />
+        <div className="border-b border-border py-3 text-right">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-end gap-2 font-semibold">
+                <span>الدخول ببصمة التطبيق</span>
+                <Fingerprint className="h-5 w-5 text-primary" />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                ترتبط بهذا الحساب داخل SAHLAPOS وعلى هذا الهاتف فقط، وليست مرتبطة ببصمة Google.
+              </p>
+            </div>
+            <Switch
+              checked={biometricEnabled}
+              disabled={biometricLoading || biometricSupported === false}
+              onCheckedChange={() => void toggleBiometric()}
+              aria-label="تفعيل الدخول ببصمة التطبيق"
+            />
+          </div>
+          {biometricSupported === false && (
+            <p className="mt-2 text-xs text-destructive">
+              فعّل بصمة الهاتف من إعدادات الجهاز ثم أعد فتح التطبيق.
+            </p>
+          )}
+        </div>
 
         <Row
           title="الرسم على القيمة المضافة بالنسبة للمبيعات"

@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const RECORD_KEY = "sahlapos.biometric";
 const REFRESH_TOKEN_KEY = "sahlapos.biometric.refresh-token";
+const LOCK_KEY = "sahlapos.biometric.locked";
 
 export type BiometricRecord = {
   credentialId: string;
@@ -75,12 +76,33 @@ export function getBiometricRecord(): BiometricRecord | null {
 }
 
 export function clearBiometric() {
-  if (typeof window !== "undefined") localStorage.removeItem(RECORD_KEY);
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(RECORD_KEY);
+    localStorage.removeItem(LOCK_KEY);
+  }
   if (isNative()) {
     void import("capacitor-secure-storage-plugin")
       .then(({ SecureStoragePlugin }) => SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY }))
       .catch(() => undefined);
   }
+}
+
+export function isBiometricEnabled() {
+  return getBiometricRecord() !== null;
+}
+
+export function isAppLocked() {
+  return typeof window !== "undefined" && localStorage.getItem(LOCK_KEY) === "1";
+}
+
+export function lockApp() {
+  if (typeof window !== "undefined" && isBiometricEnabled()) {
+    localStorage.setItem(LOCK_KEY, "1");
+  }
+}
+
+export function unlockApp() {
+  if (typeof window !== "undefined") localStorage.removeItem(LOCK_KEY);
 }
 
 export async function isBiometricSupported() {
@@ -172,9 +194,22 @@ export async function enrollBiometric() {
   return true;
 }
 
+/** يعطّل دخول التطبيق بالبصمة ويحذف رمز الجلسة المحمي من هذا الجهاز فقط. */
+export async function disableBiometric() {
+  if (typeof window !== "undefined") localStorage.removeItem(RECORD_KEY);
+  unlockApp();
+  if (!isNative()) return;
+  try {
+    const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+    await SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY });
+  } catch {
+    // The local enrollment marker is already removed, so biometric login is disabled.
+  }
+}
+
 export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }> {
   const record = getBiometricRecord();
-  if (!record) return { ok: false, error: "سجّل الدخول عبر Google أول مرة لربط الحساب بالبصمة" };
+  if (!record) return { ok: false, error: "سجّل الدخول أولًا ثم فعّل بصمة التطبيق من الإعدادات" };
 
   if (isNative()) {
     if (!(await verifyNativeBiometric())) return { ok: false, error: "لم يتم التحقق من بصمة الهاتف" };
@@ -196,7 +231,10 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
   }
 
   const current = await supabase.auth.getSession();
-  if (current.data.session?.user.id === record.userId) return { ok: true };
+  if (current.data.session?.user.id === record.userId) {
+    unlockApp();
+    return { ok: true };
+  }
   if (navigator.onLine === false) {
     return { ok: false, error: "يلزم الإنترنت بعد تسجيل الخروج لإنشاء الجلسة مرة واحدة" };
   }
@@ -204,13 +242,13 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
   const refreshToken = isNative() ? await getSecureRefreshToken() : record.refreshToken;
   if (!refreshToken) {
     clearBiometric();
-    return { ok: false, error: "سجّل الدخول عبر Google من جديد ثم فعّل البصمة" };
+    return { ok: false, error: "سجّل الدخول من جديد ثم فعّل بصمة التطبيق من الإعدادات" };
   }
 
   const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
   if (error || !data.session || data.session.user.id !== record.userId) {
     clearBiometric();
-    return { ok: false, error: "انتهت الجلسة المحفوظة، سجّل الدخول عبر Google من جديد" };
+    return { ok: false, error: "انتهت الجلسة المحفوظة، سجّل الدخول من جديد ثم أعد تفعيل البصمة" };
   }
 
   if (isNative()) await setSecureRefreshToken(data.session.refresh_token);
@@ -220,5 +258,6 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
       JSON.stringify({ ...record, refreshToken: data.session.refresh_token, savedAt: Date.now() }),
     );
   }
+  unlockApp();
   return { ok: true };
 }

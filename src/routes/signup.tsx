@@ -11,10 +11,19 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { BiometricAuthButton } from "@/components/auth/BiometricAuthButton";
 import { supabase } from "@/integrations/supabase/client";
-import { enrollBiometric } from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
+  head: () => ({
+    meta: [
+      { title: "إنشاء حساب | SAHLAPOS" },
+      { name: "description", content: "إنشاء حساب جديد في تطبيق SAHLAPOS لإدارة المبيعات والمخزون." },
+      { property: "og:title", content: "إنشاء حساب | SAHLAPOS" },
+      { property: "og:description", content: "إنشاء حساب جديد في تطبيق SAHLAPOS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const schema = z.object({
@@ -50,7 +59,7 @@ function SignupPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -63,7 +72,11 @@ function SignupPage() {
       toast.error(error.message);
       return;
     }
-    await enrollBiometric().catch(() => false);
+    if (!data.session) {
+      toast.success("تم إنشاء الحساب. افتح بريدك وأكّد الحساب ثم سجّل الدخول");
+      navigate({ to: "/login" });
+      return;
+    }
     toast.success(t("auth.success"));
     navigate({ to: "/dashboard" });
   };
