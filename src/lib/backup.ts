@@ -53,16 +53,49 @@ export async function exportBackup(userId: string): Promise<BackupFile> {
   };
 }
 
-export function downloadBackup(file: BackupFile) {
-  const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+export function isNativeApp(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
+/** Saves the backup file. On the Android app it writes to Documents and opens
+ *  the share sheet (blob downloads do nothing inside a WebView). */
+export async function downloadBackup(file: BackupFile): Promise<string> {
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const name = `sahlapos-backup-${stamp}.json`;
+  const json = JSON.stringify(file, null, 2);
+
+  if (isNativeApp()) {
+    const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
+    const res = await Filesystem.writeFile({
+      path: name,
+      data: json,
+      directory: Directory.Documents,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    });
+    try {
+      const { Share } = await import("@capacitor/share");
+      await Share.share({ title: name, url: res.uri });
+    } catch {
+      /* المشاركة اختيارية */
+    }
+    return res.uri;
+  }
+
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  a.download = `sahlapos-backup-${stamp}.json`;
+  a.download = name;
+  a.rel = "noopener";
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return name;
 }
+
 
 async function clearUserData(userId: string) {
   await supabase.from("stock_movements").delete().eq("user_id", userId);
@@ -187,101 +220,43 @@ export async function importBackupFromFile(file: File, userId: string, onProgres
   await restoreBackup(parsed, userId, onProgress);
 }
 
-// ---------- Google Drive (per-user OAuth via Google Identity Services) ----------
+// ---------- النسخ الاحتياطي السحابي (تخزين Lovable Cloud) ----------
+// يعمل داخل التطبيق والمتصفح بدون أي إعدادات إضافية.
 
-const DRIVE_FILE_NAME = "sahlapos-backup.json";
-const GIS_SRC = "https://accounts.google.com/gsi/client";
+const BUCKET = "backups";
+const CLOUD_FILE = "sahlapos-backup.json";
 
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) return resolve();
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("فشل تحميل Google"));
-    document.head.appendChild(s);
-  });
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const id = data.user?.id;
+  if (!id) throw new Error("يجب تسجيل الدخول أولاً");
+  return id;
 }
 
-export function getGoogleClientId(): string | undefined {
-  return import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+export async function uploadToCloud(file: BackupFile) {
+  const uid = await currentUserId();
+  const blob = new Blob([JSON.stringify(file)], { type: "application/json" });
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(`${uid}/${CLOUD_FILE}`, blob, { upsert: true, contentType: "application/json" });
+  if (error) throw new Error(error.message);
 }
 
-async function getDriveAccessToken(): Promise<string> {
-  const clientId = getGoogleClientId();
-  if (!clientId) {
-    throw new Error("لم يتم إعداد ربط Google Drive بعد. يرجى التواصل مع الدعم.");
-  }
-  await loadScript(GIS_SRC);
-  return new Promise((resolve, reject) => {
-    // @ts-ignore
-    const tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: "https://www.googleapis.com/auth/drive.file",
-      callback: (resp: any) => {
-        if (resp.error) reject(new Error(resp.error));
-        else resolve(resp.access_token);
-      },
-    });
-    tokenClient.requestAccessToken({ prompt: "" });
-  });
-}
-
-async function findDriveBackup(token: string): Promise<{ id: string; modifiedTime: string; size?: string } | null> {
-  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!res.ok) throw new Error(`Drive: ${res.status}`);
-  const j = await res.json();
-  return j.files?.[0] || null;
-}
-
-export async function getDriveBackupInfo(): Promise<{ modifiedTime: string; size?: string } | null> {
-  const token = await getDriveAccessToken();
-  const f = await findDriveBackup(token);
+export async function getCloudBackupInfo(): Promise<{ modifiedTime: string; size?: string } | null> {
+  const uid = await currentUserId();
+  const { data, error } = await supabase.storage.from(BUCKET).list(uid, { search: CLOUD_FILE });
+  if (error) throw new Error(error.message);
+  const f = (data || []).find((x) => x.name === CLOUD_FILE);
   if (!f) return null;
-  return { modifiedTime: f.modifiedTime, size: f.size };
+  return {
+    modifiedTime: (f as any).updated_at || (f as any).created_at || new Date().toISOString(),
+    size: (f as any).metadata?.size != null ? String((f as any).metadata.size) : undefined,
+  };
 }
 
-export async function uploadToGoogleDrive(file: BackupFile) {
-  const token = await getDriveAccessToken();
-  const existingId = (await findDriveBackup(token))?.id || null;
-
-  const metadata = { name: DRIVE_FILE_NAME, mimeType: "application/json" };
-  const boundary = "-------sahlapos" + Math.random().toString(36).slice(2);
-  const body =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
-    JSON.stringify(metadata) +
-    `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
-    JSON.stringify(file) +
-    `\r\n--${boundary}--`;
-
-  const url = existingId
-    ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
-    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-
-  const res = await fetch(url, {
-    method: existingId ? "PATCH" : "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": `multipart/related; boundary=${boundary}`,
-    },
-    body,
-  });
-  if (!res.ok) throw new Error(`Drive upload: ${res.status} ${await res.text()}`);
-}
-
-export async function downloadFromGoogleDrive(): Promise<BackupFile> {
-  const token = await getDriveAccessToken();
-  const f = await findDriveBackup(token);
-  if (!f) throw new Error("لم يتم العثور على نسخة احتياطية في Google Drive");
-  const id = f.id;
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Drive download: ${res.status}`);
-  return (await res.json()) as BackupFile;
+export async function downloadFromCloud(): Promise<BackupFile> {
+  const uid = await currentUserId();
+  const { data, error } = await supabase.storage.from(BUCKET).download(`${uid}/${CLOUD_FILE}`);
+  if (error || !data) throw new Error("لم يتم العثور على نسخة احتياطية سحابية");
+  return JSON.parse(await data.text()) as BackupFile;
 }

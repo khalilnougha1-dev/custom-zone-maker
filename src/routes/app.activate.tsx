@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, Clock, Calendar, CheckCircle2, HardDrive, Upload, Cloud } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,9 @@ import {
   exportBackup,
   downloadBackup,
   importBackupFromFile,
-  uploadToGoogleDrive,
-  downloadFromGoogleDrive,
-  getDriveBackupInfo,
-  getGoogleClientId,
+  uploadToCloud,
+  downloadFromCloud,
+  getCloudBackupInfo,
   restoreBackup,
   type ProgressCb,
 } from "@/lib/backup";
@@ -131,9 +130,9 @@ function ActivatePage() {
       onProgress({ label: "جمع البيانات", current: 0, total: 2 });
       const file = await exportBackup(user.id);
       onProgress({ label: "تنزيل الملف", current: 1, total: 2 });
-      downloadBackup(file);
+      const saved = await downloadBackup(file);
       finishProgress();
-      toast.success("تم تنزيل النسخة الاحتياطية");
+      toast.success(saved.startsWith("file") || saved.includes("/") ? `تم حفظ النسخة: ${saved.split("/").pop()}` : "تم تنزيل النسخة الاحتياطية");
     } catch (e: any) {
       finishProgress(e.message || "فشل التصدير");
       toast.error(e.message || "فشل التصدير");
@@ -142,43 +141,43 @@ function ActivatePage() {
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleImportFile = () => {
     if (!user?.id || isBusy) return;
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      setBusy("file-in");
-      startProgress("استيراد ملف واسترداد البيانات", 18);
-      try {
-        await importBackupFromFile(file, user.id, onProgress);
-        finishProgress();
-        toast.success("تم استرداد البيانات بنجاح");
-      } catch (err: any) {
-        finishProgress(err.message || "فشل الاسترداد");
-        toast.error(err.message || "فشل الاسترداد");
-      } finally {
-        setBusy(null);
-      }
-    };
-    input.click();
+    fileInputRef.current?.click();
+  };
+
+  const onFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user?.id) return;
+    setBusy("file-in");
+    startProgress("استيراد ملف واسترداد البيانات", 18);
+    try {
+      await importBackupFromFile(file, user.id, onProgress);
+      finishProgress();
+      toast.success("تم استرداد البيانات بنجاح");
+    } catch (err: any) {
+      finishProgress(err.message || "فشل الاسترداد");
+      toast.error(err.message || "فشل الاسترداد");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const handleDriveUpload = async () => {
     if (!user?.id || isBusy) return;
-    if (!getGoogleClientId()) return toast.error("ربط Google Drive غير مُهيأ");
     setBusy("drive-up");
-    startProgress("رفع النسخة إلى Google Drive", 3);
+    startProgress("رفع النسخة إلى السحابة", 3);
     try {
       onProgress({ label: "تجهيز البيانات", current: 0, total: 3 });
       const file = await exportBackup(user.id);
-      onProgress({ label: "الاتصال بـ Google Drive", current: 1, total: 3 });
-      await uploadToGoogleDrive(file);
+      onProgress({ label: "جاري الرفع إلى السحابة", current: 1, total: 3 });
+      await uploadToCloud(file);
       onProgress({ label: "اكتمل الرفع", current: 3, total: 3 });
       finishProgress();
-      toast.success("تم رفع النسخة إلى Google Drive");
+      toast.success("تم رفع النسخة إلى السحابة");
     } catch (e: any) {
       finishProgress(e.message || "فشل الرفع");
       toast.error(e.message || "فشل الرفع");
@@ -189,13 +188,12 @@ function ActivatePage() {
 
   const openDriveRestoreDialog = async () => {
     if (!user?.id || isBusy) return;
-    if (!getGoogleClientId()) return toast.error("ربط Google Drive غير مُهيأ");
     setDriveInfo({ open: true, loading: true });
     setBusy("drive-info");
     try {
-      const info = await getDriveBackupInfo();
+      const info = await getCloudBackupInfo();
       if (!info) {
-        setDriveInfo({ open: true, loading: false, error: "لا توجد نسخة احتياطية في Google Drive" });
+        setDriveInfo({ open: true, loading: false, error: "لا توجد نسخة احتياطية سحابية" });
       } else {
         setDriveInfo({ open: true, loading: false, modifiedTime: info.modifiedTime, size: info.size });
       }
@@ -210,13 +208,13 @@ function ActivatePage() {
     if (!user?.id || isBusy) return;
     setDriveInfo((d) => ({ ...d, open: false }));
     setBusy("drive-down");
-    startProgress("استرداد البيانات من Google Drive", 18);
+    startProgress("استرداد البيانات من السحابة", 18);
     try {
-      onProgress({ label: "تحميل النسخة من Drive", current: 0, total: 18 });
-      const file = await downloadFromGoogleDrive();
+      onProgress({ label: "تحميل النسخة من السحابة", current: 0, total: 18 });
+      const file = await downloadFromCloud();
       await restoreBackup(file, user.id, onProgress);
       finishProgress();
-      toast.success("تم استرداد البيانات من Google Drive");
+      toast.success("تم استرداد البيانات من السحابة");
     } catch (e: any) {
       finishProgress(e.message || "فشل التحميل");
       toast.error(e.message || "فشل التحميل");
@@ -261,7 +259,7 @@ function ActivatePage() {
                   className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Cloud className="h-4 w-4" />
-                  <span>{busy === "drive-up" ? "جاري الرفع..." : "رفع إلى Drive"}</span>
+                  <span>{busy === "drive-up" ? "جاري الرفع..." : "رفع إلى السحابة"}</span>
                 </button>
                 <button
                   onClick={openDriveRestoreDialog}
@@ -269,7 +267,7 @@ function ActivatePage() {
                   className="flex items-center justify-center gap-2 rounded-md border border-accent/60 bg-background px-3 py-3 text-sm hover:bg-accent/30 transition disabled:opacity-50"
                 >
                   <Cloud className="h-4 w-4" />
-                  <span>{busy === "drive-info" ? "جاري الفحص..." : busy === "drive-down" ? "جاري التحميل..." : "تحميل من Drive"}</span>
+                  <span>{busy === "drive-info" ? "جاري الفحص..." : busy === "drive-down" ? "جاري التحميل..." : "تحميل من السحابة"}</span>
                 </button>
                 <button
                   onClick={handleExportFile}
@@ -317,11 +315,19 @@ function ActivatePage() {
 
       </div>
 
-      {/* Drive backup info dialog */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={onFileChosen}
+      />
+
+      {/* Cloud backup info dialog */}
       <Dialog open={driveInfo.open} onOpenChange={(o) => !isBusy && setDriveInfo((d) => ({ ...d, open: o }))}>
         <DialogContent dir="rtl" className="text-right">
           <DialogHeader>
-            <DialogTitle>نسخة Google Drive الاحتياطية</DialogTitle>
+            <DialogTitle>النسخة الاحتياطية السحابية</DialogTitle>
             <DialogDescription>
               راجع تفاصيل النسخة قبل تنفيذ الاسترداد. سيتم استبدال جميع بياناتك الحالية.
             </DialogDescription>
@@ -330,7 +336,7 @@ function ActivatePage() {
             {driveInfo.loading && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                جاري الاتصال بـ Google Drive...
+                جاري الاتصال بالسحابة...
               </div>
             )}
             {driveInfo.error && (
