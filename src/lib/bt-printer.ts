@@ -42,7 +42,9 @@ let activeDeviceId: string | null = null;
 let activeCharacteristic: any | null = null;
 let activeConnectionPromise: Promise<any> | null = null;
 let gattTaskQueue: Promise<unknown> = Promise.resolve();
-const BLUETOOTH_CONNECT_TIMEOUT_MS = 12_000;
+// يجب أن تتسع هذه المهلة لثلاث محاولات اتصال أصلية (12ث لكل محاولة)
+// مع فترات الانتظار بينها + اكتشاف الخدمات، وإلا تفشل دائمًا قبل نجاح الاتصال.
+const BLUETOOTH_CONNECT_TIMEOUT_MS = 60_000;
 const BLUETOOTH_PRINT_TIMEOUT_MIN_MS = 45_000;
 const BLUETOOTH_PRINT_TIMEOUT_MAX_MS = 180_000;
 const BLUETOOTH_WRITE_TIMEOUT_MS = 4_000;
