@@ -127,8 +127,8 @@ function PrinterPage() {
       stopScanRef.current?.();
       stopScanRef.current = await scanNativeDevices((d) => {
         setFound((prev) => (prev.some((x) => x.id === d.id) ? prev : [...prev, d]));
-      }, 12_000);
-      window.setTimeout(() => setScanning(false), 12_000);
+      }, 20_000);
+      window.setTimeout(() => setScanning(false), 20_000);
     } catch (e) {
       setScanning(false);
       toast.error((e as Error).message || "تعذّر بدء البحث");
