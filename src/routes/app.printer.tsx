@@ -1,12 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap, FileText, Eye, ShieldCheck, BluetoothConnected, BluetoothSearching, RefreshCw } from "lucide-react";
+import {
+  Printer,
+  Bluetooth,
+  Usb,
+  Wifi,
+  Search,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Monitor,
+  Loader2,
+  XCircle,
+  Zap,
+  FileText,
+  Eye,
+  ShieldCheck,
+  BluetoothConnected,
+  BluetoothSearching,
+  RefreshCw,
+} from "lucide-react";
 import { buildReceiptHtmlPreview, SAMPLE_RECEIPT } from "@/lib/print-receipt";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   ACTIVE_PRINTER_KEY,
@@ -33,7 +58,11 @@ const STORAGE_KEY = SAVED_PRINTERS_KEY;
 const ACTIVE_KEY = ACTIVE_PRINTER_KEY;
 
 function loadPrinters(): SavedPrinter[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 function savePrinters(list: SavedPrinter[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
@@ -43,8 +72,18 @@ function PrinterPage() {
   const [printers, setPrinters] = useState<SavedPrinter[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
-  const [btStatus, setBtStatus] = useState<{ supported: boolean; native: boolean; connected: boolean; deviceName: string | null; deviceId: string | null }>({
-    supported: false, native: false, connected: false, deviceName: null, deviceId: null,
+  const [btStatus, setBtStatus] = useState<{
+    supported: boolean;
+    native: boolean;
+    connected: boolean;
+    deviceName: string | null;
+    deviceId: string | null;
+  }>({
+    supported: false,
+    native: false,
+    connected: false,
+    deviceName: null,
+    deviceId: null,
   });
   const [permState, setPermState] = useState<{ ok: boolean; message: string } | null>(null);
   const [permBusy, setPermBusy] = useState(false);
@@ -53,7 +92,11 @@ function PrinterPage() {
   const [connecting, setConnecting] = useState<string | null>(null);
   const stopScanRef = useRef<null | (() => void)>(null);
   const [quickTesting, setQuickTesting] = useState(false);
-  const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
+  const [quickResult, setQuickResult] = useState<{
+    ok: boolean;
+    message: string;
+    at: string;
+  } | null>(null);
   const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
   const [sampleTesting, setSampleTesting] = useState(false);
   const [sampleResult, setSampleResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -82,7 +125,11 @@ function PrinterPage() {
     };
     tick();
     const t = window.setInterval(tick, 1500);
-    return () => { alive = false; window.clearInterval(t); stopScanRef.current?.(); };
+    return () => {
+      alive = false;
+      window.clearInterval(t);
+      stopScanRef.current?.();
+    };
   }, []);
 
   const requestPermissions = async () => {
@@ -123,7 +170,11 @@ function PrinterPage() {
       const { ensureBlePermissions, scanNativeDevices } = await import("@/lib/native-bluetooth");
       const perm = await ensureBlePermissions();
       setPermState(perm);
-      if (!perm.ok) { setScanning(false); toast.error(perm.message); return; }
+      if (!perm.ok) {
+        setScanning(false);
+        toast.error(perm.message);
+        return;
+      }
       stopScanRef.current?.();
       stopScanRef.current = await scanNativeDevices((d) => {
         setFound((prev) => (prev.some((x) => x.id === d.id) ? prev : [...prev, d]));
@@ -140,7 +191,8 @@ function PrinterPage() {
     try {
       stopScanRef.current?.();
       setScanning(false);
-      const { rememberPickedDevice, connectRememberedPrinter, getBluetoothStatus } = await import("@/lib/bt-printer");
+      const { rememberPickedDevice, connectRememberedPrinter, getBluetoothStatus } =
+        await import("@/lib/bt-printer");
       rememberPickedDevice(d.id, d.name);
       savePairedPrinter(d.id, d.name);
       // Give Android time to finish stopping discovery before opening GATT.
@@ -155,7 +207,6 @@ function PrinterPage() {
       setConnecting(null);
     }
   };
-
 
   const changeReceiptPaper = (v: ReceiptPaperWidth) => {
     setReceiptPaperState(v);
@@ -237,25 +288,35 @@ function PrinterPage() {
       paper,
     };
     const next = [...printers, p];
-    setPrinters(next); savePrinters(next);
-    if (!activeId) { setActiveId(p.id); localStorage.setItem(ACTIVE_KEY, p.id); }
-    setName(""); setAddress("");
+    setPrinters(next);
+    savePrinters(next);
+    if (!activeId) {
+      setActiveId(p.id);
+      localStorage.setItem(ACTIVE_KEY, p.id);
+    }
+    setName("");
+    setAddress("");
     toast.success("تمت إضافة الطابعة");
   };
 
   const remove = async (id: string) => {
-    const next = printers.filter(p => p.id !== id);
-    setPrinters(next); savePrinters(next);
+    const next = printers.filter((p) => p.id !== id);
+    setPrinters(next);
+    savePrinters(next);
     const removedPrinter = printers.find((p) => p.id === id);
     if (removedPrinter?.connection === "bluetooth") {
       const { clearRememberedPrinter } = await import("@/lib/bt-printer");
       clearRememberedPrinter();
     }
-    if (activeId === id) { setActiveId(""); localStorage.removeItem(ACTIVE_KEY); }
+    if (activeId === id) {
+      setActiveId("");
+      localStorage.removeItem(ACTIVE_KEY);
+    }
   };
 
   const setActive = async (id: string) => {
-    setActiveId(id); localStorage.setItem(ACTIVE_KEY, id);
+    setActiveId(id);
+    localStorage.setItem(ACTIVE_KEY, id);
     const selected = printers.find((printer) => printer.id === id);
     if (selected?.connection === "bluetooth") {
       const { syncRememberedBluetoothPrinter } = await import("@/lib/bt-printer");
@@ -265,7 +326,10 @@ function PrinterPage() {
   };
 
   const scanBluetooth = async () => {
-    if (btStatus.native) { await startNativeScan(); return; }
+    if (btStatus.native) {
+      await startNativeScan();
+      return;
+    }
     setScanning(true);
     try {
       const { pairPrinter, syncRememberedBluetoothPrinter } = await import("@/lib/bt-printer");
@@ -278,20 +342,29 @@ function PrinterPage() {
         address: id,
         paper: "80mm",
       };
-      const next = [...printers.filter(x => x.connection !== "bluetooth"), p];
-      setPrinters(next); savePrinters(next);
+      const next = [...printers.filter((x) => x.connection !== "bluetooth"), p];
+      setPrinters(next);
+      savePrinters(next);
       setActive(p.id);
       toast.success(`تم اقتران الطابعة: ${pname}`);
     } catch (e) {
       const msg = (e as Error).message || "تعذر الاقتران";
       if (!msg.toLowerCase().includes("cancel")) toast.error(msg);
-    } finally { setScanning(false); }
+    } finally {
+      setScanning(false);
+    }
   };
 
   const scanUsb = async () => {
     setScanning(true);
     try {
-      const nav = navigator as Navigator & { usb?: { requestDevice: (o: unknown) => Promise<{ productName?: string; manufacturerName?: string; serialNumber?: string }> } };
+      const nav = navigator as Navigator & {
+        usb?: {
+          requestDevice: (
+            o: unknown,
+          ) => Promise<{ productName?: string; manufacturerName?: string; serialNumber?: string }>;
+        };
+      };
       if (!nav.usb) {
         toast.error("USB غير مدعوم في هذا المتصفح (استخدم Chrome/Edge)");
         return;
@@ -305,13 +378,16 @@ function PrinterPage() {
         paper: "80mm",
       };
       const next = [...printers, p];
-      setPrinters(next); savePrinters(next);
+      setPrinters(next);
+      savePrinters(next);
       if (!activeId) setActive(p.id);
       toast.success("تمت إضافة الطابعة USB");
     } catch (e) {
       const msg = (e as Error).message || "تعذر الاتصال";
       if (!msg.includes("No device")) toast.error(msg);
-    } finally { setScanning(false); }
+    } finally {
+      setScanning(false);
+    }
   };
 
   const quickTest = async () => {
@@ -374,7 +450,10 @@ function PrinterPage() {
       }
       return;
     }
-    if (p.connection === "system") { window.print(); return; }
+    if (p.connection === "system") {
+      window.print();
+      return;
+    }
     toast.success(`جاري إرسال صفحة اختبار إلى ${p.name}`);
   };
 
@@ -384,12 +463,15 @@ function PrinterPage() {
     if (c === "network") return <Wifi className="h-5 w-5" />;
     return <Monitor className="h-5 w-5" />;
   };
-  const connLabel = (c: Connection) => ({
-    bluetooth: "بلوتوث",
-    usb: "USB",
-    network: "شبكة (IP)",
-    system: "طابعة النظام",
-  } satisfies Record<Connection, string>)[c];
+  const connLabel = (c: Connection) =>
+    (
+      ({
+        bluetooth: "بلوتوث",
+        usb: "USB",
+        network: "شبكة (IP)",
+        system: "طابعة النظام",
+      }) satisfies Record<Connection, string>
+    )[c];
 
   return (
     <PosLayout title="الطابعة">
@@ -409,15 +491,27 @@ function PrinterPage() {
           <div className="flex items-center gap-3 rounded-lg border border-border p-3">
             <span
               className={`h-3 w-3 rounded-full shrink-0 ${
-                btStatus.connected ? "bg-emerald-500" : scanning ? "bg-amber-500 animate-pulse" : "bg-muted-foreground/40"
+                btStatus.connected
+                  ? "bg-emerald-500"
+                  : scanning
+                    ? "bg-amber-500 animate-pulse"
+                    : "bg-muted-foreground/40"
               }`}
             />
             <div className="flex-1 text-right">
               <div className="font-semibold text-sm">
-                {btStatus.connected ? "متصل" : scanning ? "جاري البحث عن الأجهزة..." : btStatus.deviceName ? "غير متصل (محفوظة)" : "لا توجد طابعة مقترنة"}
+                {btStatus.connected
+                  ? "متصل"
+                  : scanning
+                    ? "جاري البحث عن الأجهزة..."
+                    : btStatus.deviceName
+                      ? "غير متصل (محفوظة)"
+                      : "لا توجد طابعة مقترنة"}
               </div>
               <div className="text-[11px] text-muted-foreground truncate">
-                {btStatus.deviceName ? `الطابعة: ${btStatus.deviceName}` : "اضغط «بحث عن طابعة بلوتوث» للاقتران"}
+                {btStatus.deviceName
+                  ? `الطابعة: ${btStatus.deviceName}`
+                  : "اضغط «بحث عن طابعة بلوتوث» للاقتران"}
                 {btStatus.deviceId ? ` • ${btStatus.deviceId}` : ""}
               </div>
             </div>
@@ -453,12 +547,22 @@ function PrinterPage() {
             <li>اضغط «منح أذونات البلوتوث» ثم اسمح بـ «الأجهزة القريبة».</li>
             <li>شغّل الطابعة الحرارية ثم ابدأ البحث.</li>
           </ol>
-          <Button onClick={requestPermissions} disabled={permBusy} className="w-full bg-gradient-primary text-primary-foreground gap-2">
-            {permBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+          <Button
+            onClick={requestPermissions}
+            disabled={permBusy}
+            className="w-full bg-gradient-primary text-primary-foreground gap-2"
+          >
+            {permBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
             منح أذونات البلوتوث
           </Button>
           {permState && (
-            <div className={`rounded-lg border p-2 text-right text-xs font-semibold ${permState.ok ? "border-primary/40 bg-primary/5 text-primary" : "border-destructive/40 bg-destructive/5 text-destructive"}`}>
+            <div
+              className={`rounded-lg border p-2 text-right text-xs font-semibold ${permState.ok ? "border-primary/40 bg-primary/5 text-primary" : "border-destructive/40 bg-destructive/5 text-destructive"}`}
+            >
               {permState.message}
             </div>
           )}
@@ -466,19 +570,28 @@ function PrinterPage() {
 
         {/* نافذة البحث داخل التطبيق */}
         {scanOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3" dir="rtl">
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3"
+            dir="rtl"
+          >
             <div className="w-full max-w-md rounded-2xl bg-card border border-border p-4 space-y-3 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <div className="font-bold">الأجهزة القريبة</div>
-                {scanning ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <BluetoothSearching className="h-5 w-5 text-muted-foreground" />}
+                {scanning ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                ) : (
+                  <BluetoothSearching className="h-5 w-5 text-muted-foreground" />
+                )}
               </div>
               <div className="text-xs text-muted-foreground text-right">
-                {scanning ? "جاري البحث... تظهر الأجهزة تلقائيًا" : `انتهى البحث — ${found.length} جهاز`}
+                {scanning
+                  ? "جاري البحث... تظهر الأجهزة تلقائيًا"
+                  : `انتهى البحث — ${found.length} جهاز`}
               </div>
               {found.length === 0 && !scanning && (
                 <div className="text-center text-sm text-muted-foreground py-4 leading-relaxed">
-                  لم يتم العثور على أجهزة. شغّل الطابعة XP-P323B، ثم اقترنها أولًا من
-                  «إعدادات الهاتف ← البلوتوث» (BT:A3F3) وأعد البحث — ستظهر هنا ضمن الأجهزة المقترنة.
+                  لم يتم العثور على أجهزة. شغّل الطابعة XP-P323B، ثم اقترنها أولًا من «إعدادات
+                  الهاتف ← البلوتوث» (BT:A3F3) وأعد البحث — ستظهر هنا ضمن الأجهزة المقترنة.
                 </div>
               )}
               <div className="space-y-2">
@@ -492,18 +605,30 @@ function PrinterPage() {
                     <Bluetooth className="h-5 w-5 text-primary shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm truncate">{d.name}</div>
-                      <div className="text-[11px] text-muted-foreground truncate" dir="ltr">{d.id}{d.rssi ? ` • ${d.rssi}dBm` : ""}</div>
+                      <div className="text-[11px] text-muted-foreground truncate" dir="ltr">
+                        {d.id}
+                        {d.rssi ? ` • ${d.rssi}dBm` : ""}
+                      </div>
                     </div>
                     {connecting === d.id && <Loader2 className="h-4 w-4 animate-spin" />}
                   </button>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button onClick={startNativeScan} variant="outline" className="gap-2" disabled={scanning}>
+                <Button
+                  onClick={startNativeScan}
+                  variant="outline"
+                  className="gap-2"
+                  disabled={scanning}
+                >
                   <RefreshCw className="h-4 w-4" /> إعادة البحث
                 </Button>
                 <Button
-                  onClick={() => { stopScanRef.current?.(); setScanning(false); setScanOpen(false); }}
+                  onClick={() => {
+                    stopScanRef.current?.();
+                    setScanning(false);
+                    setScanOpen(false);
+                  }}
                   variant="outline"
                 >
                   إغلاق
@@ -553,7 +678,8 @@ function PrinterPage() {
             <Eye className="h-5 w-5 text-primary" />
           </div>
           <p className="text-xs text-muted-foreground text-right">
-            معاينة دقيقة بعرض {receiptPaper === "58mm" ? "58 مم" : "80 مم"} — تأكد من التنسيق قبل طباعة وصل حقيقي.
+            معاينة دقيقة بعرض {receiptPaper === "58mm" ? "58 مم" : "80 مم"} — تأكد من التنسيق قبل
+            طباعة وصل حقيقي.
           </p>
           <div className="flex justify-center">
             <div
@@ -579,7 +705,11 @@ function PrinterPage() {
               disabled={sampleTesting || !activeId}
               className="bg-gradient-primary text-primary-foreground gap-2"
             >
-              {sampleTesting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+              {sampleTesting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Printer className="h-5 w-5" />
+              )}
               طباعة الآن
             </Button>
             <Button onClick={downloadSamplePdf} variant="outline" className="gap-2">
@@ -618,7 +748,11 @@ function PrinterPage() {
             disabled={quickTesting || !activeId}
             className="w-full bg-gradient-primary text-primary-foreground gap-2"
           >
-            {quickTesting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+            {quickTesting ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Printer className="h-5 w-5" />
+            )}
             {quickTesting ? "جاري الإرسال..." : "إرسال صفحة اختبار"}
           </Button>
           {quickResult && (
@@ -635,7 +769,9 @@ function PrinterPage() {
                 <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
               )}
               <div className="flex-1">
-                <div className="font-semibold">{quickResult.ok ? "نجحت الطباعة" : "فشلت الطباعة"}</div>
+                <div className="font-semibold">
+                  {quickResult.ok ? "نجحت الطباعة" : "فشلت الطباعة"}
+                </div>
                 <div className="text-xs opacity-80 mt-0.5">{quickResult.message}</div>
                 <div className="text-[10px] opacity-60 mt-1">{quickResult.at}</div>
               </div>
@@ -650,27 +786,48 @@ function PrinterPage() {
             <Printer className="h-5 w-5 text-primary" />
           </div>
           {printers.length === 0 ? (
-            <div className="text-center text-sm text-muted-foreground py-6">لا توجد طابعات. أضف واحدة أدناه.</div>
+            <div className="text-center text-sm text-muted-foreground py-6">
+              لا توجد طابعات. أضف واحدة أدناه.
+            </div>
           ) : (
             <div className="space-y-2">
-              {printers.map(p => (
-                <div key={p.id} className={`flex items-center gap-3 rounded-lg border p-3 ${activeId === p.id ? "border-primary bg-primary/5" : "border-border"}`}>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">{connIcon(p.connection)}</div>
+              {printers.map((p) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-3 rounded-lg border p-3 ${activeId === p.id ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                    {connIcon(p.connection)}
+                  </div>
                   <div className="flex-1 text-right">
                     <div className="font-semibold flex items-center justify-end gap-2">
                       {activeId === p.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
                       <span>{p.name}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      {connLabel(p.connection)} {p.paper ? `• ${p.paper}` : ""} {p.address ? `• ${p.address}` : ""}
+                      {connLabel(p.connection)} {p.paper ? `• ${p.paper}` : ""}{" "}
+                      {p.address ? `• ${p.address}` : ""}
                     </div>
                   </div>
                   <div className="flex gap-1">
                     {activeId !== p.id && (
-                      <button onClick={() => setActive(p.id)} className="text-xs px-2 py-1 rounded border border-border hover:bg-muted">تعيين</button>
+                      <button
+                        onClick={() => setActive(p.id)}
+                        className="text-xs px-2 py-1 rounded border border-border hover:bg-muted"
+                      >
+                        تعيين
+                      </button>
                     )}
-                    <button onClick={() => testPrint(p)} className="text-xs px-2 py-1 rounded border border-border hover:bg-muted">اختبار</button>
-                    <button onClick={() => remove(p.id)} className="text-xs px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10">
+                    <button
+                      onClick={() => testPrint(p)}
+                      className="text-xs px-2 py-1 rounded border border-border hover:bg-muted"
+                    >
+                      اختبار
+                    </button>
+                    <button
+                      onClick={() => remove(p.id)}
+                      className="text-xs px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -690,10 +847,19 @@ function PrinterPage() {
             </TabsList>
 
             <TabsContent value="auto" className="space-y-2 pt-3">
-              <Button onClick={scanBluetooth} disabled={scanning} className="w-full bg-gradient-primary text-primary-foreground gap-2">
+              <Button
+                onClick={scanBluetooth}
+                disabled={scanning}
+                className="w-full bg-gradient-primary text-primary-foreground gap-2"
+              >
                 <Bluetooth className="h-5 w-5" /> بحث عن طابعة بلوتوث
               </Button>
-              <Button onClick={scanUsb} disabled={scanning} variant="outline" className="w-full gap-2">
+              <Button
+                onClick={scanUsb}
+                disabled={scanning}
+                variant="outline"
+                className="w-full gap-2"
+              >
                 <Usb className="h-5 w-5" /> بحث عن طابعة USB
               </Button>
               <Button onClick={() => window.print()} variant="outline" className="w-full gap-2">
@@ -706,14 +872,25 @@ function PrinterPage() {
 
             <TabsContent value="manual" className="space-y-3 pt-3">
               <div>
-                <label className="text-sm text-muted-foreground block text-right mb-1">اسم الطابعة</label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: XP-T80B" className="text-right" />
+                <label className="text-sm text-muted-foreground block text-right mb-1">
+                  اسم الطابعة
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="مثال: XP-T80B"
+                  className="text-right"
+                />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-sm text-muted-foreground block text-right mb-1">نوع الاتصال</label>
+                  <label className="text-sm text-muted-foreground block text-right mb-1">
+                    نوع الاتصال
+                  </label>
                   <Select value={conn} onValueChange={(v) => setConn(v as Connection)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bluetooth">بلوتوث</SelectItem>
                       <SelectItem value="usb">USB</SelectItem>
@@ -723,9 +900,16 @@ function PrinterPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground block text-right mb-1">حجم الورق</label>
-                  <Select value={paper} onValueChange={(v) => setPaper(v as "58mm" | "80mm" | "A4")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <label className="text-sm text-muted-foreground block text-right mb-1">
+                    حجم الورق
+                  </label>
+                  <Select
+                    value={paper}
+                    onValueChange={(v) => setPaper(v as "58mm" | "80mm" | "A4")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="58mm">58 مم</SelectItem>
                       <SelectItem value="80mm">80 مم</SelectItem>
@@ -737,12 +921,22 @@ function PrinterPage() {
               {(conn === "network" || conn === "bluetooth" || conn === "usb") && (
                 <div>
                   <label className="text-sm text-muted-foreground block text-right mb-1">
-                    {conn === "network" ? "عنوان IP:Port (مثال: 192.168.1.50:9100)" : "العنوان / المعرّف (اختياري)"}
+                    {conn === "network"
+                      ? "عنوان IP:Port (مثال: 192.168.1.50:9100)"
+                      : "العنوان / المعرّف (اختياري)"}
                   </label>
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} dir="ltr" className="text-left" />
+                  <Input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    dir="ltr"
+                    className="text-left"
+                  />
                 </div>
               )}
-              <Button onClick={addPrinter} className="w-full bg-gradient-primary text-primary-foreground gap-2">
+              <Button
+                onClick={addPrinter}
+                className="w-full bg-gradient-primary text-primary-foreground gap-2"
+              >
                 <Plus className="h-5 w-5" /> إضافة الطابعة
               </Button>
             </TabsContent>
@@ -750,7 +944,8 @@ function PrinterPage() {
         </div>
 
         <div className="text-center text-xs text-muted-foreground">
-          مدعومة: حرارية 58/80 مم (بلوتوث/USB/شبكة) — كذلك أي طابعة عبر طباعة النظام (A4، ليزر، نافثة...).
+          مدعومة: حرارية 58/80 مم (بلوتوث/USB/شبكة) — كذلك أي طابعة عبر طباعة النظام (A4، ليزر،
+          نافثة...).
         </div>
       </div>
     </PosLayout>

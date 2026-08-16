@@ -38,7 +38,13 @@ export async function installNativeBluetooth(): Promise<boolean> {
       private deviceId: string;
       private serviceUuid: string;
 
-      constructor(deviceId: string, serviceUuid: string, uuid: string, properties: any, maxChunkSize = 20) {
+      constructor(
+        deviceId: string,
+        serviceUuid: string,
+        uuid: string,
+        properties: any,
+        maxChunkSize = 20,
+      ) {
         this.deviceId = deviceId;
         this.serviceUuid = serviceUuid;
         this.uuid = uuid;
@@ -47,7 +53,12 @@ export async function installNativeBluetooth(): Promise<boolean> {
       }
 
       async writeValueWithoutResponse(value: any) {
-        await BleClient.writeWithoutResponse(this.deviceId, this.serviceUuid, this.uuid, toDataView(value));
+        await BleClient.writeWithoutResponse(
+          this.deviceId,
+          this.serviceUuid,
+          this.uuid,
+          toDataView(value),
+        );
       }
 
       async writeValue(value: any) {
@@ -231,7 +242,8 @@ export async function installNativeBluetooth(): Promise<boolean> {
         if (!stored) return [];
         try {
           const devices = await BleClient.getDevices([stored]);
-          if (devices.length) return devices.map((d: any) => getDevice(d.deviceId, d.name || storedName));
+          if (devices.length)
+            return devices.map((d: any) => getDevice(d.deviceId, d.name || storedName));
         } catch {}
         // مهم: نرجّع الجهاز المحفوظ دائمًا حتى لا تفتح نافذة "Scanning..." النظامية
         return [getDevice(stored, storedName)];
@@ -316,12 +328,12 @@ export async function scanNativeDevices(
   await BleClient.requestLEScan(
     { allowDuplicates: true, scanMode: mod.ScanMode.SCAN_MODE_LOW_LATENCY },
     (result: any) => {
-    const name = result?.device?.name || result?.localName || "";
-    onDevice({
-      id: result.device.deviceId,
-      name: name || `جهاز ${String(result.device.deviceId).slice(-5)}`,
-      rssi: result.rssi,
-    });
+      const name = result?.device?.name || result?.localName || "";
+      onDevice({
+        id: result.device.deviceId,
+        name: name || `جهاز ${String(result.device.deviceId).slice(-5)}`,
+        rssi: result.rssi,
+      });
     },
   );
   const stop = () => {
@@ -333,4 +345,3 @@ export async function scanNativeDevices(
     stop();
   };
 }
-
