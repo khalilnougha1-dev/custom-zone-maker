@@ -71,6 +71,90 @@ function PrinterPage() {
     setReceiptPaperState(getReceiptPaperWidth());
   }, []);
 
+  // تحديث تلقائي لحالة اتصال البلوتوث
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const { getBluetoothStatus } = await import("@/lib/bt-printer");
+        if (alive) setBtStatus(getBluetoothStatus());
+      } catch {}
+    };
+    tick();
+    const t = window.setInterval(tick, 1500);
+    return () => { alive = false; window.clearInterval(t); stopScanRef.current?.(); };
+  }, []);
+
+  const requestPermissions = async () => {
+    setPermBusy(true);
+    try {
+      const { ensureBlePermissions } = await import("@/lib/native-bluetooth");
+      const res = await ensureBlePermissions();
+      setPermState(res);
+      res.ok ? toast.success(res.message) : toast.error(res.message);
+    } catch (e) {
+      const message = (e as Error).message || "تعذّر منح الأذونات";
+      setPermState({ ok: false, message });
+      toast.error(message);
+    } finally {
+      setPermBusy(false);
+    }
+  };
+
+  const savePairedPrinter = (id: string, pname: string) => {
+    const p: SavedPrinter = {
+      id: crypto.randomUUID(),
+      name: pname || "طابعة بلوتوث",
+      connection: "bluetooth",
+      address: id,
+      paper: "80mm",
+    };
+    const next = [...printers.filter((x) => x.connection !== "bluetooth"), p];
+    setPrinters(next);
+    savePrinters(next);
+    setActive(p.id);
+  };
+
+  const startNativeScan = async () => {
+    setFound([]);
+    setScanOpen(true);
+    setScanning(true);
+    try {
+      const { ensureBlePermissions, scanNativeDevices } = await import("@/lib/native-bluetooth");
+      const perm = await ensureBlePermissions();
+      setPermState(perm);
+      if (!perm.ok) { setScanning(false); toast.error(perm.message); return; }
+      stopScanRef.current?.();
+      stopScanRef.current = await scanNativeDevices((d) => {
+        setFound((prev) => (prev.some((x) => x.id === d.id) ? prev : [...prev, d]));
+      }, 12_000);
+      window.setTimeout(() => setScanning(false), 12_000);
+    } catch (e) {
+      setScanning(false);
+      toast.error((e as Error).message || "تعذّر بدء البحث");
+    }
+  };
+
+  const pickFoundDevice = async (d: { id: string; name: string }) => {
+    setConnecting(d.id);
+    try {
+      stopScanRef.current?.();
+      setScanning(false);
+      const { rememberPickedDevice, connectRememberedPrinter, getBluetoothStatus } = await import("@/lib/bt-printer");
+      rememberPickedDevice(d.id, d.name);
+      savePairedPrinter(d.id, d.name);
+      await connectRememberedPrinter();
+      setBtStatus(getBluetoothStatus());
+      setScanOpen(false);
+      toast.success(`تم اقتران الطابعة: ${d.name}`);
+    } catch (e) {
+      toast.error((e as Error).message || "تعذّر الاتصال بالطابعة");
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+
   const changeReceiptPaper = (v: ReceiptPaperWidth) => {
     setReceiptPaperState(v);
     setReceiptPaperWidth(v);
