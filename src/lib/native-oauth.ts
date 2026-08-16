@@ -47,6 +47,8 @@ export async function installNativeOAuthListener(onSignedIn?: () => void) {
       window.location.replace("/login?oauth=failed");
       return;
     }
+    const { unlockApp } = await import("@/lib/biometric-auth");
+    unlockApp();
     onSignedIn?.();
     window.location.replace("/app");
   };

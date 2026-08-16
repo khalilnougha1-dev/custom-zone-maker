@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const RECORD_KEY = "sahlapos.biometric";
 const REFRESH_TOKEN_KEY = "sahlapos.biometric.refresh-token";
+const LOCK_KEY = "sahlapos.biometric.locked";
 
 export type BiometricRecord = {
   credentialId: string;
@@ -85,6 +86,20 @@ export function clearBiometric() {
 
 export function isBiometricEnabled() {
   return getBiometricRecord() !== null;
+}
+
+export function isAppLocked() {
+  return typeof window !== "undefined" && localStorage.getItem(LOCK_KEY) === "1";
+}
+
+export function lockApp() {
+  if (typeof window !== "undefined" && isBiometricEnabled()) {
+    localStorage.setItem(LOCK_KEY, "1");
+  }
+}
+
+export function unlockApp() {
+  if (typeof window !== "undefined") localStorage.removeItem(LOCK_KEY);
 }
 
 export async function isBiometricSupported() {
@@ -179,6 +194,7 @@ export async function enrollBiometric() {
 /** يعطّل دخول التطبيق بالبصمة ويحذف رمز الجلسة المحمي من هذا الجهاز فقط. */
 export async function disableBiometric() {
   if (typeof window !== "undefined") localStorage.removeItem(RECORD_KEY);
+  unlockApp();
   if (!isNative()) return;
   try {
     const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
@@ -212,7 +228,10 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
   }
 
   const current = await supabase.auth.getSession();
-  if (current.data.session?.user.id === record.userId) return { ok: true };
+  if (current.data.session?.user.id === record.userId) {
+    unlockApp();
+    return { ok: true };
+  }
   if (navigator.onLine === false) {
     return { ok: false, error: "يلزم الإنترنت بعد تسجيل الخروج لإنشاء الجلسة مرة واحدة" };
   }
@@ -236,5 +255,6 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
       JSON.stringify({ ...record, refreshToken: data.session.refresh_token, savedAt: Date.now() }),
     );
   }
+  unlockApp();
   return { ok: true };
 }
