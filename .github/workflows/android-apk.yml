@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - "capacitor.config.ts"
+      - "package.json"
+      - "src/lib/native-bluetooth.ts"
+      - "src/lib/bt-printer.ts"
+      - "src/routes/app.printer.tsx"
       - "android-shell/**"
       - ".github/workflows/android-apk.yml"
 

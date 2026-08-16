@@ -94,7 +94,6 @@ export async function ensureBluetoothReady(): Promise<boolean> {
   return !!navigator.bluetooth;
 }
 
-
 export function getRememberedPrinterName(): string | null {
   return localStorage.getItem(NAME_KEY);
 }
@@ -131,7 +130,10 @@ export function syncRememberedBluetoothPrinter(deviceId?: string | null, name?: 
 
 function queueGattTask<T>(task: () => Promise<T>): Promise<T> {
   const run = gattTaskQueue.catch(() => undefined).then(task);
-  gattTaskQueue = run.then(() => undefined, () => undefined);
+  gattTaskQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
   return run;
 }
 
@@ -187,7 +189,7 @@ export async function prepareBluetoothPrinter(options?: {
   if (!navigator.bluetooth) return null;
 
   const promptIfMissing = options?.promptIfMissing ?? true;
-  let device = activeDevice ?? await getRememberedDevice();
+  let device = activeDevice ?? (await getRememberedDevice());
 
   if (!device && promptIfMissing) {
     const picked = await navigator.bluetooth!.requestDevice({
@@ -240,7 +242,12 @@ async function getRememberedDevice(): Promise<any | null> {
 
 function isGattDisconnectedError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
-  return message.includes("GATT Server is disconnected") || message.includes("gatt.connect");
+  return (
+    message.includes("GATT Server is disconnected") ||
+    message.includes("gatt.connect") ||
+    /status\s*(?:8|19|22|62|133|147)/i.test(message) ||
+    /connection failed|connect failed|disconnected/i.test(message)
+  );
 }
 
 async function delay(ms: number) {
@@ -270,13 +277,13 @@ async function ensureGattServer(device: any) {
         try {
           device.gatt.disconnect?.();
         } catch {}
-        await delay(300);
+        // Android's Bluetooth stack needs time to release a failed GATT client,
+        // especially after status 133/147 on lower-memory phones.
+        await delay(900 + attempt * 500);
       }
     }
 
-    throw lastError instanceof Error
-      ? lastError
-      : new Error("تعذر إعادة الاتصال بالطابعة");
+    throw lastError instanceof Error ? lastError : new Error("تعذر إعادة الاتصال بالطابعة");
   })();
 
   try {
@@ -342,7 +349,9 @@ async function connectAndFindCharacteristic(device: any) {
 
   const rankCharacteristic = (entry: { svc: string; c: any }) => {
     const uuid = String(entry.c?.uuid || "").toLowerCase();
-    const preferredIndex = WRITE_CANDIDATES.findIndex((candidate) => candidate.toLowerCase() === uuid);
+    const preferredIndex = WRITE_CANDIDATES.findIndex(
+      (candidate) => candidate.toLowerCase() === uuid,
+    );
     const writableWithoutResponse = entry.c?.properties?.writeWithoutResponse ? 0 : 1;
     return [writableWithoutResponse, preferredIndex === -1 ? 999 : preferredIndex] as const;
   };
@@ -374,7 +383,9 @@ async function connectAndFindCharacteristic(device: any) {
     deviceId: device?.id || null,
     services: services.map((s) => String(s.uuid || "")),
   });
-  throw new Error("تعذر العثور على قناة كتابة في هذه الطابعة. تأكد أنها طابعة حرارية ESC/POS وأعد الاقتران.");
+  throw new Error(
+    "تعذر العثور على قناة كتابة في هذه الطابعة. تأكد أنها طابعة حرارية ESC/POS وأعد الاقتران.",
+  );
 }
 
 async function writeWithReconnect(device: any, bytes: Uint8Array) {
@@ -447,13 +458,25 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
   // ظهور رموز/حروف عشوائية أسفل الوصل.
   const supportsWrite = !!characteristic?.properties?.write && !!characteristic?.writeValue;
   const supportsWriteWithoutResponse =
-    !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
+    !!characteristic?.properties?.writeWithoutResponse &&
+    !!characteristic?.writeValueWithoutResponse;
   const prefersWriteWithoutResponse = supportsWriteWithoutResponse && !supportsWrite;
 
-  const chunkSize = prefersWriteWithoutResponse ? 128 : 96;
+  // Native Android BLE writes must respect MTU-3. Android Go commonly negotiates
+  // MTU 23, so sending the old 96/128-byte chunks failed despite successful pairing.
+  const nativeMaxChunk = Number(characteristic?.maxChunkSize || 20);
+  const chunkSize = characteristic?.__sahlaNative
+    ? Math.max(20, Math.min(180, nativeMaxChunk))
+    : prefersWriteWithoutResponse
+      ? 128
+      : 96;
   const chunkDelay = prefersWriteWithoutResponse
-    ? (isAndroidBluetoothClient() ? 12 : 9)
-    : (isAndroidBluetoothClient() ? 16 : 12);
+    ? isAndroidBluetoothClient()
+      ? 12
+      : 9
+    : isAndroidBluetoothClient()
+      ? 16
+      : 12;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
@@ -526,9 +549,15 @@ function buildEscPosImage(
   // raster bytes as text glyphs (Chinese-looking garbage in the middle of the
   // receipt). ESC @ on every band guarantees a clean state for GS v 0.
   const headerBytes = [
-    0x1b, 0x40, // ESC @ initialize (always, every band)
-    0x1b, 0x33, 0x00, // ESC 3 0 = compact line spacing for raster data
-    0x1d, 0x76, 0x30, 0x00, // GS v 0 m=0 (normal raster)
+    0x1b,
+    0x40, // ESC @ initialize (always, every band)
+    0x1b,
+    0x33,
+    0x00, // ESC 3 0 = compact line spacing for raster data
+    0x1d,
+    0x76,
+    0x30,
+    0x00, // GS v 0 m=0 (normal raster)
     widthBytes & 0xff,
     (widthBytes >> 8) & 0xff,
     height & 0xff,
@@ -538,11 +567,7 @@ function buildEscPosImage(
   // NOTE: Avoid GS V (cut) and ESC @ (re-init) at the end — many cheap BT thermal
   // printers don't implement them and print the raw bytes as garbage characters
   // (Chinese-looking glyphs) at the bottom of the receipt. Plain line feeds only.
-  const feed = new Uint8Array(
-    options?.feed === false
-      ? []
-      : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a],
-  );
+  const feed = new Uint8Array(options?.feed === false ? [] : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a]);
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
@@ -561,17 +586,7 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
     const bandCtx = band.getContext("2d")!;
     bandCtx.fillStyle = "#fff";
     bandCtx.fillRect(0, 0, band.width, band.height);
-    bandCtx.drawImage(
-      canvas,
-      0,
-      offsetY,
-      canvas.width,
-      bandHeight,
-      0,
-      0,
-      band.width,
-      band.height,
-    );
+    bandCtx.drawImage(canvas, 0, offsetY, canvas.width, bandHeight, 0, 0, band.width, band.height);
     bands.push(band);
   }
 
@@ -677,9 +692,12 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
   const measureCtx = measureCanvas.getContext("2d")!;
 
   const resolveColumnWidths = (columns: SimpleReceiptColumn[]) => {
-    const totalWeight = columns.reduce((sum, column) => sum + (column.width || 1), 0) || columns.length;
+    const totalWeight =
+      columns.reduce((sum, column) => sum + (column.width || 1), 0) || columns.length;
     const availableWidth = contentWidth - columnGap * Math.max(0, columns.length - 1);
-    return columns.map((column) => Math.max(24, Math.floor((availableWidth * (column.width || 1)) / totalWeight)));
+    return columns.map((column) =>
+      Math.max(24, Math.floor((availableWidth * (column.width || 1)) / totalWeight)),
+    );
   };
 
   let height = 18;
@@ -699,7 +717,9 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
     if (line.columns?.length) {
       const widths = resolveColumnWidths(line.columns);
       const maxWrappedLines = Math.max(
-        ...line.columns.map((column, index) => wrapCanvasText(measureCtx, column.text || "", widths[index]).length),
+        ...line.columns.map(
+          (column, index) => wrapCanvasText(measureCtx, column.text || "", widths[index]).length,
+        ),
       );
       height += maxWrappedLines * lineHeight;
       continue;
@@ -745,7 +765,9 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
 
     if (line.columns?.length) {
       const widths = resolveColumnWidths(line.columns);
-      const wrappedColumns = line.columns.map((column, index) => wrapCanvasText(ctx, column.text || "", widths[index]));
+      const wrappedColumns = line.columns.map((column, index) =>
+        wrapCanvasText(ctx, column.text || "", widths[index]),
+      );
       const maxWrappedLines = Math.max(...wrappedColumns.map((wrapped) => wrapped.length));
       let rightEdge = canvas.width - marginX;
 
@@ -754,10 +776,16 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
         const columnLeft = rightEdge - columnWidth;
         const align = column.align || "right";
         ctx.font = `${column.bold || line.bold ? "700" : "400"} ${size}px Arial, Tahoma, sans-serif`;
-        (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction = column.direction || line.direction || "rtl";
+        (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction =
+          column.direction || line.direction || "rtl";
         ctx.textAlign = align === "center" ? "center" : align === "left" ? "left" : "right";
 
-        const x = align === "center" ? columnLeft + columnWidth / 2 : align === "left" ? columnLeft : rightEdge;
+        const x =
+          align === "center"
+            ? columnLeft + columnWidth / 2
+            : align === "left"
+              ? columnLeft
+              : rightEdge;
         const wrapped = wrappedColumns[index];
 
         wrapped.forEach((wrappedLine, lineIndex) => {
@@ -771,7 +799,8 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
       continue;
     }
 
-    (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction = line.direction || "rtl";
+    (ctx as CanvasRenderingContext2D & { direction?: "ltr" | "rtl" }).direction =
+      line.direction || "rtl";
 
     const align = line.align || "right";
     if (align === "center") {
@@ -783,11 +812,7 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
     }
 
     const x =
-      align === "center"
-        ? canvas.width / 2
-        : align === "left"
-          ? marginX
-          : canvas.width - marginX;
+      align === "center" ? canvas.width / 2 : align === "left" ? marginX : canvas.width - marginX;
 
     const wrapped = wrapCanvasText(ctx, line.text || "", contentWidth);
     for (const wrappedLine of wrapped) {
@@ -799,10 +824,7 @@ function renderSimpleReceiptToCanvas(lines: SimpleReceiptLine[], paperWidthPx: n
   return canvas;
 }
 
-export async function printHtmlBluetooth(
-  html: string,
-  paperWidthPx = 384,
-): Promise<void> {
+export async function printHtmlBluetooth(html: string, paperWidthPx = 384): Promise<void> {
   return queueGattTask(async () => {
     await ensureBluetoothReady();
     if (!navigator.bluetooth) {
@@ -810,7 +832,7 @@ export async function printHtmlBluetooth(
     }
 
     // Try remembered device first; if browser didn't surface it, re-pick (user gesture from print click)
-    let device = activeDevice ?? await getRememberedDevice();
+    let device = activeDevice ?? (await getRememberedDevice());
     if (!device) {
       const picked = await navigator.bluetooth!.requestDevice({
         acceptAllDevices: true,
@@ -867,7 +889,11 @@ export async function printHtmlBluetooth(
     try {
       try {
         const timeoutHint = paperWidthPx >= 576 ? 65_000 : BLUETOOTH_PRINT_TIMEOUT_MIN_MS;
-        await withBluetoothTimeout(sendToPrinter(device), timeoutHint, "انتهت مهلة إرسال بيانات الطباعة");
+        await withBluetoothTimeout(
+          sendToPrinter(device),
+          timeoutHint,
+          "انتهت مهلة إرسال بيانات الطباعة",
+        );
       } catch (error) {
         if (!isGattDisconnectedError(error)) throw error;
 
@@ -888,7 +914,11 @@ export async function printHtmlBluetooth(
         }
 
         const retryTimeoutHint = paperWidthPx >= 576 ? 65_000 : BLUETOOTH_PRINT_TIMEOUT_MIN_MS;
-        await withBluetoothTimeout(sendToPrinter(device), retryTimeoutHint, "انتهت مهلة إرسال بيانات الطباعة");
+        await withBluetoothTimeout(
+          sendToPrinter(device),
+          retryTimeoutHint,
+          "انتهت مهلة إرسال بيانات الطباعة",
+        );
       }
     } finally {
       iframe.remove();
@@ -906,7 +936,7 @@ export async function printSimpleReceiptBluetooth(
       throw new Error("Web Bluetooth غير مدعوم");
     }
 
-    let device = activeDevice ?? await getRememberedDevice();
+    let device = activeDevice ?? (await getRememberedDevice());
     if (!device) {
       const picked = await navigator.bluetooth!.requestDevice({
         acceptAllDevices: true,
@@ -957,8 +987,7 @@ export type BluetoothStatus = {
 
 /** حالة اتصال البلوتوث الحالية لعرضها في الواجهة. */
 export function getBluetoothStatus(): BluetoothStatus {
-  const native =
-    typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+  const native = typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
   let deviceName: string | null = null;
   let deviceId: string | null = null;
   try {
@@ -981,8 +1010,9 @@ export function rememberPickedDevice(id: string, name: string) {
 
 /** يحاول الاتصال بالجهاز المحفوظ ويعيد الحالة. */
 export async function connectRememberedPrinter(): Promise<BluetoothStatus> {
-  try {
-    await prepareBluetoothPrinter({ promptIfMissing: false });
-  } catch {}
+  const prepared = await prepareBluetoothPrinter({ promptIfMissing: false });
+  if (!prepared) {
+    throw new Error("لم يتم العثور على الطابعة المحفوظة. ابحث عنها واخترها من جديد.");
+  }
   return getBluetoothStatus();
 }
