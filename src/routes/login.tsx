@@ -30,6 +30,9 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("oauth") === "failed") {
+      toast.error("تعذّر إكمال تسجيل الدخول. أعد المحاولة.");
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate({ to: "/dashboard" });
     });

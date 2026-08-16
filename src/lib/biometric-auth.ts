@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const KEY = "sahlapos.biometric";
+const RECORD_KEY = "sahlapos.biometric";
+const REFRESH_TOKEN_KEY = "sahlapos.biometric.refresh-token";
 
 export type BiometricRecord = {
   credentialId: string;
@@ -10,63 +11,52 @@ export type BiometricRecord = {
   savedAt: number;
 };
 
-const NATIVE_CREDENTIAL_SERVER = "app.lovable.sahlapos.biometric";
+function isNative() {
+  if (typeof window === "undefined") return false;
+  const nativeWindow = window as typeof window & {
+    Capacitor?: { isNativePlatform?: () => boolean };
+  };
+  return Boolean(nativeWindow.Capacitor?.isNativePlatform?.());
+}
 
 function b64(buf: ArrayBuffer) {
   return btoa(String.fromCharCode(...new Uint8Array(buf)));
 }
-function fromB64(s: string) {
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
+
+function fromB64(value: string) {
+  const binary = atob(value);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
-export function getBiometricRecord(): BiometricRecord | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as BiometricRecord) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function clearBiometric() {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* ignore */
-  }
-  void nativeBiometric().then((NB) =>
-    NB?.deleteCredentials({ server: NATIVE_CREDENTIAL_SERVER }).catch(() => {}),
-  );
-}
-
-function isNative() {
-  return typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
-}
-
-async function nativeBiometric() {
+async function getSecureRefreshToken() {
   if (!isNative()) return null;
   try {
-    const mod = await import("capacitor-native-biometric");
-    return mod.NativeBiometric;
+    const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+    const result = await SecureStoragePlugin.get({ key: REFRESH_TOKEN_KEY });
+    return result.value || null;
   } catch {
     return null;
   }
 }
 
-/** تحقق بالبصمة عبر مكوّن أندرويد الأصلي (WebAuthn غير مدعوم داخل WebView) */
-async function nativeVerify(): Promise<boolean> {
-  const NB = await nativeBiometric();
-  if (!NB) return false;
+async function setSecureRefreshToken(refreshToken: string) {
+  const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+  await SecureStoragePlugin.set({ key: REFRESH_TOKEN_KEY, value: refreshToken });
+}
+
+async function verifyNativeBiometric() {
   try {
-    await NB.verifyIdentity({
+    const { AndroidBiometryStrength, BiometricAuth } = await import(
+      "@aparajita/capacitor-biometric-auth"
+    );
+    await BiometricAuth.authenticate({
       reason: "الدخول إلى SAHLAPOS",
-      title: "تأكيد الهوية",
-      subtitle: "استعمل بصمة الهاتف",
-      negativeButtonText: "إلغاء",
+      cancelTitle: "إلغاء",
+      allowDeviceCredential: false,
+      androidTitle: "تأكيد الهوية",
+      androidSubtitle: "استعمل بصمة الهاتف",
+      androidConfirmationRequired: false,
+      androidBiometryStrength: AndroidBiometryStrength.weak,
     });
     return true;
   } catch {
@@ -74,13 +64,32 @@ async function nativeVerify(): Promise<boolean> {
   }
 }
 
-export async function isBiometricSupported(): Promise<boolean> {
+export function getBiometricRecord(): BiometricRecord | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(RECORD_KEY);
+    return raw ? (JSON.parse(raw) as BiometricRecord) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearBiometric() {
+  if (typeof window !== "undefined") localStorage.removeItem(RECORD_KEY);
+  if (isNative()) {
+    void import("capacitor-secure-storage-plugin")
+      .then(({ SecureStoragePlugin }) => SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY }))
+      .catch(() => undefined);
+  }
+}
+
+export async function isBiometricSupported() {
   if (typeof window === "undefined") return false;
-  const NB = await nativeBiometric();
-  if (NB) {
+  if (isNative()) {
     try {
-      const res = await NB.isAvailable({ useFallback: true });
-      return !!res.isAvailable;
+      const { BiometricAuth } = await import("@aparajita/capacitor-biometric-auth");
+      const result = await BiometricAuth.checkBiometry();
+      return result.isAvailable;
     } catch {
       return false;
     }
@@ -93,27 +102,21 @@ export async function isBiometricSupported(): Promise<boolean> {
   }
 }
 
-/** يسجّل بصمة الجهاز ويربطها بالحساب الحالي (أول مستخدم يسجّل الدخول) */
-export async function enrollBiometric(): Promise<boolean> {
+/** يربط حساب المستخدم الحالي ببصمة هذا الهاتف ويحفظ رمز الجلسة في مخزن Android المشفّر. */
+export async function enrollBiometric() {
   if (!(await isBiometricSupported())) return false;
   const { data } = await supabase.auth.getSession();
   const session = data.session;
-  if (!session?.user?.email || !session.refresh_token) return false;
+  if (!session?.user.email || !session.refresh_token) return false;
 
   const existing = getBiometricRecord();
+  if (existing && existing.userId !== session.user.id) return false;
+
   if (isNative()) {
-    const NB = await nativeBiometric();
-    if (!NB) return false;
-    if (existing && existing.userId !== session.user.id) return false;
-    const ok = await nativeVerify();
-    if (!ok) return false;
-    await NB?.setCredentials({
-      username: session.user.id,
-      password: session.refresh_token,
-      server: NATIVE_CREDENTIAL_SERVER,
-    });
+    if (!(await verifyNativeBiometric())) return false;
+    await setSecureRefreshToken(session.refresh_token);
     localStorage.setItem(
-      KEY,
+      RECORD_KEY,
       JSON.stringify({
         credentialId: "native",
         email: session.user.email,
@@ -123,24 +126,24 @@ export async function enrollBiometric(): Promise<boolean> {
     );
     return true;
   }
-  if (existing && existing.userId === session.user.id) {
-    // تحديث الرمز فقط
+
+  if (existing) {
     localStorage.setItem(
-      KEY,
+      RECORD_KEY,
       JSON.stringify({ ...existing, refreshToken: session.refresh_token, savedAt: Date.now() }),
     );
     return true;
   }
-  if (existing) return false; // الجهاز مرتبط بحساب آخر
 
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const userId = new TextEncoder().encode(session.user.id);
-
-  const cred = (await navigator.credentials.create({
+  const credential = (await navigator.credentials.create({
     publicKey: {
-      challenge,
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
       rp: { name: "SAHLAPOS", id: window.location.hostname },
-      user: { id: userId, name: session.user.email, displayName: session.user.email },
+      user: {
+        id: new TextEncoder().encode(session.user.id),
+        name: session.user.email,
+        displayName: session.user.email,
+      },
       pubKeyCredParams: [
         { type: "public-key", alg: -7 },
         { type: "public-key", alg: -257 },
@@ -150,92 +153,71 @@ export async function enrollBiometric(): Promise<boolean> {
         userVerification: "required",
         residentKey: "preferred",
       },
-      timeout: 60000,
+      timeout: 60_000,
       attestation: "none",
     },
   })) as PublicKeyCredential | null;
+  if (!credential) return false;
 
-  if (!cred) return false;
-
-  const record: BiometricRecord = {
-    credentialId: b64(cred.rawId),
-    email: session.user.email,
-    userId: session.user.id,
-    refreshToken: session.refresh_token,
-    savedAt: Date.now(),
-  };
-  localStorage.setItem(KEY, JSON.stringify(record));
+  localStorage.setItem(
+    RECORD_KEY,
+    JSON.stringify({
+      credentialId: b64(credential.rawId),
+      email: session.user.email,
+      userId: session.user.id,
+      refreshToken: session.refresh_token,
+      savedAt: Date.now(),
+    } satisfies BiometricRecord),
+  );
   return true;
 }
 
-/** يطلب البصمة ثم يفتح جلسة الحساب المرتبط (يعمل أوفلاين إن كانت الجلسة محفوظة) */
 export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }> {
   const record = getBiometricRecord();
-  if (!record) return { ok: false, error: "لا توجد بصمة مسجّلة على هذا الجهاز" };
+  if (!record) return { ok: false, error: "سجّل الدخول عبر Google أول مرة لربط الحساب بالبصمة" };
 
   if (isNative()) {
-    const ok = await nativeVerify();
-    if (!ok) return { ok: false, error: "فشل التحقق من البصمة" };
-  } else
-  try {
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        allowCredentials: [{ type: "public-key", id: fromB64(record.credentialId) }],
-        userVerification: "required",
-        timeout: 60000,
-        rpId: window.location.hostname,
-      },
-    });
-    if (!assertion) return { ok: false, error: "تعذّر التحقق من البصمة" };
-  } catch {
-    return { ok: false, error: "فشل التحقق من البصمة" };
-  }
-
-  // جلسة محفوظة محليًا؟ ادخل مباشرة (يعمل بدون إنترنت)
-  const { data } = await supabase.auth.getSession();
-  if (data.session?.user?.id === record.userId) return { ok: true };
-
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    return { ok: false, error: "يلزم الاتصال بالإنترنت لأول فتح بعد تسجيل الخروج" };
-  }
-
-  let refreshToken = record.refreshToken;
-  if (isNative()) {
-    const NB = await nativeBiometric();
+    if (!(await verifyNativeBiometric())) return { ok: false, error: "لم يتم التحقق من بصمة الهاتف" };
+  } else {
     try {
-      const credentials = await NB?.getCredentials({ server: NATIVE_CREDENTIAL_SERVER });
-      if (!credentials || credentials.username !== record.userId) {
-        return { ok: false, error: "الحساب المحفوظ لا يطابق بصمة هذا الهاتف" };
-      }
-      refreshToken = credentials.password;
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          allowCredentials: [{ type: "public-key", id: fromB64(record.credentialId) }],
+          userVerification: "required",
+          timeout: 60_000,
+          rpId: window.location.hostname,
+        },
+      });
+      if (!assertion) return { ok: false, error: "تعذّر التحقق من البصمة" };
     } catch {
-      return { ok: false, error: "أعد تسجيل الدخول عبر Google لربط الحساب بالبصمة" };
+      return { ok: false, error: "فشل التحقق من البصمة" };
     }
   }
-  if (!refreshToken) {
-    return { ok: false, error: "أعد تسجيل الدخول عبر Google لربط الحساب بالبصمة" };
+
+  const current = await supabase.auth.getSession();
+  if (current.data.session?.user.id === record.userId) return { ok: true };
+  if (navigator.onLine === false) {
+    return { ok: false, error: "يلزم الإنترنت بعد تسجيل الخروج لإنشاء الجلسة مرة واحدة" };
   }
 
-  const { data: refreshed, error } = await supabase.auth.refreshSession({
-    refresh_token: refreshToken,
-  });
-  if (error || !refreshed.session) {
-    return { ok: false, error: "انتهت صلاحية الجلسة، سجّل الدخول بكلمة المرور مرة واحدة" };
+  const refreshToken = isNative() ? await getSecureRefreshToken() : record.refreshToken;
+  if (!refreshToken) {
+    clearBiometric();
+    return { ok: false, error: "سجّل الدخول عبر Google من جديد ثم فعّل البصمة" };
   }
-  const rec = getBiometricRecord();
-  if (rec && isNative()) {
-    const NB = await nativeBiometric();
-    await NB?.setCredentials({
-      username: rec.userId,
-      password: refreshed.session.refresh_token,
-      server: NATIVE_CREDENTIAL_SERVER,
-    });
-  } else if (rec) {
+
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+  if (error || !data.session || data.session.user.id !== record.userId) {
+    clearBiometric();
+    return { ok: false, error: "انتهت الجلسة المحفوظة، سجّل الدخول عبر Google من جديد" };
+  }
+
+  if (isNative()) await setSecureRefreshToken(data.session.refresh_token);
+  else {
     localStorage.setItem(
-      KEY,
-      JSON.stringify({ ...rec, refreshToken: refreshed.session.refresh_token, savedAt: Date.now() }),
+      RECORD_KEY,
+      JSON.stringify({ ...record, refreshToken: data.session.refresh_token, savedAt: Date.now() }),
     );
   }
   return { ok: true };

@@ -15,6 +15,8 @@ const config: CapacitorConfig = {
       "*.lovable.app",
       "dpvxhydfwmgxeyhtrwdk.supabase.co",
       "*.supabase.co",
+      "accounts.google.com",
+      "appleid.apple.com",
     ],
   },
   android: {
