@@ -167,12 +167,25 @@ export async function installNativeBluetooth(): Promise<boolean> {
       }
 
       disconnect() {
+        this.servicesCache = null;
         if (!this.connected) return;
         this.connected = false;
         BleClient.disconnect(this.device.id).catch(() => {});
       }
 
-      private async loadServices() {
+      private loadServices(): Promise<NativeService[]> {
+        // Service discovery is a slow native round-trip; the printer lookup asks
+        // for many candidate UUIDs, so cache the discovery per connection.
+        if (!this.servicesCache) {
+          this.servicesCache = this.discoverServices().catch((error) => {
+            this.servicesCache = null;
+            throw error;
+          });
+        }
+        return this.servicesCache;
+      }
+
+      private async discoverServices() {
         const services = await BleClient.getServices(this.device.id);
         return services.map(
           (s: any) =>
