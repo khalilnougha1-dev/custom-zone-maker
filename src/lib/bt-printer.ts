@@ -946,3 +946,43 @@ export async function printSimpleReceiptBluetooth(
     }
   });
 }
+
+export type BluetoothStatus = {
+  supported: boolean;
+  native: boolean;
+  connected: boolean;
+  deviceName: string | null;
+  deviceId: string | null;
+};
+
+/** حالة اتصال البلوتوث الحالية لعرضها في الواجهة. */
+export function getBluetoothStatus(): BluetoothStatus {
+  const native =
+    typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+  let deviceName: string | null = null;
+  let deviceId: string | null = null;
+  try {
+    deviceName = localStorage.getItem(NAME_KEY);
+    deviceId = localStorage.getItem(ACTIVE_KEY);
+  } catch {}
+  return {
+    supported: isWebBluetoothSupported(),
+    native,
+    connected: !!activeDevice?.gatt?.connected,
+    deviceName: activeDevice?.name || deviceName,
+    deviceId: activeDeviceId || deviceId,
+  };
+}
+
+/** يحفظ جهازًا تم اختياره من قائمة المسح داخل التطبيق. */
+export function rememberPickedDevice(id: string, name: string) {
+  syncRememberedBluetoothPrinter(id, name || "Bluetooth Printer");
+}
+
+/** يحاول الاتصال بالجهاز المحفوظ ويعيد الحالة. */
+export async function connectRememberedPrinter(): Promise<BluetoothStatus> {
+  try {
+    await prepareBluetoothPrinter({ promptIfMissing: false });
+  } catch {}
+  return getBluetoothStatus();
+}
