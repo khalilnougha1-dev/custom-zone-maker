@@ -67,6 +67,7 @@ export function SocialAuthButtons() {
       </Button>
 
       <Button
+        style={native ? { display: "none" } : undefined}
         type="button"
         variant="outline"
         className="w-full h-11 gap-2"
