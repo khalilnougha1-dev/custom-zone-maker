@@ -4,9 +4,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable/index";
 
+function isNativeApp() {
+  if (typeof window === "undefined") return false;
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
 export function SocialAuthButtons() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<"google" | "apple" | null>(null);
+  const [native, setNative] = useState(false);
+
+  useEffect(() => {
+    setNative(isNativeApp());
+  }, []);
 
   const handleSignIn = async (provider: "google" | "apple") => {
     setLoading(provider);
