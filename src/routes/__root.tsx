@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { useEffect } from "react";
 import { I18nProvider } from "@/components/I18nProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -69,7 +70,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   useEffect(() => {
-    if ("serviceWorker" in navigator && import.meta.env.PROD) {
+    if ("serviceWorker" in navigator && (import.meta.env.PROD || window.location.protocol === "capacitor:")) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
     import("@/lib/native-bluetooth")
@@ -83,6 +84,7 @@ function RootComponent() {
   return (
     <I18nProvider>
       <Outlet />
+      <OfflineIndicator />
       <Toaster richColors position="top-center" />
     </I18nProvider>
   );
