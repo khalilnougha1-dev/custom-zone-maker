@@ -475,18 +475,18 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
   // MTU 23, so sending the old 96/128-byte chunks failed despite successful pairing.
   const nativeMaxChunk = Number(characteristic?.maxChunkSize || 20);
   const chunkSize = characteristic?.__sahlaNative
-    ? Math.max(20, Math.min(180, nativeMaxChunk))
+    ? Math.max(20, Math.min(509, nativeMaxChunk))
     : prefersWriteWithoutResponse
-      ? 180
-      : 128;
+      ? 512
+      : 256;
   const chunkDelay = characteristic?.__sahlaNative
     ? supportsWrite
       ? 0
-      : 8
+      : 4
     : prefersWriteWithoutResponse
       ? isAndroidBluetoothClient()
-        ? 5
-        : 3
+        ? 2
+        : 0
       : 0;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -607,7 +607,7 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
   // Larger bands = fewer round-trips and much faster printing, while still small
   // enough to stay reliable on cheap BLE printers.
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 192 : 144);
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 384 : 288);
 
   for (let index = 0; index < bands.length; index++) {
     const raster = await canvasToRaster(bands[index]);
@@ -623,11 +623,11 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
     );
 
     if (index === bands.length - 1) {
-      await delay(120);
+      await delay(60);
       continue;
     }
 
-    await delay(25);
+    await delay(6);
   }
 }
 

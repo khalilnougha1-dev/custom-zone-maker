@@ -130,7 +130,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
             // stay at 23 bytes, so writes must then remain at 20 payload bytes.
             try {
               const mtu = await BleClient.getMtu(this.device.id);
-              this.maxChunkSize = Math.max(20, Math.min(180, Number(mtu || 23) - 3));
+              this.maxChunkSize = Math.max(20, Math.min(509, Number(mtu || 23) - 3));
             } catch {
               this.maxChunkSize = 20;
             }
