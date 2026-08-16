@@ -174,8 +174,8 @@ export async function installNativeBluetooth(): Promise<boolean> {
         let stored: string | null = null;
         let storedName = "Bluetooth Printer";
         try {
-          stored = localStorage.getItem("sahla.printer.active");
-          storedName = localStorage.getItem("sahla.printer.name") || storedName;
+          stored = localStorage.getItem("sahla.bt.printerId");
+          storedName = localStorage.getItem("sahla.bt.printerName") || storedName;
         } catch {}
         if (!stored) return [];
         try {
