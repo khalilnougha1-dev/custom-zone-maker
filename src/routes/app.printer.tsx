@@ -392,6 +392,117 @@ function PrinterPage() {
   return (
     <PosLayout title="الطابعة">
       <div className="space-y-4">
+        {/* حالة اتصال البلوتوث */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">حالة البلوتوث</div>
+            {btStatus.connected ? (
+              <BluetoothConnected className="h-5 w-5 text-primary" />
+            ) : scanning ? (
+              <BluetoothSearching className="h-5 w-5 text-primary animate-pulse" />
+            ) : (
+              <Bluetooth className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+            <span
+              className={`h-3 w-3 rounded-full shrink-0 ${
+                btStatus.connected ? "bg-emerald-500" : scanning ? "bg-amber-500 animate-pulse" : "bg-muted-foreground/40"
+              }`}
+            />
+            <div className="flex-1 text-right">
+              <div className="font-semibold text-sm">
+                {btStatus.connected ? "متصل" : scanning ? "جاري البحث عن الأجهزة..." : btStatus.deviceName ? "غير متصل (محفوظة)" : "لا توجد طابعة مقترنة"}
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                {btStatus.deviceName ? `الطابعة: ${btStatus.deviceName}` : "اضغط «بحث عن طابعة بلوتوث» للاقتران"}
+                {btStatus.deviceId ? ` • ${btStatus.deviceId}` : ""}
+              </div>
+            </div>
+          </div>
+          <Button
+            onClick={async () => {
+              const { connectRememberedPrinter } = await import("@/lib/bt-printer");
+              const s = await connectRememberedPrinter();
+              setBtStatus(s);
+              s.connected ? toast.success("تم الاتصال بالطابعة") : toast.error("تعذّر الاتصال — تأكد من تشغيل الطابعة");
+            }}
+            variant="outline"
+            className="w-full gap-2"
+            disabled={!btStatus.deviceId}
+          >
+            <RefreshCw className="h-4 w-4" /> إعادة الاتصال
+          </Button>
+        </div>
+
+        {/* أذونات أندرويد 12+ */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">أذونات البلوتوث (Android 12+)</div>
+            <ShieldCheck className="h-5 w-5 text-primary" />
+          </div>
+          <ol className="text-xs text-muted-foreground text-right space-y-1 list-decimal pr-4">
+            <li>فعّل البلوتوث من إعدادات الهاتف.</li>
+            <li>اضغط «منح أذونات البلوتوث» ثم اسمح بـ «الأجهزة القريبة».</li>
+            <li>شغّل الطابعة الحرارية ثم ابدأ البحث.</li>
+          </ol>
+          <Button onClick={requestPermissions} disabled={permBusy} className="w-full bg-gradient-primary text-primary-foreground gap-2">
+            {permBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            منح أذونات البلوتوث
+          </Button>
+          {permState && (
+            <div className={`rounded-lg border p-2 text-right text-xs font-semibold ${permState.ok ? "border-primary/40 bg-primary/5 text-primary" : "border-destructive/40 bg-destructive/5 text-destructive"}`}>
+              {permState.message}
+            </div>
+          )}
+        </div>
+
+        {/* نافذة البحث داخل التطبيق */}
+        {scanOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3" dir="rtl">
+            <div className="w-full max-w-md rounded-2xl bg-card border border-border p-4 space-y-3 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <div className="font-bold">الأجهزة القريبة</div>
+                {scanning ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <BluetoothSearching className="h-5 w-5 text-muted-foreground" />}
+              </div>
+              <div className="text-xs text-muted-foreground text-right">
+                {scanning ? "جاري البحث... تظهر الأجهزة تلقائيًا" : `انتهى البحث — ${found.length} جهاز`}
+              </div>
+              {found.length === 0 && !scanning && (
+                <div className="text-center text-sm text-muted-foreground py-4">لم يتم العثور على أجهزة. تأكد من تشغيل الطابعة.</div>
+              )}
+              <div className="space-y-2">
+                {found.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => pickFoundDevice(d)}
+                    disabled={!!connecting}
+                    className="w-full flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted text-right disabled:opacity-60"
+                  >
+                    <Bluetooth className="h-5 w-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">{d.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate" dir="ltr">{d.id}{d.rssi ? ` • ${d.rssi}dBm` : ""}</div>
+                    </div>
+                    {connecting === d.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={startNativeScan} variant="outline" className="gap-2" disabled={scanning}>
+                  <RefreshCw className="h-4 w-4" /> إعادة البحث
+                </Button>
+                <Button
+                  onClick={() => { stopScanRef.current?.(); setScanning(false); setScanOpen(false); }}
+                  variant="outline"
+                >
+                  إغلاق
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Receipt paper width */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
           <div className="flex items-center justify-between">
