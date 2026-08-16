@@ -483,9 +483,13 @@ function NewSalePage() {
 
         {/* Product search */}
         <div className="rounded-xl bg-card border border-border p-3 mb-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button className="text-foreground/80 shrink-0" aria-label="قائمة">
-              <ListChecks className="h-7 w-7" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => { setBrowseAll((v) => !v); setShowProductList(true); }}
+              className={`shrink-0 rounded-lg p-1 transition ${browseAll ? "text-primary bg-primary/10" : "text-foreground/80 hover:bg-muted"}`}
+              aria-label="عرض كل المنتجات"
+            >
+              <ListChecks className="h-6 w-6 sm:h-7 sm:w-7" />
             </button>
             <Input
               ref={productInputRef}
@@ -493,10 +497,11 @@ function NewSalePage() {
               onChange={(e) => { setProductQ(e.target.value); setShowProductList(true); }}
               onFocus={() => setShowProductList(true)}
               placeholder="إبحث عن منتج"
-              className="flex-1 border-0 border-b border-foreground/40 rounded-none bg-transparent text-right focus-visible:ring-0 focus-visible:border-primary"
+              className="min-w-0 flex-1 border-0 border-b border-foreground/40 rounded-none bg-transparent text-right focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
-          {showProductList && productQ && filteredProducts.length > 0 && (
+          {showProductList && (productQ || browseAll) && filteredProducts.length > 0 && (
+
             <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-border bg-background">
               {filteredProducts.map((e: any) => {
                 const isPkg = e.kind === "package";
