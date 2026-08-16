@@ -51,6 +51,8 @@ function NewSalePage() {
   const [productQ, setProductQ] = useState("");
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [showProductList, setShowProductList] = useState(false);
+  const [browseAll, setBrowseAll] = useState(false);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
