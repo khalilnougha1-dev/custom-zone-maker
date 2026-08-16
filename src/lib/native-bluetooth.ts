@@ -84,9 +84,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
 
       async getCharacteristic(uuid: string) {
         const found = this.chars.find(
-          (c) =>
-            c.uuid.toLowerCase() === String(uuid).toLowerCase() &&
-            isWritableCharacteristic(c),
+          (c) => c.uuid.toLowerCase() === String(uuid).toLowerCase() && isWritableCharacteristic(c),
         );
         if (!found) throw new Error("characteristic not found");
         return found;
@@ -170,16 +168,18 @@ export async function installNativeBluetooth(): Promise<boolean> {
             new NativeService(
               this.device.id,
               s.uuid,
-              (s.characteristics || []).filter(isWritableCharacteristic).map(
-                (c: any) =>
-                  new NativeCharacteristic(
-                    this.device.id,
-                    s.uuid,
-                    c.uuid,
-                    c.properties,
-                    this.maxChunkSize,
-                  ),
-              ),
+              (s.characteristics || [])
+                .filter(isWritableCharacteristic)
+                .map(
+                  (c: any) =>
+                    new NativeCharacteristic(
+                      this.device.id,
+                      s.uuid,
+                      c.uuid,
+                      c.properties,
+                      this.maxChunkSize,
+                    ),
+                ),
             ),
         );
       }

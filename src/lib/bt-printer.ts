@@ -422,8 +422,7 @@ async function writeWithReconnect(device: any, bytes: Uint8Array) {
 async function writeChunk(characteristic: any, slice: Uint8Array) {
   const canWrite = !!characteristic.properties?.write && !!characteristic.writeValue;
   const canWriteWithoutResponse =
-    !!characteristic.properties?.writeWithoutResponse &&
-    !!characteristic.writeValueWithoutResponse;
+    !!characteristic.properties?.writeWithoutResponse && !!characteristic.writeValueWithoutResponse;
   const isNative = !!characteristic?.__sahlaNative;
 
   // Android's write-with-response confirms every packet reached the printer.
@@ -433,10 +432,9 @@ async function writeChunk(characteristic: any, slice: Uint8Array) {
   const fastWriter = canWriteWithoutResponse
     ? () => characteristic.writeValueWithoutResponse(slice)
     : null;
-  const writers = (isNative
-    ? [confirmedWriter, fastWriter]
-    : [fastWriter, confirmedWriter]
-  ).filter(Boolean) as Array<() => Promise<void>>;
+  const writers = (isNative ? [confirmedWriter, fastWriter] : [fastWriter, confirmedWriter]).filter(
+    Boolean,
+  ) as Array<() => Promise<void>>;
 
   if (writers.length === 0) {
     throw new Error("تعذر إيجاد أسلوب إرسال مناسب للطابعة");
@@ -486,12 +484,12 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
       ? 8
       : 22
     : prefersWriteWithoutResponse
-    ? isAndroidBluetoothClient()
-      ? 12
-      : 9
-    : isAndroidBluetoothClient()
-      ? 16
-      : 12;
+      ? isAndroidBluetoothClient()
+        ? 12
+        : 9
+      : isAndroidBluetoothClient()
+        ? 16
+        : 12;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
