@@ -101,6 +101,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
       connected = false;
       private device: NativeDevice;
       private maxChunkSize = 20;
+      private servicesCache: Promise<NativeService[]> | null = null;
 
       constructor(device: NativeDevice) {
         this.device = device;
