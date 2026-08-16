@@ -113,7 +113,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
                 this.connected = false;
                 this.device.__emit("gattserverdisconnected");
               },
-              { timeout: 20_000, skipDescriptorDiscovery: false },
+              { timeout: 12_000, skipDescriptorDiscovery: false },
             );
             this.connected = true;
 
