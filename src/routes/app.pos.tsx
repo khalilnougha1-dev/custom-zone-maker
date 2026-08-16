@@ -528,21 +528,21 @@ function NewSalePage() {
         </div>
 
         {/* Display panel — black with green digits */}
-        <div className="rounded-xl bg-[#1f1f1f] text-white p-4 shadow-card">
-          <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+        <div className="overflow-hidden rounded-xl bg-[#1f1f1f] text-white p-3 sm:p-4 shadow-card">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
             <div
-              className="font-mono text-5xl font-bold text-green-400 tabular-nums tracking-wider"
+              className="min-w-0 flex-1 truncate font-mono font-bold text-green-400 tabular-nums tracking-tight text-[clamp(1.75rem,10vw,3rem)] leading-none"
               style={{ textShadow: "0 0 8px rgba(74,222,128,0.45)" }}
             >
               {totalAmount.toFixed(2)}
             </div>
-            <div className="text-right space-y-1">
-              <div className="text-base font-bold">المجموع</div>
-              <div className="text-sm flex items-center justify-end gap-2">
+            <div className="shrink-0 text-right space-y-1">
+              <div className="text-sm sm:text-base font-bold">المجموع</div>
+              <div className="text-xs sm:text-sm flex items-center justify-end gap-2">
                 <span className="font-mono text-green-400">{totalLines}</span>
                 <span className="text-white/80">المنتجات</span>
               </div>
-              <div className="text-sm flex items-center justify-end gap-2">
+              <div className="text-xs sm:text-sm flex items-center justify-end gap-2">
                 <span className="font-mono text-green-400">{totalUnits}</span>
                 <span className="text-white/80">المواد</span>
               </div>
@@ -555,8 +555,9 @@ function NewSalePage() {
           <div className="mt-3 space-y-2">
             {cart.map(i => (
               <div key={i.id} className="flex items-center gap-2 rounded-lg bg-card border border-border p-2 shadow-sm">
-                <button onClick={() => setQty(i.id, 0)} className="text-destructive p-1"><X className="h-4 w-4" /></button>
-                <div className="font-mono font-bold text-primary w-20 text-left">{(i.price * i.qty).toFixed(2)}</div>
+                <button onClick={() => setQty(i.id, 0)} className="shrink-0 text-destructive p-1" aria-label="حذف"><X className="h-4 w-4" /></button>
+                <div className="shrink-0 font-mono font-bold text-primary w-[4.5rem] sm:w-20 text-left text-sm sm:text-base">{(i.price * i.qty).toFixed(2)}</div>
+
                 <Input
                   type="text"
                   inputMode="decimal"
