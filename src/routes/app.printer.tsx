@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap, FileText, Eye } from "lucide-react";
+import { Printer, Bluetooth, Usb, Wifi, Search, Plus, Trash2, CheckCircle2, Monitor, Loader2, XCircle, Zap, FileText, Eye, ShieldCheck, BluetoothConnected, BluetoothSearching, RefreshCw } from "lucide-react";
 import { buildReceiptHtmlPreview, SAMPLE_RECEIPT } from "@/lib/print-receipt";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,15 @@ function PrinterPage() {
   const [printers, setPrinters] = useState<SavedPrinter[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [scanning, setScanning] = useState(false);
+  const [btStatus, setBtStatus] = useState<{ supported: boolean; native: boolean; connected: boolean; deviceName: string | null; deviceId: string | null }>({
+    supported: false, native: false, connected: false, deviceName: null, deviceId: null,
+  });
+  const [permState, setPermState] = useState<{ ok: boolean; message: string } | null>(null);
+  const [permBusy, setPermBusy] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [found, setFound] = useState<{ id: string; name: string; rssi?: number }[]>([]);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const stopScanRef = useRef<null | (() => void)>(null);
   const [quickTesting, setQuickTesting] = useState(false);
   const [quickResult, setQuickResult] = useState<{ ok: boolean; message: string; at: string } | null>(null);
   const [receiptPaper, setReceiptPaperState] = useState<ReceiptPaperWidth>("80mm");
@@ -61,6 +70,90 @@ function PrinterPage() {
     setActiveId(localStorage.getItem(ACTIVE_KEY) || "");
     setReceiptPaperState(getReceiptPaperWidth());
   }, []);
+
+  // تحديث تلقائي لحالة اتصال البلوتوث
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const { getBluetoothStatus } = await import("@/lib/bt-printer");
+        if (alive) setBtStatus(getBluetoothStatus());
+      } catch {}
+    };
+    tick();
+    const t = window.setInterval(tick, 1500);
+    return () => { alive = false; window.clearInterval(t); stopScanRef.current?.(); };
+  }, []);
+
+  const requestPermissions = async () => {
+    setPermBusy(true);
+    try {
+      const { ensureBlePermissions } = await import("@/lib/native-bluetooth");
+      const res = await ensureBlePermissions();
+      setPermState(res);
+      res.ok ? toast.success(res.message) : toast.error(res.message);
+    } catch (e) {
+      const message = (e as Error).message || "تعذّر منح الأذونات";
+      setPermState({ ok: false, message });
+      toast.error(message);
+    } finally {
+      setPermBusy(false);
+    }
+  };
+
+  const savePairedPrinter = (id: string, pname: string) => {
+    const p: SavedPrinter = {
+      id: crypto.randomUUID(),
+      name: pname || "طابعة بلوتوث",
+      connection: "bluetooth",
+      address: id,
+      paper: "80mm",
+    };
+    const next = [...printers.filter((x) => x.connection !== "bluetooth"), p];
+    setPrinters(next);
+    savePrinters(next);
+    setActive(p.id);
+  };
+
+  const startNativeScan = async () => {
+    setFound([]);
+    setScanOpen(true);
+    setScanning(true);
+    try {
+      const { ensureBlePermissions, scanNativeDevices } = await import("@/lib/native-bluetooth");
+      const perm = await ensureBlePermissions();
+      setPermState(perm);
+      if (!perm.ok) { setScanning(false); toast.error(perm.message); return; }
+      stopScanRef.current?.();
+      stopScanRef.current = await scanNativeDevices((d) => {
+        setFound((prev) => (prev.some((x) => x.id === d.id) ? prev : [...prev, d]));
+      }, 12_000);
+      window.setTimeout(() => setScanning(false), 12_000);
+    } catch (e) {
+      setScanning(false);
+      toast.error((e as Error).message || "تعذّر بدء البحث");
+    }
+  };
+
+  const pickFoundDevice = async (d: { id: string; name: string }) => {
+    setConnecting(d.id);
+    try {
+      stopScanRef.current?.();
+      setScanning(false);
+      const { rememberPickedDevice, connectRememberedPrinter, getBluetoothStatus } = await import("@/lib/bt-printer");
+      rememberPickedDevice(d.id, d.name);
+      savePairedPrinter(d.id, d.name);
+      await connectRememberedPrinter();
+      setBtStatus(getBluetoothStatus());
+      setScanOpen(false);
+      toast.success(`تم اقتران الطابعة: ${d.name}`);
+    } catch (e) {
+      toast.error((e as Error).message || "تعذّر الاتصال بالطابعة");
+    } finally {
+      setConnecting(null);
+    }
+  };
+
 
   const changeReceiptPaper = (v: ReceiptPaperWidth) => {
     setReceiptPaperState(v);
@@ -170,6 +263,7 @@ function PrinterPage() {
   };
 
   const scanBluetooth = async () => {
+    if (btStatus.native) { await startNativeScan(); return; }
     setScanning(true);
     try {
       const { pairPrinter, syncRememberedBluetoothPrinter } = await import("@/lib/bt-printer");
@@ -298,6 +392,117 @@ function PrinterPage() {
   return (
     <PosLayout title="الطابعة">
       <div className="space-y-4">
+        {/* حالة اتصال البلوتوث */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">حالة البلوتوث</div>
+            {btStatus.connected ? (
+              <BluetoothConnected className="h-5 w-5 text-primary" />
+            ) : scanning ? (
+              <BluetoothSearching className="h-5 w-5 text-primary animate-pulse" />
+            ) : (
+              <Bluetooth className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+            <span
+              className={`h-3 w-3 rounded-full shrink-0 ${
+                btStatus.connected ? "bg-emerald-500" : scanning ? "bg-amber-500 animate-pulse" : "bg-muted-foreground/40"
+              }`}
+            />
+            <div className="flex-1 text-right">
+              <div className="font-semibold text-sm">
+                {btStatus.connected ? "متصل" : scanning ? "جاري البحث عن الأجهزة..." : btStatus.deviceName ? "غير متصل (محفوظة)" : "لا توجد طابعة مقترنة"}
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                {btStatus.deviceName ? `الطابعة: ${btStatus.deviceName}` : "اضغط «بحث عن طابعة بلوتوث» للاقتران"}
+                {btStatus.deviceId ? ` • ${btStatus.deviceId}` : ""}
+              </div>
+            </div>
+          </div>
+          <Button
+            onClick={async () => {
+              const { connectRememberedPrinter } = await import("@/lib/bt-printer");
+              const s = await connectRememberedPrinter();
+              setBtStatus(s);
+              s.connected ? toast.success("تم الاتصال بالطابعة") : toast.error("تعذّر الاتصال — تأكد من تشغيل الطابعة");
+            }}
+            variant="outline"
+            className="w-full gap-2"
+            disabled={!btStatus.deviceId}
+          >
+            <RefreshCw className="h-4 w-4" /> إعادة الاتصال
+          </Button>
+        </div>
+
+        {/* أذونات أندرويد 12+ */}
+        <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-bold text-right flex-1">أذونات البلوتوث (Android 12+)</div>
+            <ShieldCheck className="h-5 w-5 text-primary" />
+          </div>
+          <ol className="text-xs text-muted-foreground text-right space-y-1 list-decimal pr-4">
+            <li>فعّل البلوتوث من إعدادات الهاتف.</li>
+            <li>اضغط «منح أذونات البلوتوث» ثم اسمح بـ «الأجهزة القريبة».</li>
+            <li>شغّل الطابعة الحرارية ثم ابدأ البحث.</li>
+          </ol>
+          <Button onClick={requestPermissions} disabled={permBusy} className="w-full bg-gradient-primary text-primary-foreground gap-2">
+            {permBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            منح أذونات البلوتوث
+          </Button>
+          {permState && (
+            <div className={`rounded-lg border p-2 text-right text-xs font-semibold ${permState.ok ? "border-primary/40 bg-primary/5 text-primary" : "border-destructive/40 bg-destructive/5 text-destructive"}`}>
+              {permState.message}
+            </div>
+          )}
+        </div>
+
+        {/* نافذة البحث داخل التطبيق */}
+        {scanOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3" dir="rtl">
+            <div className="w-full max-w-md rounded-2xl bg-card border border-border p-4 space-y-3 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <div className="font-bold">الأجهزة القريبة</div>
+                {scanning ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <BluetoothSearching className="h-5 w-5 text-muted-foreground" />}
+              </div>
+              <div className="text-xs text-muted-foreground text-right">
+                {scanning ? "جاري البحث... تظهر الأجهزة تلقائيًا" : `انتهى البحث — ${found.length} جهاز`}
+              </div>
+              {found.length === 0 && !scanning && (
+                <div className="text-center text-sm text-muted-foreground py-4">لم يتم العثور على أجهزة. تأكد من تشغيل الطابعة.</div>
+              )}
+              <div className="space-y-2">
+                {found.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => pickFoundDevice(d)}
+                    disabled={!!connecting}
+                    className="w-full flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted text-right disabled:opacity-60"
+                  >
+                    <Bluetooth className="h-5 w-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">{d.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate" dir="ltr">{d.id}{d.rssi ? ` • ${d.rssi}dBm` : ""}</div>
+                    </div>
+                    {connecting === d.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={startNativeScan} variant="outline" className="gap-2" disabled={scanning}>
+                  <RefreshCw className="h-4 w-4" /> إعادة البحث
+                </Button>
+                <Button
+                  onClick={() => { stopScanRef.current?.(); setScanning(false); setScanOpen(false); }}
+                  variant="outline"
+                >
+                  إغلاق
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Receipt paper width */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
           <div className="flex items-center justify-between">

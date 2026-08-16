@@ -194,3 +194,55 @@ export async function installNativeBluetooth(): Promise<boolean> {
     return false;
   }
 }
+
+/** طلب أذونات البلوتوث المطلوبة على أندرويد 12+ وتشغيل البلوتوث إن كان مطفأ. */
+export async function ensureBlePermissions(): Promise<{ ok: boolean; message: string }> {
+  if (!isNativeApp()) {
+    return { ok: true, message: "خارج التطبيق: يُستخدم بلوتوث المتصفح" };
+  }
+  try {
+    const { BleClient } = await import("@capacitor-community/bluetooth-le");
+    await BleClient.initialize({ androidNeverForLocation: true });
+    let enabled = true;
+    try {
+      enabled = await BleClient.isEnabled();
+    } catch {}
+    if (!enabled) {
+      try {
+        await BleClient.requestEnable();
+      } catch {
+        return { ok: false, message: "البلوتوث مطفأ — فعّله من إعدادات الهاتف" };
+      }
+    }
+    // يفتح نافذة أذونات SCAN/CONNECT على أندرويد 12+
+    await BleClient.requestLEScan({ allowDuplicates: false }, () => {});
+    await new Promise((r) => setTimeout(r, 400));
+    await BleClient.stopLEScan().catch(() => {});
+    return { ok: true, message: "الأذونات ممنوحة والبلوتوث مفعّل" };
+  } catch (e) {
+    return { ok: false, message: (e as Error)?.message || "تعذّر منح أذونات البلوتوث" };
+  }
+}
+
+export type ScannedBleDevice = { id: string; name: string; rssi?: number };
+
+/** مسح أجهزة BLE مع عرض أسمائها داخل التطبيق (بدل نافذة النظام). */
+export async function scanNativeDevices(
+  onDevice: (d: ScannedBleDevice) => void,
+  durationMs = 10_000,
+): Promise<() => void> {
+  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  await BleClient.initialize({ androidNeverForLocation: true });
+  await BleClient.requestLEScan({ allowDuplicates: false }, (result: any) => {
+    const name = result?.device?.name || result?.localName || "";
+    onDevice({ id: result.device.deviceId, name: name || "جهاز بدون اسم", rssi: result.rssi });
+  });
+  const stop = () => {
+    BleClient.stopLEScan().catch(() => {});
+  };
+  const timer = setTimeout(stop, durationMs);
+  return () => {
+    clearTimeout(timer);
+    stop();
+  };
+}
