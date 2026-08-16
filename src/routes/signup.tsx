@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { BiometricAuthButton } from "@/components/auth/BiometricAuthButton";
 import { supabase } from "@/integrations/supabase/client";
+import { enrollBiometric } from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -61,6 +63,7 @@ function SignupPage() {
       toast.error(error.message);
       return;
     }
+    await enrollBiometric().catch(() => false);
     toast.success(t("auth.success"));
     navigate({ to: "/dashboard" });
   };
@@ -116,6 +119,7 @@ function SignupPage() {
             </form>
 
             <SocialAuthButtons />
+            <BiometricAuthButton />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {t("auth.hasAccount")}{" "}
