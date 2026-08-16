@@ -402,21 +402,21 @@ function NewSalePage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col" dir="rtl">
+    <div className="min-h-screen w-full overflow-x-hidden bg-muted/30 flex flex-col" dir="rtl">
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-4">
           <button
             onClick={() => navigate({ to: "/app/sales" })}
-            className="rounded-lg p-2 hover:bg-white/10 transition"
+            className="shrink-0 rounded-lg p-2 hover:bg-white/10 transition"
             aria-label="رجوع"
           >
             <ArrowRight className="h-6 w-6" />
           </button>
-          <h1 className="text-lg font-bold">{isEditMode ? "تعديل عملية بيع" : "بيع جديد"}</h1>
+          <h1 className="min-w-0 truncate text-center text-base sm:text-lg font-bold">{isEditMode ? "تعديل عملية بيع" : "بيع جديد"}</h1>
           <button
             onClick={openConfirm}
-            className="rounded-lg p-2 hover:bg-white/10 transition"
+            className="shrink-0 rounded-lg p-2 hover:bg-white/10 transition"
             aria-label="حاسبة"
           >
             <Calculator className="h-6 w-6" />
@@ -424,16 +424,17 @@ function NewSalePage() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pt-3 pb-32">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-4 pt-3 pb-32">
         {/* Date & time */}
-        <div className="flex items-center justify-end gap-4 text-sm mb-3">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs sm:text-sm mb-3">
           <span className="text-muted-foreground">التوقيت <span className="text-sky-500 font-mono">{now.time}</span></span>
           <span className="text-muted-foreground">التاريخ <span className="text-sky-500 font-mono">{now.date}</span></span>
         </div>
 
         {/* Customer */}
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-sm font-semibold w-14 text-right">الزبون</span>
+        <div className="flex items-center gap-2 sm:gap-3 mb-3">
+          <span className="shrink-0 text-sm font-semibold w-12 sm:w-14 text-right">الزبون</span>
+
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
