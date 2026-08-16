@@ -51,6 +51,8 @@ function NewSalePage() {
   const [productQ, setProductQ] = useState("");
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [showProductList, setShowProductList] = useState(false);
+  const [browseAll, setBrowseAll] = useState(false);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -201,7 +203,27 @@ function NewSalePage() {
       .filter((i) => i.productId === productId && i.id !== exceptRowId)
       .reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
 
+  // Barcode: read via keyboard-wedge scanner or manual entry, then add the matching item
+  const handleScanBarcode = () => {
+    const code = typeof window !== "undefined" ? window.prompt("امسح أو أدخل الباركود") : null;
+    const q = (code || "").trim();
+    if (!q) return;
+    const found = searchEntries.find((e: any) => {
+      const bc = e.kind === "package" ? (e.pkg.barcode || "") : (e.product.barcode || "");
+      return bc && String(bc).trim() === q;
+    });
+    if (!found) {
+      setProductQ(q);
+      setShowProductList(true);
+      productInputRef.current?.focus();
+      toast.error("لا يوجد منتج بهذا الباركود");
+      return;
+    }
+    addEntry(found as any);
+  };
+
   const addEntry = (entry: { kind: "product" | "package"; product: any; pkg: any }) => {
+
     const { product, pkg } = entry;
     const isPkg = entry.kind === "package";
     const rowId = isPkg ? `pkg:${pkg.id}` : product.id;
@@ -402,21 +424,21 @@ function NewSalePage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col" dir="rtl">
+    <div className="min-h-screen w-full overflow-x-hidden bg-muted/30 flex flex-col" dir="rtl">
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-4">
           <button
             onClick={() => navigate({ to: "/app/sales" })}
-            className="rounded-lg p-2 hover:bg-white/10 transition"
+            className="shrink-0 rounded-lg p-2 hover:bg-white/10 transition"
             aria-label="رجوع"
           >
             <ArrowRight className="h-6 w-6" />
           </button>
-          <h1 className="text-lg font-bold">{isEditMode ? "تعديل عملية بيع" : "بيع جديد"}</h1>
+          <h1 className="min-w-0 truncate text-center text-base sm:text-lg font-bold">{isEditMode ? "تعديل عملية بيع" : "بيع جديد"}</h1>
           <button
             onClick={openConfirm}
-            className="rounded-lg p-2 hover:bg-white/10 transition"
+            className="shrink-0 rounded-lg p-2 hover:bg-white/10 transition"
             aria-label="حاسبة"
           >
             <Calculator className="h-6 w-6" />
@@ -424,16 +446,17 @@ function NewSalePage() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pt-3 pb-32">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-4 pt-3 pb-32">
         {/* Date & time */}
-        <div className="flex items-center justify-end gap-4 text-sm mb-3">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs sm:text-sm mb-3">
           <span className="text-muted-foreground">التوقيت <span className="text-sky-500 font-mono">{now.time}</span></span>
           <span className="text-muted-foreground">التاريخ <span className="text-sky-500 font-mono">{now.date}</span></span>
         </div>
 
         {/* Customer */}
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-sm font-semibold w-14 text-right">الزبون</span>
+        <div className="flex items-center gap-2 sm:gap-3 mb-3">
+          <span className="shrink-0 text-sm font-semibold w-12 sm:w-14 text-right">الزبون</span>
+
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -482,9 +505,13 @@ function NewSalePage() {
 
         {/* Product search */}
         <div className="rounded-xl bg-card border border-border p-3 mb-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button className="text-foreground/80 shrink-0" aria-label="قائمة">
-              <ListChecks className="h-7 w-7" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => { setBrowseAll((v) => !v); setShowProductList(true); }}
+              className={`shrink-0 rounded-lg p-1 transition ${browseAll ? "text-primary bg-primary/10" : "text-foreground/80 hover:bg-muted"}`}
+              aria-label="عرض كل المنتجات"
+            >
+              <ListChecks className="h-6 w-6 sm:h-7 sm:w-7" />
             </button>
             <Input
               ref={productInputRef}
@@ -492,10 +519,11 @@ function NewSalePage() {
               onChange={(e) => { setProductQ(e.target.value); setShowProductList(true); }}
               onFocus={() => setShowProductList(true)}
               placeholder="إبحث عن منتج"
-              className="flex-1 border-0 border-b border-foreground/40 rounded-none bg-transparent text-right focus-visible:ring-0 focus-visible:border-primary"
+              className="min-w-0 flex-1 border-0 border-b border-foreground/40 rounded-none bg-transparent text-right focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
-          {showProductList && productQ && filteredProducts.length > 0 && (
+          {showProductList && (productQ || browseAll) && filteredProducts.length > 0 && (
+
             <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-border bg-background">
               {filteredProducts.map((e: any) => {
                 const isPkg = e.kind === "package";
@@ -520,21 +548,21 @@ function NewSalePage() {
         </div>
 
         {/* Display panel — black with green digits */}
-        <div className="rounded-xl bg-[#1f1f1f] text-white p-4 shadow-card">
-          <div className="grid grid-cols-[1fr_auto] gap-3 items-center">
+        <div className="overflow-hidden rounded-xl bg-[#1f1f1f] text-white p-3 sm:p-4 shadow-card">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
             <div
-              className="font-mono text-5xl font-bold text-green-400 tabular-nums tracking-wider"
+              className="min-w-0 flex-1 truncate font-mono font-bold text-green-400 tabular-nums tracking-tight text-[clamp(1.75rem,10vw,3rem)] leading-none"
               style={{ textShadow: "0 0 8px rgba(74,222,128,0.45)" }}
             >
               {totalAmount.toFixed(2)}
             </div>
-            <div className="text-right space-y-1">
-              <div className="text-base font-bold">المجموع</div>
-              <div className="text-sm flex items-center justify-end gap-2">
+            <div className="shrink-0 text-right space-y-1">
+              <div className="text-sm sm:text-base font-bold">المجموع</div>
+              <div className="text-xs sm:text-sm flex items-center justify-end gap-2">
                 <span className="font-mono text-green-400">{totalLines}</span>
                 <span className="text-white/80">المنتجات</span>
               </div>
-              <div className="text-sm flex items-center justify-end gap-2">
+              <div className="text-xs sm:text-sm flex items-center justify-end gap-2">
                 <span className="font-mono text-green-400">{totalUnits}</span>
                 <span className="text-white/80">المواد</span>
               </div>
@@ -547,8 +575,9 @@ function NewSalePage() {
           <div className="mt-3 space-y-2">
             {cart.map(i => (
               <div key={i.id} className="flex items-center gap-2 rounded-lg bg-card border border-border p-2 shadow-sm">
-                <button onClick={() => setQty(i.id, 0)} className="text-destructive p-1"><X className="h-4 w-4" /></button>
-                <div className="font-mono font-bold text-primary w-20 text-left">{(i.price * i.qty).toFixed(2)}</div>
+                <button onClick={() => setQty(i.id, 0)} className="shrink-0 text-destructive p-1" aria-label="حذف"><X className="h-4 w-4" /></button>
+                <div className="shrink-0 font-mono font-bold text-primary w-[4.5rem] sm:w-20 text-left text-sm sm:text-base">{(i.price * i.qty).toFixed(2)}</div>
+
                 <Input
                   type="text"
                   inputMode="decimal"
@@ -573,14 +602,15 @@ function NewSalePage() {
                     setQtyDraft(prev => { const { [i.id]: _, ...rest } = prev; return rest; });
                     if (i.qty <= 0) setCart(prev => prev.filter(x => x.id !== i.id));
                   }}
-                  className="w-16 h-8 text-center font-mono font-bold px-1"
+                  className="w-14 sm:w-16 shrink-0 h-8 text-center font-mono font-bold px-1"
                 />
-                <div className="flex-1 truncate text-right text-sm">
+                <div className="min-w-0 flex-1 truncate text-right text-sm">
                   {i.name}
                   {i.unitsPerPackage && (
                     <span className="text-xs text-muted-foreground mr-1">({i.qty}×{i.unitsPerPackage})</span>
                   )}
                 </div>
+
               </div>
             ))}
           </div>
@@ -589,12 +619,13 @@ function NewSalePage() {
 
       {/* Floating barcode button */}
       <button
-        onClick={() => toast.info("شغّل الكاميرا لمسح الباركود")}
+        onClick={handleScanBarcode}
         className="fixed bottom-24 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
         aria-label="مسح الباركود"
       >
         <ScanLine className="h-6 w-6" />
       </button>
+
 
       {/* Bottom action bar */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-card/95 backdrop-blur">
