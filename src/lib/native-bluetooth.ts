@@ -202,7 +202,8 @@ export async function ensureBlePermissions(): Promise<{ ok: boolean; message: st
   }
   try {
     const { BleClient } = await import("@capacitor-community/bluetooth-le");
-    await BleClient.initialize({ androidNeverForLocation: true });
+    // ملاحظة: نطلب أيضًا إذن الموقع لأن أندرويد 11 وما دونه يشترطه لعمل البحث
+    await BleClient.initialize({ androidNeverForLocation: false });
     let enabled = true;
     try {
       enabled = await BleClient.isEnabled();
@@ -214,9 +215,9 @@ export async function ensureBlePermissions(): Promise<{ ok: boolean; message: st
         return { ok: false, message: "البلوتوث مطفأ — فعّله من إعدادات الهاتف" };
       }
     }
-    // يفتح نافذة أذونات SCAN/CONNECT على أندرويد 12+
-    await BleClient.requestLEScan({ allowDuplicates: false }, () => {});
-    await new Promise((r) => setTimeout(r, 400));
+    // يفتح نافذة أذونات SCAN/CONNECT على أندرويد 12+ (والموقع على الأقدم)
+    await BleClient.requestLEScan({ allowDuplicates: true }, () => {});
+    await new Promise((r) => setTimeout(r, 500));
     await BleClient.stopLEScan().catch(() => {});
     return { ok: true, message: "الأذونات ممنوحة والبلوتوث مفعّل" };
   } catch (e) {
@@ -224,18 +225,44 @@ export async function ensureBlePermissions(): Promise<{ ok: boolean; message: st
   }
 }
 
-export type ScannedBleDevice = { id: string; name: string; rssi?: number };
+export type ScannedBleDevice = { id: string; name: string; rssi?: number; bonded?: boolean };
+
+/** الأجهزة المقترنة مسبقًا من إعدادات الهاتف (تظهر فورًا بدون بحث). */
+export async function getBondedNativeDevices(): Promise<ScannedBleDevice[]> {
+  if (!isNativeApp()) return [];
+  try {
+    const { BleClient } = await import("@capacitor-community/bluetooth-le");
+    await BleClient.initialize({ androidNeverForLocation: false });
+    const anyClient = BleClient as any;
+    const list: any[] = (await anyClient.getBondedDevices?.([])) || [];
+    return list.map((d) => ({
+      id: d.deviceId,
+      name: d.name || "جهاز مقترن",
+      bonded: true,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 /** مسح أجهزة BLE مع عرض أسمائها داخل التطبيق (بدل نافذة النظام). */
 export async function scanNativeDevices(
   onDevice: (d: ScannedBleDevice) => void,
-  durationMs = 10_000,
+  durationMs = 20_000,
 ): Promise<() => void> {
   const { BleClient } = await import("@capacitor-community/bluetooth-le");
-  await BleClient.initialize({ androidNeverForLocation: true });
-  await BleClient.requestLEScan({ allowDuplicates: false }, (result: any) => {
+  await BleClient.initialize({ androidNeverForLocation: false });
+
+  // أظهر الأجهزة المقترنة أولًا (مثل XP-P323B المقترنة من إعدادات الهاتف)
+  for (const d of await getBondedNativeDevices()) onDevice(d);
+
+  await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
     const name = result?.device?.name || result?.localName || "";
-    onDevice({ id: result.device.deviceId, name: name || "جهاز بدون اسم", rssi: result.rssi });
+    onDevice({
+      id: result.device.deviceId,
+      name: name || `جهاز ${String(result.device.deviceId).slice(-5)}`,
+      rssi: result.rssi,
+    });
   });
   const stop = () => {
     BleClient.stopLEScan().catch(() => {});
@@ -246,3 +273,4 @@ export async function scanNativeDevices(
     stop();
   };
 }
+
