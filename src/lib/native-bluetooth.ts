@@ -171,14 +171,19 @@ export async function installNativeBluetooth(): Promise<boolean> {
         return getDevice(picked.deviceId, picked.name);
       },
       async getDevices() {
+        let stored: string | null = null;
+        let storedName = "Bluetooth Printer";
         try {
-          const stored = localStorage.getItem("sahla.printer.active");
-          if (!stored) return [];
+          stored = localStorage.getItem("sahla.printer.active");
+          storedName = localStorage.getItem("sahla.printer.name") || storedName;
+        } catch {}
+        if (!stored) return [];
+        try {
           const devices = await BleClient.getDevices([stored]);
-          return devices.map((d: any) => getDevice(d.deviceId, d.name));
-        } catch {
-          return [];
-        }
+          if (devices.length) return devices.map((d: any) => getDevice(d.deviceId, d.name || storedName));
+        } catch {}
+        // مهم: نرجّع الجهاز المحفوظ دائمًا حتى لا تفتح نافذة "Scanning..." النظامية
+        return [getDevice(stored, storedName)];
       },
     };
 
