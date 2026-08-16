@@ -1,5 +1,5 @@
 // SAHLAPOS service worker — offline-first app shell
-const VERSION = "sahlapos-v2";
+const VERSION = "sahlapos-v3";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = ["/", "/app", "/manifest.webmanifest"];
@@ -71,7 +71,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Static assets: cache first (instant + fully offline).
+  // Versioned build assets are immutable: cache first keeps the app fast and offline-ready.
   if (isAsset(url)) {
     e.respondWith(
       caches.open(ASSETS).then(async (cache) => {
