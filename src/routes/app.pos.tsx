@@ -203,7 +203,27 @@ function NewSalePage() {
       .filter((i) => i.productId === productId && i.id !== exceptRowId)
       .reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
 
+  // Barcode: read via keyboard-wedge scanner or manual entry, then add the matching item
+  const handleScanBarcode = () => {
+    const code = typeof window !== "undefined" ? window.prompt("امسح أو أدخل الباركود") : null;
+    const q = (code || "").trim();
+    if (!q) return;
+    const found = searchEntries.find((e: any) => {
+      const bc = e.kind === "package" ? (e.pkg.barcode || "") : (e.product.barcode || "");
+      return bc && String(bc).trim() === q;
+    });
+    if (!found) {
+      setProductQ(q);
+      setShowProductList(true);
+      productInputRef.current?.focus();
+      toast.error("لا يوجد منتج بهذا الباركود");
+      return;
+    }
+    addEntry(found as any);
+  };
+
   const addEntry = (entry: { kind: "product" | "package"; product: any; pkg: any }) => {
+
     const { product, pkg } = entry;
     const isPkg = entry.kind === "package";
     const rowId = isPkg ? `pkg:${pkg.id}` : product.id;
