@@ -11,7 +11,6 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { BiometricAuthButton } from "@/components/auth/BiometricAuthButton";
 import { supabase } from "@/integrations/supabase/client";
-import { enrollBiometric } from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
