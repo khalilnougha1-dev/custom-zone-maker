@@ -475,21 +475,19 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
   // MTU 23, so sending the old 96/128-byte chunks failed despite successful pairing.
   const nativeMaxChunk = Number(characteristic?.maxChunkSize || 20);
   const chunkSize = characteristic?.__sahlaNative
-    ? Math.max(20, Math.min(64, nativeMaxChunk))
+    ? Math.max(20, Math.min(180, nativeMaxChunk))
     : prefersWriteWithoutResponse
-      ? 128
-      : 96;
+      ? 180
+      : 128;
   const chunkDelay = characteristic?.__sahlaNative
     ? supportsWrite
-      ? 8
-      : 22
+      ? 0
+      : 8
     : prefersWriteWithoutResponse
       ? isAndroidBluetoothClient()
-        ? 12
-        : 9
-      : isAndroidBluetoothClient()
-        ? 16
-        : 12;
+        ? 5
+        : 3
+      : 0;
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const slice = bytes.slice(i, i + chunkSize);
