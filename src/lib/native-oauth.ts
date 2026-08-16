@@ -11,11 +11,7 @@ export function isNativeApp() {
 /** يفتح تدفق OAuth في متصفح النظام (Custom Tab) ثم يعود للتطبيق عبر رابط عميق */
 export async function startNativeOAuth(provider: "google" | "apple") {
   const { Browser } = await import("@capacitor/browser");
-  const origin =
-    typeof window !== "undefined" && window.location.origin.startsWith("http")
-      ? window.location.origin
-      : WEB_ORIGIN;
-  const url = `${origin}/auth/native?provider=${provider}&native=1`;
+  const url = `${WEB_ORIGIN}/auth/native?provider=${provider}&native=1`;
   await Browser.open({ url, presentationStyle: "popover" });
 }
 
@@ -30,8 +26,10 @@ export async function installNativeOAuthListener(onSignedIn?: () => void) {
 
   const handleUrl = async (rawUrl: string) => {
     if (!rawUrl || !rawUrl.startsWith(`${NATIVE_SCHEME}://`)) return;
-    const query = rawUrl.split("?")[1] ?? rawUrl.split("#")[1] ?? "";
-    const params = new URLSearchParams(query);
+    const parsed = new URL(rawUrl);
+    const queryParams = parsed.searchParams;
+    const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ""));
+    const params = queryParams.size > 0 ? queryParams : hashParams;
     const access_token = params.get("access_token");
     const refresh_token = params.get("refresh_token");
     try {
@@ -40,17 +38,22 @@ export async function installNativeOAuthListener(onSignedIn?: () => void) {
     } catch {
       /* ignore */
     }
-    if (!access_token || !refresh_token) return;
-    const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-    if (!error) {
-      const { enrollBiometric } = await import("@/lib/biometric-auth");
-      await enrollBiometric().catch(() => false);
-      onSignedIn?.();
-      window.location.replace("/app");
+    if (!access_token || !refresh_token) {
+      window.location.replace("/login?oauth=failed");
+      return;
     }
+    const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+    if (error) {
+      window.location.replace("/login?oauth=failed");
+      return;
+    }
+    const { enrollBiometric } = await import("@/lib/biometric-auth");
+    await enrollBiometric().catch(() => false);
+    onSignedIn?.();
+    window.location.replace(`${WEB_ORIGIN}/app`);
   };
 
-  App.addListener("appUrlOpen", (event: { url: string }) => {
+  await App.addListener("appUrlOpen", (event: { url: string }) => {
     void handleUrl(event.url);
   });
 

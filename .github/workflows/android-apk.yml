@@ -7,6 +7,7 @@ on:
     paths:
       - "capacitor.config.ts"
       - "package.json"
+      - "bun.lockb"
       - "src/lib/native-bluetooth.ts"
       - "src/lib/bt-printer.ts"
       - "src/lib/biometric-auth.ts"
@@ -50,9 +51,8 @@ jobs:
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
           if ! grep -q "sahlapos" "$MANIFEST"; then
-            perl -0pi -e 's|</activity>|    <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="sahlapos" />\n            </intent-filter>\n        </activity>|' "$MANIFEST"
+            perl -0pi -e 's|</activity>|    <intent-filter android:autoVerify="true">\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="sahlapos" android:host="auth" />\n            </intent-filter>\n        </activity>|' "$MANIFEST"
           fi
-          cat "$MANIFEST"
 
       - name: Build debug APK
         working-directory: android

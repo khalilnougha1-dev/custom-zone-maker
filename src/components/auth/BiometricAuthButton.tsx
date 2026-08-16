@@ -37,7 +37,7 @@ export function BiometricAuthButton() {
       toast.error(res.error ?? "فشل الدخول بالبصمة");
       return;
     }
-    navigate({ to: "/app" });
+    navigate({ to: "/app", replace: true });
   };
 
   return (
@@ -47,14 +47,12 @@ export function BiometricAuthButton() {
         variant="outline"
         className="h-11 w-full gap-2"
         onClick={handle}
-        disabled={loading || supported === null}
+        disabled={loading}
       >
         <Fingerprint className="h-4 w-4" />
         {loading
           ? "جارٍ التحقق…"
-          : supported === null
-            ? "جارٍ فحص بصمة الهاتف…"
-            : "الدخول ببصمة الهاتف"}
+          : "الدخول ببصمة الهاتف"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
         {supported === false

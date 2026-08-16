@@ -14,6 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { enrollBiometric } from "@/lib/biometric-auth";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    oauth: search.oauth === "failed" ? "failed" : undefined,
+  }),
   component: LoginPage,
 });
 
@@ -25,15 +28,17 @@ const schema = z.object({
 function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (search.oauth === "failed") toast.error("تعذّر إكمال تسجيل الدخول. أعد المحاولة.");
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate({ to: "/dashboard" });
     });
-  }, [navigate]);
+  }, [navigate, search.oauth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

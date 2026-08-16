@@ -24,8 +24,8 @@ export function SocialAuthButtons() {
       try {
         const { startNativeOAuth } = await import("@/lib/native-oauth");
         await startNativeOAuth(provider);
-      } catch (e) {
-        toast.error(t("auth.error"));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t("auth.error"));
       }
       setLoading(null);
       return;
