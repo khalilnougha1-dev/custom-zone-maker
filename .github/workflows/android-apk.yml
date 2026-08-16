@@ -32,20 +32,11 @@ jobs:
 
       - name: Add deep link scheme (sahlapos://)
         run: |
-          python3 - <<'PY'
-          p = "android/app/src/main/AndroidManifest.xml"
-          s = open(p).read()
-          if "sahlapos" not in s:
-              intent = """            <intent-filter>
-                  <action android:name="android.intent.action.VIEW" />
-                  <category android:name="android.intent.category.DEFAULT" />
-                  <category android:name="android.intent.category.BROWSABLE" />
-                  <data android:scheme="sahlapos" />
-              </intent-filter>
-          </activity>"""
-              s = s.replace("</activity>", intent, 1)
-              open(p, "w").write(s)
-          PY
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          if ! grep -q "sahlapos" "$MANIFEST"; then
+            perl -0pi -e 's|</activity>|    <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="sahlapos" />\n            </intent-filter>\n        </activity>|' "$MANIFEST"
+          fi
+          cat "$MANIFEST"
 
       - name: Sync Capacitor
         run: npx cap sync android
