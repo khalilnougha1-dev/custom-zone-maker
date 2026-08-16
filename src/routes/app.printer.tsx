@@ -143,6 +143,8 @@ function PrinterPage() {
       const { rememberPickedDevice, connectRememberedPrinter, getBluetoothStatus } = await import("@/lib/bt-printer");
       rememberPickedDevice(d.id, d.name);
       savePairedPrinter(d.id, d.name);
+      // Give Android time to finish stopping discovery before opening GATT.
+      await new Promise((resolve) => window.setTimeout(resolve, 900));
       await connectRememberedPrinter();
       setBtStatus(getBluetoothStatus());
       setScanOpen(false);
@@ -422,10 +424,15 @@ function PrinterPage() {
           </div>
           <Button
             onClick={async () => {
-              const { connectRememberedPrinter } = await import("@/lib/bt-printer");
-              const s = await connectRememberedPrinter();
-              setBtStatus(s);
-              s.connected ? toast.success("تم الاتصال بالطابعة") : toast.error("تعذّر الاتصال — تأكد من تشغيل الطابعة");
+              try {
+                const { connectRememberedPrinter } = await import("@/lib/bt-printer");
+                const s = await connectRememberedPrinter();
+                setBtStatus(s);
+                toast.success("تم الاتصال بالطابعة");
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "تعذّر الاتصال بالطابعة";
+                toast.error(message);
+              }
             }}
             variant="outline"
             className="w-full gap-2"

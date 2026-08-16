@@ -33,14 +33,17 @@ export async function installNativeBluetooth(): Promise<boolean> {
     class NativeCharacteristic {
       uuid: string;
       properties: any;
+      __sahlaNative = true;
+      maxChunkSize = 20;
       private deviceId: string;
       private serviceUuid: string;
 
-      constructor(deviceId: string, serviceUuid: string, uuid: string, properties: any) {
+      constructor(deviceId: string, serviceUuid: string, uuid: string, properties: any, maxChunkSize = 20) {
         this.deviceId = deviceId;
         this.serviceUuid = serviceUuid;
         this.uuid = uuid;
         this.properties = properties || {};
+        this.maxChunkSize = maxChunkSize;
       }
 
       async writeValueWithoutResponse(value: any) {
@@ -77,6 +80,7 @@ export async function installNativeBluetooth(): Promise<boolean> {
     class NativeGatt {
       connected = false;
       private device: NativeDevice;
+      private maxChunkSize = 20;
 
       constructor(device: NativeDevice) {
         this.device = device;
@@ -84,11 +88,51 @@ export async function installNativeBluetooth(): Promise<boolean> {
 
       async connect() {
         if (!this.connected) {
-          await BleClient.connect(this.device.id, () => {
+          // Android GATT is unreliable when a connection starts while scanning is
+          // still being stopped. Close any scan, release a stale GATT instance,
+          // then give the Bluetooth stack a short settling period.
+          await BleClient.stopLEScan().catch(() => {});
+          await BleClient.disconnect(this.device.id).catch(() => {});
+          await new Promise((resolve) => setTimeout(resolve, 700));
+
+          try {
+            await BleClient.connect(
+              this.device.id,
+              () => {
+                this.connected = false;
+                this.device.__emit("gattserverdisconnected");
+              },
+              { timeout: 20_000, skipDescriptorDiscovery: false },
+            );
+            this.connected = true;
+
+            // Use the real negotiated MTU. Many Android Go devices keep the
+            // default 23-byte MTU, allowing only 20 payload bytes per write.
+            try {
+              const mtu = await BleClient.getMtu(this.device.id);
+              this.maxChunkSize = Math.max(20, Math.min(180, Number(mtu || 23) - 3));
+            } catch {
+              this.maxChunkSize = 20;
+            }
+
+            try {
+              const mod = await import("@capacitor-community/bluetooth-le");
+              await BleClient.requestConnectionPriority(
+                this.device.id,
+                mod.ConnectionPriority.CONNECTION_PRIORITY_HIGH,
+              );
+            } catch {}
+          } catch (error) {
             this.connected = false;
-            this.device.__emit("gattserverdisconnected");
-          });
-          this.connected = true;
+            await BleClient.disconnect(this.device.id).catch(() => {});
+            const raw = error instanceof Error ? error.message : String(error || "");
+            if (/status\s*147|\b147\b/i.test(raw)) {
+              throw new Error(
+                "تعذّر فتح قناة BLE (خطأ 147). أطفئ الطابعة وشغّلها، أغلق أي تطبيق طباعة آخر، ثم أعد الاتصال.",
+              );
+            }
+            throw error;
+          }
         }
         return this;
       }
@@ -107,7 +151,14 @@ export async function installNativeBluetooth(): Promise<boolean> {
               this.device.id,
               s.uuid,
               (s.characteristics || []).map(
-                (c: any) => new NativeCharacteristic(this.device.id, s.uuid, c.uuid, c.properties),
+                (c: any) =>
+                  new NativeCharacteristic(
+                    this.device.id,
+                    s.uuid,
+                    c.uuid,
+                    c.properties,
+                    this.maxChunkSize,
+                  ),
               ),
             ),
         );
@@ -261,14 +312,18 @@ export async function scanNativeDevices(
   // أظهر الأجهزة المقترنة أولًا (مثل XP-P323B المقترنة من إعدادات الهاتف)
   for (const d of await getBondedNativeDevices()) onDevice(d);
 
-  await BleClient.requestLEScan({ allowDuplicates: true }, (result: any) => {
+  const mod = await import("@capacitor-community/bluetooth-le");
+  await BleClient.requestLEScan(
+    { allowDuplicates: true, scanMode: mod.ScanMode.SCAN_MODE_LOW_LATENCY },
+    (result: any) => {
     const name = result?.device?.name || result?.localName || "";
     onDevice({
       id: result.device.deviceId,
       name: name || `جهاز ${String(result.device.deviceId).slice(-5)}`,
       rssi: result.rssi,
     });
-  });
+    },
+  );
   const stop = () => {
     BleClient.stopLEScan().catch(() => {});
   };

@@ -240,7 +240,12 @@ async function getRememberedDevice(): Promise<any | null> {
 
 function isGattDisconnectedError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
-  return message.includes("GATT Server is disconnected") || message.includes("gatt.connect");
+  return (
+    message.includes("GATT Server is disconnected") ||
+    message.includes("gatt.connect") ||
+    /status\s*(?:8|19|22|62|133|147)/i.test(message) ||
+    /connection failed|connect failed|disconnected/i.test(message)
+  );
 }
 
 async function delay(ms: number) {
@@ -270,7 +275,9 @@ async function ensureGattServer(device: any) {
         try {
           device.gatt.disconnect?.();
         } catch {}
-        await delay(300);
+        // Android's Bluetooth stack needs time to release a failed GATT client,
+        // especially after status 133/147 on lower-memory phones.
+        await delay(900 + attempt * 500);
       }
     }
 
@@ -450,7 +457,14 @@ async function writeChunks(characteristic: any, bytes: Uint8Array) {
     !!characteristic?.properties?.writeWithoutResponse && !!characteristic?.writeValueWithoutResponse;
   const prefersWriteWithoutResponse = supportsWriteWithoutResponse && !supportsWrite;
 
-  const chunkSize = prefersWriteWithoutResponse ? 128 : 96;
+  // Native Android BLE writes must respect MTU-3. Android Go commonly negotiates
+  // MTU 23, so sending the old 96/128-byte chunks failed despite successful pairing.
+  const nativeMaxChunk = Number(characteristic?.maxChunkSize || 20);
+  const chunkSize = characteristic?.__sahlaNative
+    ? Math.max(20, Math.min(180, nativeMaxChunk))
+    : prefersWriteWithoutResponse
+      ? 128
+      : 96;
   const chunkDelay = prefersWriteWithoutResponse
     ? (isAndroidBluetoothClient() ? 12 : 9)
     : (isAndroidBluetoothClient() ? 16 : 12);
@@ -981,8 +995,9 @@ export function rememberPickedDevice(id: string, name: string) {
 
 /** يحاول الاتصال بالجهاز المحفوظ ويعيد الحالة. */
 export async function connectRememberedPrinter(): Promise<BluetoothStatus> {
-  try {
-    await prepareBluetoothPrinter({ promptIfMissing: false });
-  } catch {}
+  const prepared = await prepareBluetoothPrinter({ promptIfMissing: false });
+  if (!prepared) {
+    throw new Error("لم يتم العثور على الطابعة المحفوظة. ابحث عنها واخترها من جديد.");
+  }
   return getBluetoothStatus();
 }
