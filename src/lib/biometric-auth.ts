@@ -38,8 +38,48 @@ export function clearBiometric() {
   }
 }
 
+function isNative() {
+  return typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
+async function nativeBiometric() {
+  if (!isNative()) return null;
+  try {
+    const mod = await import("capacitor-native-biometric");
+    return mod.NativeBiometric;
+  } catch {
+    return null;
+  }
+}
+
+/** تحقق بالبصمة عبر مكوّن أندرويد الأصلي (WebAuthn غير مدعوم داخل WebView) */
+async function nativeVerify(): Promise<boolean> {
+  const NB = await nativeBiometric();
+  if (!NB) return false;
+  try {
+    await NB.verifyIdentity({
+      reason: "الدخول إلى SAHLAPOS",
+      title: "تأكيد الهوية",
+      subtitle: "استعمل بصمة الهاتف",
+      negativeButtonText: "إلغاء",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function isBiometricSupported(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  const NB = await nativeBiometric();
+  if (NB) {
+    try {
+      const res = await NB.isAvailable({ useFallback: true });
+      return !!res.isAvailable;
+    } catch {
+      return false;
+    }
+  }
   if (!("credentials" in navigator) || typeof PublicKeyCredential === "undefined") return false;
   try {
     return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
@@ -56,6 +96,22 @@ export async function enrollBiometric(): Promise<boolean> {
   if (!session?.user?.email || !session.refresh_token) return false;
 
   const existing = getBiometricRecord();
+  if (isNative()) {
+    if (existing && existing.userId !== session.user.id) return false;
+    const ok = await nativeVerify();
+    if (!ok) return false;
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        credentialId: "native",
+        email: session.user.email,
+        userId: session.user.id,
+        refreshToken: session.refresh_token,
+        savedAt: Date.now(),
+      } satisfies BiometricRecord),
+    );
+    return true;
+  }
   if (existing && existing.userId === session.user.id) {
     // تحديث الرمز فقط
     localStorage.setItem(
@@ -106,6 +162,10 @@ export async function biometricSignIn(): Promise<{ ok: boolean; error?: string }
   const record = getBiometricRecord();
   if (!record) return { ok: false, error: "لا توجد بصمة مسجّلة على هذا الجهاز" };
 
+  if (isNative()) {
+    const ok = await nativeVerify();
+    if (!ok) return { ok: false, error: "فشل التحقق من البصمة" };
+  } else
   try {
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const assertion = await navigator.credentials.get({
