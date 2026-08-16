@@ -21,7 +21,7 @@ export function SocialAuthButtons() {
   const handleSignIn = async (provider: "google" | "apple") => {
     setLoading(provider);
     const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: `${window.location.origin}/dashboard`,
+      redirect_uri: window.location.origin,
     });
     if (result.error) {
       setLoading(null);
