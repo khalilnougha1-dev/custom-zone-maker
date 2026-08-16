@@ -1,21 +1,21 @@
 // SAHLAPOS service worker — offline-first app shell
-const VERSION = "sahlapos-v5";
+const VERSION = "sahlapos-v6";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = ["/", "/app", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(SHELL).then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u))))
-  );
+  e.waitUntil(caches.open(SHELL).then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u)))));
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k)))
-    )
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))),
+      ),
   );
   self.clients.claim();
 });
@@ -56,7 +56,10 @@ self.addEventListener("fetch", (e) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(SHELL).then((c) => c.put(req, copy)).catch(() => {});
+          caches
+            .open(SHELL)
+            .then((c) => c.put(req, copy))
+            .catch(() => {});
           return res;
         })
         .catch(async () => {
@@ -67,7 +70,7 @@ self.addEventListener("fetch", (e) => {
             (await cache.match("/")) ||
             new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } })
           );
-        })
+        }),
     );
     return;
   }
@@ -85,7 +88,7 @@ self.addEventListener("fetch", (e) => {
         } catch {
           return hit || Response.error();
         }
-      })
+      }),
     );
     return;
   }
@@ -95,9 +98,12 @@ self.addEventListener("fetch", (e) => {
     fetch(req)
       .then((res) => {
         const copy = res.clone();
-        caches.open(ASSETS).then((c) => c.put(req, copy)).catch(() => {});
+        caches
+          .open(ASSETS)
+          .then((c) => c.put(req, copy))
+          .catch(() => {});
         return res;
       })
-      .catch(() => caches.match(req).then((m) => m || Response.error()))
+      .catch(() => caches.match(req).then((m) => m || Response.error())),
   );
 });

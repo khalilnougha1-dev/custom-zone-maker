@@ -66,6 +66,11 @@ export async function installNativeBluetooth(): Promise<boolean> {
       }
     }
 
+    const isWritableCharacteristic = (characteristic: any) => {
+      const properties = characteristic?.properties || {};
+      return !!(properties.write || properties.writeWithoutResponse);
+    };
+
     class NativeService {
       uuid: string;
       private deviceId: string;
@@ -78,7 +83,9 @@ export async function installNativeBluetooth(): Promise<boolean> {
       }
 
       async getCharacteristic(uuid: string) {
-        const found = this.chars.find((c) => c.uuid.toLowerCase() === String(uuid).toLowerCase());
+        const found = this.chars.find(
+          (c) => c.uuid.toLowerCase() === String(uuid).toLowerCase() && isWritableCharacteristic(c),
+        );
         if (!found) throw new Error("characteristic not found");
         return found;
       }
@@ -117,11 +124,11 @@ export async function installNativeBluetooth(): Promise<boolean> {
             );
             this.connected = true;
 
-            // Use the real negotiated MTU. Many Android Go devices keep the
-            // default 23-byte MTU, allowing only 20 payload bytes per write.
+            // Use the actual negotiated MTU. Many Android printers legitimately
+            // stay at 23 bytes, so writes must then remain at 20 payload bytes.
             try {
               const mtu = await BleClient.getMtu(this.device.id);
-              this.maxChunkSize = Math.max(20, Math.min(180, Number(mtu || 23) - 3));
+              this.maxChunkSize = Math.max(20, Math.min(64, Number(mtu || 23) - 3));
             } catch {
               this.maxChunkSize = 20;
             }
@@ -161,16 +168,18 @@ export async function installNativeBluetooth(): Promise<boolean> {
             new NativeService(
               this.device.id,
               s.uuid,
-              (s.characteristics || []).map(
-                (c: any) =>
-                  new NativeCharacteristic(
-                    this.device.id,
-                    s.uuid,
-                    c.uuid,
-                    c.properties,
-                    this.maxChunkSize,
-                  ),
-              ),
+              (s.characteristics || [])
+                .filter(isWritableCharacteristic)
+                .map(
+                  (c: any) =>
+                    new NativeCharacteristic(
+                      this.device.id,
+                      s.uuid,
+                      c.uuid,
+                      c.properties,
+                      this.maxChunkSize,
+                    ),
+                ),
             ),
         );
       }
