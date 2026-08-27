@@ -5,12 +5,15 @@ const config: CapacitorConfig = {
   appName: "SAHLAPOS",
   webDir: "android-shell",
   server: {
-    // التطبيق يفتح الموقع المنشور مباشرة (الموقع يحتاج خادم)
-    url: "https://custom-zone-maker.lovable.app",
+    // التطبيق يفتح صفحة تسجيل الدخول مباشرة بعد شاشة البداية
+    url: "https://pos.sahlapay.dz/login",
     cleartext: false,
     androidScheme: "https",
     // إبقاء كل التنقّل داخل التطبيق (تسجيل الدخول عبر Google/Apple/Supabase)
     allowNavigation: [
+      "pos.sahlapay.dz",
+      "sahlapay.dz",
+      "*.sahlapay.dz",
       "custom-zone-maker.lovable.app",
       "*.lovable.app",
       "dpvxhydfwmgxeyhtrwdk.supabase.co",
@@ -18,6 +21,17 @@ const config: CapacitorConfig = {
       "accounts.google.com",
       "appleid.apple.com",
     ],
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: "#ffffff",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: false,
+    },
   },
   android: {
     allowMixedContent: false,

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { I18nProvider } from "@/components/I18nProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { AppSplash } from "@/components/AppSplash";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -37,6 +38,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
     ],
@@ -103,6 +105,7 @@ function RootComponent() {
 
   return (
     <I18nProvider>
+      <AppSplash />
       <Outlet />
       <OfflineIndicator />
       <Toaster richColors position="top-center" />

@@ -8,6 +8,8 @@ on:
       - "capacitor.config.ts"
       - "package.json"
       - "bun.lockb"
+      - "resources/**"
+      - "src/components/AppSplash.tsx"
       - "src/lib/native-bluetooth.ts"
       - "src/lib/bt-printer.ts"
       - "src/lib/print-receipt.ts"
@@ -46,6 +48,9 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Generate app icon & splash screen
+        run: npx @capacitor/assets generate --android --assetPath resources
+
       - name: Sync Capacitor
         run: npx cap sync android
 
@@ -66,8 +71,36 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
+      - name: Build release AAB (Google Play)
+        working-directory: android
+        run: ./gradlew bundleRelease
+
+      - name: Sign AAB for Google Play
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          BUNDLE=android/app/build/outputs/bundle/release/app-release.aab
+          UNSIGNED=android/app/build/outputs/bundle/release/app-release-unsigned.aab
+          [ -f "$BUNDLE" ] || BUNDLE="$UNSIGNED"
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore /tmp/release.keystore \
+            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+            "$BUNDLE" "$KEY_ALIAS"
+          cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: SAHLAPOS-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload AAB (Google Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SAHLAPOS-aab
+          path: android/app/build/outputs/bundle/release/*.aab
