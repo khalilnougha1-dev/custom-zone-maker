@@ -104,6 +104,7 @@ function RootComponent() {
 
   return (
     <I18nProvider>
+      <AppSplash />
       <Outlet />
       <OfflineIndicator />
       <Toaster richColors position="top-center" />
