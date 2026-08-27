@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FeaturesRouteImport } from './routes/features'
@@ -54,6 +55,11 @@ import { Route as AppSalesSaleIdPrintRouteImport } from './routes/app.sales.$sal
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -266,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/app/account': typeof AppAccountRoute
   '/app/activate': typeof AppActivateRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/app/account': typeof AppAccountRoute
   '/app/activate': typeof AppActivateRoute
@@ -350,6 +358,7 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/app/account': typeof AppAccountRoute
   '/app/activate': typeof AppActivateRoute
@@ -395,6 +404,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/signup'
     | '/app/account'
     | '/app/activate'
@@ -437,6 +447,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/signup'
     | '/app/account'
     | '/app/activate'
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/signup'
     | '/app/account'
     | '/app/activate'
@@ -522,6 +534,7 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   SignupRoute: typeof SignupRoute
   AuthNativeRoute: typeof AuthNativeRoute
 }
@@ -533,6 +546,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -917,6 +937,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   SignupRoute: SignupRoute,
   AuthNativeRoute: AuthNativeRoute,
 }
