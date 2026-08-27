@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useTranslation } from "react-i18next";
 import { Sparkles, MessageCircle, Send } from "lucide-react";
 
@@ -31,9 +32,7 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <BrandLogo className="h-8 w-8" />
               <span className="text-lg font-bold">{t("brand.name")}</span>
             </Link>
             <p className="mt-3 text-sm text-muted-foreground">{t("brand.tagline")}</p>

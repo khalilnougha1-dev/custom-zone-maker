@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -34,9 +35,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-14 items-center justify-between gap-2 px-3 sm:h-16 sm:px-4">
         <Link to="/" className="flex min-w-0 items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-primary shadow-glow sm:h-9 sm:w-9">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <BrandLogo className="h-8 w-8 sm:h-9 sm:w-9" />
           <span className="truncate text-base font-bold tracking-tight sm:text-xl">{t("brand.name")}</span>
         </Link>
 

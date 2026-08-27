@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -72,9 +73,7 @@ function LoginPage() {
       <div className="flex w-full flex-col">
         <header className="flex items-center justify-between p-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <BrandLogo className="h-9 w-9" />
             <span className="font-bold">{t("brand.name")}</span>
           </Link>
           <LanguageSwitcher />
