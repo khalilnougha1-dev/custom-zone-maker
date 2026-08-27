@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { I18nProvider } from "@/components/I18nProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { AppSplash } from "@/components/AppSplash";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
