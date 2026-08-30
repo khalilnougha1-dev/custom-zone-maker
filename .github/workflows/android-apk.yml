@@ -88,22 +88,26 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Sign AAB for Google Play
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No keystore secret configured — skipping signing."
+            exit 0
+          fi
           echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
           BUNDLE=android/app/build/outputs/bundle/release/app-release.aab
           UNSIGNED=android/app/build/outputs/bundle/release/app-release-unsigned.aab
           [ -f "$BUNDLE" ] || BUNDLE="$UNSIGNED"
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore /tmp/release.keystore \
             -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
             "$BUNDLE" "$KEY_ALIAS"
           cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
+
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
