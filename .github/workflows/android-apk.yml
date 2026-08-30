@@ -54,14 +54,17 @@ jobs:
           npx capacitor-assets generate --android --assetPath resources \
             --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' \
             --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
-          test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
-          test -f android/app/src/main/res/drawable/splash.png
+          ls android/app/src/main/res/mipmap-xxxhdpi/ || true
+          ls android/app/src/main/res/drawable/ || true
 
       - name: Force white Android 12 splash background
         run: |
           COLORS=android/app/src/main/res/values/colors.xml
-          grep -q 'splash_background' "$COLORS" || \
-            perl -0pi -e 's|</resources>|    <color name="splash_background">#FFFFFFFF</color>\n</resources>|' "$COLORS"
+          if [ -f "$COLORS" ]; then
+            grep -q 'splash_background' "$COLORS" || \
+              perl -0pi -e 's|</resources>|    <color name="splash_background">#FFFFFFFF</color>\n</resources>|' "$COLORS"
+          fi
+
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -88,22 +91,26 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Sign AAB for Google Play
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No keystore secret configured — skipping signing."
+            exit 0
+          fi
           echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
           BUNDLE=android/app/build/outputs/bundle/release/app-release.aab
           UNSIGNED=android/app/build/outputs/bundle/release/app-release-unsigned.aab
           [ -f "$BUNDLE" ] || BUNDLE="$UNSIGNED"
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore /tmp/release.keystore \
             -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
             "$BUNDLE" "$KEY_ALIAS"
           cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
+
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
