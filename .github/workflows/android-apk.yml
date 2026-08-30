@@ -134,25 +134,21 @@ jobs:
           done
           ls -lh release-files
 
-      # تحرير مساحة التخزين: حذف مخرجات البناء القديمة قبل الرفع
-      - name: Free artifact storage (delete old artifacts)
+      # تحرير مساحة التخزين: حذف كل مخرجات البناء القديمة (Artifacts)
+      - name: Free artifact storage (delete all artifacts)
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api -X GET "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.workflow_run.id != ${{ github.run_id }}) | .id' \
+          gh api --paginate -X GET "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[].id' \
             | while read -r id; do
                 echo "deleting artifact $id"
                 gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" || true
               done
 
-      - name: Upload build files (artifact backup)
-        uses: actions/upload-artifact@v4
-        with:
-          name: SAHLAPOS-build
-          path: release-files/*
-          retention-days: 3
-          compression-level: 9
+      # لا نرفع Artifacts إطلاقاً — كل الملفات تُنشر في Releases (لا حصة تخزين)
+
 
       # نشر كل شيء في Release
       - name: Publish GitHub Release
