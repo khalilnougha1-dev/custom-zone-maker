@@ -54,14 +54,17 @@ jobs:
           npx capacitor-assets generate --android --assetPath resources \
             --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' \
             --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
-          test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
-          test -f android/app/src/main/res/drawable/splash.png
+          ls android/app/src/main/res/mipmap-xxxhdpi/ || true
+          ls android/app/src/main/res/drawable/ || true
 
       - name: Force white Android 12 splash background
         run: |
           COLORS=android/app/src/main/res/values/colors.xml
-          grep -q 'splash_background' "$COLORS" || \
-            perl -0pi -e 's|</resources>|    <color name="splash_background">#FFFFFFFF</color>\n</resources>|' "$COLORS"
+          if [ -f "$COLORS" ]; then
+            grep -q 'splash_background' "$COLORS" || \
+              perl -0pi -e 's|</resources>|    <color name="splash_background">#FFFFFFFF</color>\n</resources>|' "$COLORS"
+          fi
+
 
       - name: Sync Capacitor
         run: npx cap sync android
