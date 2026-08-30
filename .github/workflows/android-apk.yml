@@ -28,8 +28,9 @@ on:
       - ".github/workflows/android-apk.yml"
 
 permissions:
-  contents: read
+  contents: write
   actions: write
+
 
 jobs:
   build:
@@ -115,6 +116,23 @@ jobs:
             "$BUNDLE" "$KEY_ALIAS"
           cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
 
+      # تجميع كل المخرجات في مجلد واحد باسم واضح
+      - name: Collect release files
+        id: pack
+        run: |
+          mkdir -p release-files
+          VER=$(date -u +'%Y.%m.%d-%H%M')
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          [ -f "$APK" ] && cp "$APK" "release-files/SAHLAPOS-$VER.apk"
+          for f in android/app/build/outputs/bundle/release/*.aab; do
+            [ -f "$f" ] || continue
+            case "$(basename "$f")" in
+              SAHLAPOS-play.aab) cp "$f" "release-files/SAHLAPOS-$VER-play.aab" ;;
+              *) cp "$f" "release-files/SAHLAPOS-$VER-$(basename "$f")" ;;
+            esac
+          done
+          ls -lh release-files
 
       # تحرير مساحة التخزين: حذف مخرجات البناء القديمة قبل الرفع
       - name: Free artifact storage (delete old artifacts)
@@ -128,18 +146,31 @@ jobs:
                 gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" || true
               done
 
-      - name: Upload APK
+      - name: Upload build files (artifact backup)
         uses: actions/upload-artifact@v4
         with:
-          name: SAHLAPOS-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: SAHLAPOS-build
+          path: release-files/*
           retention-days: 3
           compression-level: 9
 
-      - name: Upload AAB (Google Play)
-        uses: actions/upload-artifact@v4
+      # نشر كل شيء في Release
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: SAHLAPOS-aab
-          path: android/app/build/outputs/bundle/release/*.aab
-          retention-days: 3
-          compression-level: 9
+          tag_name: v${{ steps.pack.outputs.version }}
+          name: SAHLAPOS v${{ steps.pack.outputs.version }}
+          body: |
+            إصدار SAHLAPOS الجاهز للتنزيل.
+
+            - `SAHLAPOS-*.apk` — للتثبيت المباشر على الهاتف (اختبار).
+            - `SAHLAPOS-*-play.aab` — للرفع على Google Play Console (موقّع إن توفّرت مفاتيح التوقيع).
+
+            التطبيق يفتح مباشرة على https://pos.sahlapay.dz/login
+          files: release-files/*
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
