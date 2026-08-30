@@ -102,19 +102,35 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "No keystore secret configured — skipping signing."
-            exit 0
+          set -e
+          mkdir -p release-files
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+            STOREPASS="$KEYSTORE_PASSWORD"
+            KEYPASS="${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+            ALIAS="${KEY_ALIAS:-sahlapos}"
+          else
+            echo "::warning::لا توجد مفاتيح توقيع في Secrets — سيتم إنشاء مفتاح رفع تلقائي ونشره مع الإصدار."
+            STOREPASS="sahlapos2026"
+            KEYPASS="sahlapos2026"
+            ALIAS="sahlapos"
+            keytool -genkeypair -v -keystore /tmp/release.keystore \
+              -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$STOREPASS" -keypass "$KEYPASS" \
+              -dname "CN=SAHLAPOS, OU=SahlaPay, O=SahlaPay, L=Alger, C=DZ"
+            cp /tmp/release.keystore release-files/SAHLAPOS-upload-keystore.jks
           fi
-          echo "$KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
           BUNDLE=android/app/build/outputs/bundle/release/app-release.aab
-          UNSIGNED=android/app/build/outputs/bundle/release/app-release-unsigned.aab
-          [ -f "$BUNDLE" ] || BUNDLE="$UNSIGNED"
+          [ -f "$BUNDLE" ] || BUNDLE=android/app/build/outputs/bundle/release/app-release-unsigned.aab
           jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore /tmp/release.keystore \
-            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
-            "$BUNDLE" "$KEY_ALIAS"
+            -storepass "$STOREPASS" -keypass "$KEYPASS" \
+            "$BUNDLE" "$ALIAS"
+          jarsigner -verify "$BUNDLE"
           cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
+          rm -f android/app/build/outputs/bundle/release/app-release.aab \
+                android/app/build/outputs/bundle/release/app-release-unsigned.aab
+
 
       # تجميع كل المخرجات في مجلد واحد باسم واضح
       - name: Collect release files
