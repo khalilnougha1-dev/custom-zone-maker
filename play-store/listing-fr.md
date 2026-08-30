@@ -7,7 +7,7 @@ SAHLAPOS — Caisse & Stock
 Caisse, stock et factures pour commerçants : impression Bluetooth, mode hors ligne.
 
 ## Description complète
-SAHLAPOS est une application de point de vente (POS) complète, conçue pour les commerçants, les magasins, les grossistes et les distributeurs en Algérie. Elle permet d'encaisser en quelques secondes, d'imprimer le ticket客 sur une imprimante thermique Bluetooth et de suivre le stock, les bénéfices et les dettes depuis un téléphone, sans ordinateur.
+SAHLAPOS est une application de point de vente (POS) complète, conçue pour les commerçants, les magasins, les grossistes et les distributeurs en Algérie. Elle permet d'encaisser en quelques secondes, d'imprimer le ticket client sur une imprimante thermique Bluetooth et de suivre le stock, les bénéfices et les dettes depuis un téléphone, sans ordinateur.
 
 Ce que fait l'application :
 
