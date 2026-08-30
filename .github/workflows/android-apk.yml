@@ -28,8 +28,9 @@ on:
       - ".github/workflows/android-apk.yml"
 
 permissions:
-  contents: read
+  contents: write
   actions: write
+
 
 jobs:
   build:
