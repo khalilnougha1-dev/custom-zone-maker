@@ -12,7 +12,9 @@ on:
       - "src/components/AppSplash.tsx"
       - "src/lib/native-bluetooth.ts"
       - "src/lib/bt-printer.ts"
+      - "src/lib/printer-config.ts"
       - "src/lib/print-receipt.ts"
+
       - "src/lib/biometric-auth.ts"
       - "src/lib/native-oauth.ts"
       - "src/routes/auth.native.tsx"
