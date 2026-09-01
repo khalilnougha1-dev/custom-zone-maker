@@ -615,13 +615,16 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
   // Larger bands = fewer round-trips and much faster printing, while still small
   // enough to stay reliable on cheap BLE printers.
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 384 : 288);
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 512 : 384);
+  const autoCut = getAutoCutEnabled();
 
   for (let index = 0; index < bands.length; index++) {
+    const isLast = index === bands.length - 1;
     const raster = await canvasToRaster(bands[index]);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height, {
       initialize: true,
-      feed: index === bands.length - 1,
+      feed: isLast,
+      cut: isLast && autoCut,
     });
 
     await withBluetoothTimeout(
@@ -630,14 +633,15 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
       "انتهت مهلة إرسال بيانات الطباعة",
     );
 
-    if (index === bands.length - 1) {
-      await delay(60);
+    if (isLast) {
+      await delay(40);
       continue;
     }
 
-    await delay(6);
+    await delay(2);
   }
 }
+
 
 function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const normalized = (text || "").replace(/\s+/g, " ").trim();
