@@ -41,7 +41,10 @@ import {
   getReceiptPaperWidth,
   setReceiptPaperWidth,
   type ReceiptPaperWidth,
+  getAutoCutEnabled,
+  setAutoCutEnabled,
 } from "@/lib/printer-config";
+
 
 export const Route = createFileRoute("/app/printer")({ component: PrinterPage });
 
