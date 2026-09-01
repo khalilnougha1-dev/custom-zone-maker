@@ -123,15 +123,9 @@ jobs:
             KEYPASS="${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
             ALIAS="${KEY_ALIAS:-sahlapos}"
           else
-            echo "::warning::لا توجد مفاتيح توقيع في Secrets — سيتم إنشاء مفتاح رفع تلقائي ونشره مع الإصدار."
-            STOREPASS="sahlapos2026"
-            KEYPASS="sahlapos2026"
-            ALIAS="sahlapos"
-            keytool -genkeypair -v -keystore /tmp/release.keystore \
-              -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass "$STOREPASS" -keypass "$KEYPASS" \
-              -dname "CN=SAHLAPOS, OU=SahlaPay, O=SahlaPay, L=Alger, C=DZ"
-            cp /tmp/release.keystore release-files/SAHLAPOS-upload-keystore.jks
+            echo "::error::لا توجد مفاتيح توقيع في Secrets. Google Play يرفض أي حزمة موقّعة بمفتاح مختلف عن المفتاح الأول."
+            echo "::error::أضف ANDROID_KEYSTORE_BASE64 و ANDROID_KEYSTORE_PASSWORD و ANDROID_KEY_ALIAS (و ANDROID_KEY_PASSWORD) في Settings → Secrets → Actions."
+            exit 1
           fi
           BUNDLE=android/app/build/outputs/bundle/release/app-release.aab
           [ -f "$BUNDLE" ] || BUNDLE=android/app/build/outputs/bundle/release/app-release-unsigned.aab
@@ -140,6 +134,10 @@ jobs:
             -storepass "$STOREPASS" -keypass "$KEYPASS" \
             "$BUNDLE" "$ALIAS"
           jarsigner -verify "$BUNDLE"
+          echo "--- بصمة مفتاح التوقيع المستخدم (يجب أن تطابق ما ينتظره Google Play) ---"
+          keytool -list -v -keystore /tmp/release.keystore -alias "$ALIAS" \
+            -storepass "$STOREPASS" | grep -i "SHA1:" || true
+
           cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
           rm -f android/app/build/outputs/bundle/release/app-release.aab \
                 android/app/build/outputs/bundle/release/app-release-unsigned.aab
