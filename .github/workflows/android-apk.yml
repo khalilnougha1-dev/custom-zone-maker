@@ -76,6 +76,17 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Bump versionCode / versionName (Google Play)
+        run: |
+          GRADLE=android/app/build.gradle
+          VCODE=$(( 1000 + ${{ github.run_number }} ))
+          VNAME="1.$(( ${{ github.run_number }} )).0"
+          perl -0pi -e "s/versionCode \\d+/versionCode $VCODE/" "$GRADLE"
+          perl -0pi -e "s/versionName \"[^\"]*\"/versionName \"$VNAME\"/" "$GRADLE"
+          grep -E 'versionCode|versionName' "$GRADLE"
+
+
+
       - name: Add deep link scheme (sahlapos://)
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
