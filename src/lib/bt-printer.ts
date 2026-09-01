@@ -551,7 +551,7 @@ function buildEscPosImage(
   raster: Uint8Array,
   width: number,
   height: number,
-  options?: { initialize?: boolean; feed?: boolean },
+  options?: { initialize?: boolean; feed?: boolean; cut?: boolean },
 ): Uint8Array {
   const widthBytes = width / 8;
   // IMPORTANT: re-initialize printer state BEFORE every raster band.
@@ -575,16 +575,24 @@ function buildEscPosImage(
     (height >> 8) & 0xff,
   ];
   const header = new Uint8Array(headerBytes);
-  // NOTE: Avoid GS V (cut) and ESC @ (re-init) at the end — many cheap BT thermal
-  // printers don't implement them and print the raw bytes as garbage characters
-  // (Chinese-looking glyphs) at the bottom of the receipt. Plain line feeds only.
-  const feed = new Uint8Array(options?.feed === false ? [] : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a]);
+  // Tail: short feed then an automatic partial cut (GS V 66 n) so the receipt
+  // is separated right after printing on printers that have a cutter.
+  const tail: number[] = [];
+  if (options?.feed !== false) {
+    tail.push(0x0a, 0x0a, 0x0a);
+    if (options?.cut) {
+      // GS V 66 n → feed n dots then partial cut (safest, widest support)
+      tail.push(0x1d, 0x56, 0x42, 0x18);
+    }
+  }
+  const feed = new Uint8Array(tail);
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
   out.set(feed, header.length + raster.length);
   return out;
 }
+
 
 function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
   const bands: HTMLCanvasElement[] = [];
