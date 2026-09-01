@@ -11,6 +11,19 @@ export type SavedPrinter = {
 export const SAVED_PRINTERS_KEY = "sahla.printers";
 export const ACTIVE_PRINTER_KEY = "sahla.printer.active";
 export const RECEIPT_PAPER_KEY = "sahla.receipt.paper";
+export const AUTO_CUT_KEY = "sahla.receipt.autocut";
+
+/** قص الوصل تلقائياً بعد الطباعة (مفعّل افتراضياً) */
+export function getAutoCutEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(AUTO_CUT_KEY) !== "0";
+}
+
+export function setAutoCutEnabled(value: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(AUTO_CUT_KEY, value ? "1" : "0");
+}
+
 
 export type ReceiptPaperWidth = "58mm" | "80mm";
 
