@@ -2,6 +2,8 @@
 // Uses raster bitmap (GS v 0) so Arabic and any language render correctly.
 
 import html2canvas from "html2canvas";
+import { getAutoCutEnabled } from "@/lib/printer-config";
+
 
 // Common ESC/POS BLE service/characteristic combinations.
 // IMPORTANT: Web Bluetooth only exposes services listed in optionalServices,
@@ -551,7 +553,7 @@ function buildEscPosImage(
   raster: Uint8Array,
   width: number,
   height: number,
-  options?: { initialize?: boolean; feed?: boolean },
+  options?: { initialize?: boolean; feed?: boolean; cut?: boolean },
 ): Uint8Array {
   const widthBytes = width / 8;
   // IMPORTANT: re-initialize printer state BEFORE every raster band.
@@ -575,16 +577,24 @@ function buildEscPosImage(
     (height >> 8) & 0xff,
   ];
   const header = new Uint8Array(headerBytes);
-  // NOTE: Avoid GS V (cut) and ESC @ (re-init) at the end — many cheap BT thermal
-  // printers don't implement them and print the raw bytes as garbage characters
-  // (Chinese-looking glyphs) at the bottom of the receipt. Plain line feeds only.
-  const feed = new Uint8Array(options?.feed === false ? [] : [0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a]);
+  // Tail: short feed then an automatic partial cut (GS V 66 n) so the receipt
+  // is separated right after printing on printers that have a cutter.
+  const tail: number[] = [];
+  if (options?.feed !== false) {
+    tail.push(0x0a, 0x0a, 0x0a);
+    if (options?.cut) {
+      // GS V 66 n → feed n dots then partial cut (safest, widest support)
+      tail.push(0x1d, 0x56, 0x42, 0x18);
+    }
+  }
+  const feed = new Uint8Array(tail);
   const out = new Uint8Array(header.length + raster.length + feed.length);
   out.set(header, 0);
   out.set(raster, header.length);
   out.set(feed, header.length + raster.length);
   return out;
 }
+
 
 function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
   const bands: HTMLCanvasElement[] = [];
@@ -607,13 +617,16 @@ function splitCanvasIntoBands(canvas: HTMLCanvasElement, maxBandHeight = 96) {
 async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) {
   // Larger bands = fewer round-trips and much faster printing, while still small
   // enough to stay reliable on cheap BLE printers.
-  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 384 : 288);
+  const bands = splitCanvasIntoBands(canvas, canvas.width >= 576 ? 512 : 384);
+  const autoCut = getAutoCutEnabled();
 
   for (let index = 0; index < bands.length; index++) {
+    const isLast = index === bands.length - 1;
     const raster = await canvasToRaster(bands[index]);
     const escposBytes = buildEscPosImage(raster.bytes, raster.width, raster.height, {
       initialize: true,
-      feed: index === bands.length - 1,
+      feed: isLast,
+      cut: isLast && autoCut,
     });
 
     await withBluetoothTimeout(
@@ -622,14 +635,15 @@ async function writeCanvasAsEscPosBands(device: any, canvas: HTMLCanvasElement) 
       "انتهت مهلة إرسال بيانات الطباعة",
     );
 
-    if (index === bands.length - 1) {
-      await delay(60);
+    if (isLast) {
+      await delay(40);
       continue;
     }
 
-    await delay(6);
+    await delay(2);
   }
 }
+
 
 function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const normalized = (text || "").replace(/\s+/g, " ").trim();

@@ -1,5 +1,5 @@
 // SAHLAPOS service worker — offline-first app shell
-const VERSION = "sahlapos-v7";
+const VERSION = "sahlapos-v8";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = ["/", "/app", "/manifest.webmanifest"];
