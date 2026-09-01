@@ -111,11 +111,15 @@ function PrinterPage() {
   const [address, setAddress] = useState("");
   const [paper, setPaper] = useState<"58mm" | "80mm" | "A4">("80mm");
 
+  const [autoCut, setAutoCut] = useState(true);
+
   useEffect(() => {
     setPrinters(loadPrinters());
     setActiveId(localStorage.getItem(ACTIVE_KEY) || "");
     setReceiptPaperState(getReceiptPaperWidth());
+    setAutoCut(getAutoCutEnabled());
   }, []);
+
 
   // تحديث تلقائي لحالة اتصال البلوتوث
   useEffect(() => {
