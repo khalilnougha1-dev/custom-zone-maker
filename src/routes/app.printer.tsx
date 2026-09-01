@@ -669,7 +669,32 @@ function PrinterPage() {
               80 مم
             </button>
           </div>
+
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+            <button
+              onClick={() => {
+                const next = !autoCut;
+                setAutoCut(next);
+                setAutoCutEnabled(next);
+              }}
+              className={`h-7 w-12 rounded-full transition ${autoCut ? "bg-primary" : "bg-muted"}`}
+              aria-label="قص الوصل تلقائياً"
+            >
+              <span
+                className={`block h-6 w-6 rounded-full bg-background shadow transition-transform ${
+                  autoCut ? "translate-x-1" : "translate-x-5"
+                }`}
+              />
+            </button>
+            <div className="text-right flex-1">
+              <div className="text-sm font-bold">قص الوصل تلقائياً</div>
+              <div className="text-xs text-muted-foreground">
+                يقوم الجهاز بقص الورق مباشرة بعد الطباعة (للطابعات المزوّدة بقاطع).
+              </div>
+            </div>
+          </div>
         </div>
+
 
         {/* Sample receipt preview & test print */}
         <div className="rounded-2xl bg-card border border-border p-4 shadow-card space-y-3">
