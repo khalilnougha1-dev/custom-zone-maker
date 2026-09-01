@@ -2,6 +2,8 @@
 // Uses raster bitmap (GS v 0) so Arabic and any language render correctly.
 
 import html2canvas from "html2canvas";
+import { getAutoCutEnabled } from "@/lib/printer-config";
+
 
 // Common ESC/POS BLE service/characteristic combinations.
 // IMPORTANT: Web Bluetooth only exposes services listed in optionalServices,
