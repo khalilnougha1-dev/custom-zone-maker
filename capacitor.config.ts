@@ -1,4 +1,6 @@
+// build: 2026-09-02 — تحديث الطابعة (قص تلقائي + سرعة) للاختبار المغلق
 import type { CapacitorConfig } from "@capacitor/cli";
+
 
 const config: CapacitorConfig = {
   appId: "app.lovable.sahlapos",
