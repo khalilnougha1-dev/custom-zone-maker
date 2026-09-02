@@ -98,15 +98,53 @@ jobs:
             exit 1
           }
 
+      - name: Configure Gradle mirrors & retries (fix HTTP 429)
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/init.gradle <<'EOF'
+          def mirrors = { org.gradle.api.artifacts.dsl.RepositoryHandler handler ->
+            handler.clear()
+            handler.google()
+            handler.maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
+            handler.mavenCentral()
+            handler.gradlePluginPortal()
+          }
+          settingsEvaluated { settings ->
+            mirrors(settings.pluginManagement.repositories)
+            try { mirrors(settings.dependencyResolutionManagement.repositories) } catch (ignored) {}
+          }
+          allprojects { project -> project.repositories.all {}; mirrors(project.repositories) }
+          EOF
+          cat >> ~/.gradle/gradle.properties <<'EOF'
+          org.gradle.internal.repository.max.retries=8
+          org.gradle.internal.repository.initial.backoff=2000
+          org.gradle.internal.repository.max.tentatives=8
+          systemProp.org.gradle.internal.http.connectionTimeout=120000
+          systemProp.org.gradle.internal.http.socketTimeout=120000
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g
+          EOF
+
       - name: Build debug APK
         working-directory: android
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          for i in 1 2 3; do
+            ./gradlew assembleDebug --no-daemon && exit 0
+            echo "محاولة $i فشلت — إعادة المحاولة بعد 60 ثانية"
+            sleep 60
+          done
+          exit 1
 
       - name: Build release AAB (Google Play)
         working-directory: android
-        run: ./gradlew bundleRelease
+        run: |
+          for i in 1 2 3; do
+            ./gradlew bundleRelease --no-daemon && exit 0
+            echo "محاولة $i فشلت — إعادة المحاولة بعد 60 ثانية"
+            sleep 60
+          done
+          exit 1
+
 
       - name: Sign AAB for Google Play
         env:
