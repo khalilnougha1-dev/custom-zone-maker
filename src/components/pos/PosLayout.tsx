@@ -53,21 +53,36 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   useEffect(() => { setOpen(false); }, [path]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setShowActivate(false); return; }
+    let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("profiles")
         .select("subscription_expires_at")
         .eq("id", user.id)
         .maybeSingle();
-      if (!data?.subscription_expires_at) return;
+      if (cancelled) return;
+      if (!data?.subscription_expires_at) {
+        // لم يُفعّل الحساب بعد — يظهر شريط التفعيل
+        setExpiryInfo(null);
+        setShowActivate(true);
+        return;
+      }
       const exp = new Date(data.subscription_expires_at);
       const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
-      if (days <= 7) setExpiryInfo({ daysLeft: days, isExpired: days <= 0 });
+      if (days <= 7) {
+        setExpiryInfo({ daysLeft: days, isExpired: days <= 0 });
+        setShowActivate(days <= 0);
+      } else {
+        // اشتراك سارٍ — يختفي شريط التفعيل فوراً
+        setExpiryInfo(null);
+        setShowActivate(false);
+      }
     })();
     const dismissed = sessionStorage.getItem("expiry_banner_dismissed");
     if (dismissed) setBannerDismissed(true);
-  }, [user]);
+    return () => { cancelled = true; };
+  }, [user, path]);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
