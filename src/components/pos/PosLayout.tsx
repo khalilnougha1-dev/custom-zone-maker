@@ -40,6 +40,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const [open, setOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
   const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
+  const [showActivate, setShowActivate] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouterState();
@@ -52,21 +53,36 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   useEffect(() => { setOpen(false); }, [path]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setShowActivate(false); return; }
+    let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("profiles")
         .select("subscription_expires_at")
         .eq("id", user.id)
         .maybeSingle();
-      if (!data?.subscription_expires_at) return;
+      if (cancelled) return;
+      if (!data?.subscription_expires_at) {
+        // لم يُفعّل الحساب بعد — يظهر شريط التفعيل
+        setExpiryInfo(null);
+        setShowActivate(true);
+        return;
+      }
       const exp = new Date(data.subscription_expires_at);
       const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
-      if (days <= 7) setExpiryInfo({ daysLeft: days, isExpired: days <= 0 });
+      if (days <= 7) {
+        setExpiryInfo({ daysLeft: days, isExpired: days <= 0 });
+        setShowActivate(days <= 0);
+      } else {
+        // اشتراك سارٍ — يختفي شريط التفعيل فوراً
+        setExpiryInfo(null);
+        setShowActivate(false);
+      }
     })();
     const dismissed = sessionStorage.getItem("expiry_banner_dismissed");
     if (dismissed) setBannerDismissed(true);
-  }, [user]);
+    return () => { cancelled = true; };
+  }, [user, path]);
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -188,12 +204,14 @@ export function PosLayout({ title, children, actions }: { title: string; childre
 
       <main className="mx-auto max-w-5xl p-4">{children}</main>
 
-      {/* Activate footer */}
-      <div className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur p-3">
-        <Link to="/app/activate">
-          <Button variant="secondary" className="w-full font-semibold">تفعيل التطبيق</Button>
-        </Link>
-      </div>
+      {/* Activate footer — يظهر فقط عند الحاجة للتفعيل */}
+      {showActivate && (
+        <div className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur p-3">
+          <Link to="/app/activate">
+            <Button variant="secondary" className="w-full font-semibold">تفعيل التطبيق</Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
