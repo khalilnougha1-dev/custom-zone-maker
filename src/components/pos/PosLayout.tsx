@@ -204,12 +204,14 @@ export function PosLayout({ title, children, actions }: { title: string; childre
 
       <main className="mx-auto max-w-5xl p-4">{children}</main>
 
-      {/* Activate footer */}
-      <div className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur p-3">
-        <Link to="/app/activate">
-          <Button variant="secondary" className="w-full font-semibold">تفعيل التطبيق</Button>
-        </Link>
-      </div>
+      {/* Activate footer — يظهر فقط عند الحاجة للتفعيل */}
+      {showActivate && (
+        <div className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur p-3">
+          <Link to="/app/activate">
+            <Button variant="secondary" className="w-full font-semibold">تفعيل التطبيق</Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
