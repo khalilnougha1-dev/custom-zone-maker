@@ -4,7 +4,7 @@ const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const PRECACHE = [
   "/", "/login", "/manifest.webmanifest",
-  "/app", "/app/pos", "/app/customer-payments", "/app/cash", "/app/sales", "/app/purchases",
+  "/app", "/app/pos", "/app/customer-payments", "/app/sync-log", "/app/cash", "/app/sales", "/app/purchases",
   "/app/purchases/new", "/app/products", "/app/customers", "/app/suppliers", "/app/inventory",
   "/app/stock-adjust", "/app/stock-movements", "/app/expenses", "/app/finance", "/app/profits",
   "/app/reports", "/app/settings", "/app/printer", "/app/account", "/app/trucks", "/app/trucks-inventory",
