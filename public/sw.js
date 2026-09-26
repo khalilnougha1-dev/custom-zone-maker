@@ -11,8 +11,30 @@ const PRECACHE = [
   "/app/driver",
 ];
 
+// Cache every page plus the scripts/styles each page references, so any screen opens offline.
+async function precacheAll() {
+  const shell = await caches.open(SHELL);
+  const assets = await caches.open(ASSETS);
+  const assetUrls = new Set();
+  await Promise.allSettled(
+    PRECACHE.map(async (u) => {
+      const res = await fetch(u, { credentials: "same-origin" });
+      if (!res.ok) return;
+      await shell.put(u, res.clone());
+      if (!(res.headers.get("content-type") || "").includes("text/html")) return;
+      const html = await res.text();
+      for (const m of html.matchAll(/(?:src|href)="(\/[^"]+\.(?:js|css|woff2?|png|svg|webp|ico))"/g)) assetUrls.add(m[1]);
+    }),
+  );
+  await Promise.allSettled([...assetUrls].map(async (a) => {
+    if (await assets.match(a)) return;
+    const r = await fetch(a);
+    if (r.ok) await assets.put(a, r);
+  }));
+}
+
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u)))));
+  e.waitUntil(precacheAll().catch(() => {}));
   self.skipWaiting();
 });
 
