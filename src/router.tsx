@@ -2,6 +2,23 @@ import "@/lib/offline-fetch";
 import { createRouter, useRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
+// بعد نشر تحديث جديد تُحذف ملفات النسخة القديمة؛ أعد تحميل الصفحة تلقائياً مرة واحدة.
+if (typeof window !== "undefined") {
+  const isStale = (m: unknown) =>
+    /dynamically imported module|Importing a module script failed|error loading dynamically imported/i.test(String(m));
+  const reloadOnce = () => {
+    const k = "sahlapos-chunk-reload";
+    const last = Number(sessionStorage.getItem(k) || 0);
+    if (Date.now() - last < 10000) return;
+    sessionStorage.setItem(k, String(Date.now()));
+    window.location.reload();
+  };
+  window.addEventListener("vite:preloadError", (e) => { e.preventDefault(); reloadOnce(); });
+  window.addEventListener("unhandledrejection", (e) => { if (isStale((e as PromiseRejectionEvent).reason?.message ?? (e as PromiseRejectionEvent).reason)) reloadOnce(); });
+  window.addEventListener("error", (e) => { if (isStale(e.message)) reloadOnce(); });
+  (window as any).__sahlaStale = (m: unknown) => { if (isStale(m)) reloadOnce(); };
+}
+
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
 
