@@ -147,6 +147,7 @@ jobs:
 
 
       - name: Sign AAB for Google Play
+        id: sign_aab
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -161,9 +162,10 @@ jobs:
             KEYPASS="${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
             ALIAS="${KEY_ALIAS:-sahlapos}"
           else
-            echo "::error::لا توجد مفاتيح توقيع في Secrets. Google Play يرفض أي حزمة موقّعة بمفتاح مختلف عن المفتاح الأول."
-            echo "::error::أضف ANDROID_KEYSTORE_BASE64 و ANDROID_KEYSTORE_PASSWORD و ANDROID_KEY_ALIAS (و ANDROID_KEY_PASSWORD) في Settings → Secrets → Actions."
-            exit 1
+            echo "::warning::لا توجد مفاتيح توقيع Google Play؛ سيتم نشر APK فقط وتخطي AAB."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            rm -f android/app/build/outputs/bundle/release/*.aab
+            exit 0
           fi
           BUNDLE=android/app/build/outputs/bundle/release/app-release.aab
           [ -f "$BUNDLE" ] || BUNDLE=android/app/build/outputs/bundle/release/app-release-unsigned.aab
@@ -179,6 +181,7 @@ jobs:
           cp "$BUNDLE" android/app/build/outputs/bundle/release/SAHLAPOS-play.aab
           rm -f android/app/build/outputs/bundle/release/app-release.aab \
                 android/app/build/outputs/bundle/release/app-release-unsigned.aab
+          echo "signed=true" >> "$GITHUB_OUTPUT"
 
 
       # تجميع كل المخرجات في مجلد واحد باسم واضح
@@ -225,7 +228,7 @@ jobs:
             إصدار SAHLAPOS الجاهز للتنزيل.
 
             - `SAHLAPOS-*.apk` — للتثبيت المباشر على الهاتف (اختبار).
-            - `SAHLAPOS-*-play.aab` — للرفع على Google Play Console (موقّع إن توفّرت مفاتيح التوقيع).
+            - `SAHLAPOS-*-play.aab` — يظهر فقط عند توفر مفاتيح التوقيع، وهو جاهز للرفع على Google Play Console.
 
             التطبيق يفتح مباشرة على https://pos.sahlapay.dz/login
           files: release-files/*
