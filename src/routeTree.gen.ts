@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AuthNativeRouteImport } from './routes/auth.native'
 import { Route as AppTrucksInventoryRouteImport } from './routes/app.trucks-inventory'
+import { Route as AppSyncLogRouteImport } from './routes/app.sync-log'
 import { Route as AppSuppliersRouteImport } from './routes/app.suppliers'
 import { Route as AppStockMovementsRouteImport } from './routes/app.stock-movements'
 import { Route as AppStockAdjustRouteImport } from './routes/app.stock-adjust'
@@ -115,6 +116,11 @@ const AuthNativeRoute = AuthNativeRouteImport.update({
 const AppTrucksInventoryRoute = AppTrucksInventoryRouteImport.update({
   id: '/trucks-inventory',
   path: '/trucks-inventory',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSyncLogRoute = AppSyncLogRouteImport.update({
+  id: '/sync-log',
+  path: '/sync-log',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSuppliersRoute = AppSuppliersRouteImport.update({
@@ -295,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
+  '/app/sync-log': typeof AppSyncLogRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/auth/native': typeof AuthNativeRoute
   '/app/': typeof AppIndexRoute
@@ -337,6 +344,7 @@ export interface FileRoutesByTo {
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
+  '/app/sync-log': typeof AppSyncLogRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/auth/native': typeof AuthNativeRoute
   '/app': typeof AppIndexRoute
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/app/stock-adjust': typeof AppStockAdjustRoute
   '/app/stock-movements': typeof AppStockMovementsRoute
   '/app/suppliers': typeof AppSuppliersRoute
+  '/app/sync-log': typeof AppSyncLogRoute
   '/app/trucks-inventory': typeof AppTrucksInventoryRoute
   '/auth/native': typeof AuthNativeRoute
   '/app/': typeof AppIndexRoute
@@ -427,6 +436,7 @@ export interface FileRouteTypes {
     | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
+    | '/app/sync-log'
     | '/app/trucks-inventory'
     | '/auth/native'
     | '/app/'
@@ -469,6 +479,7 @@ export interface FileRouteTypes {
     | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
+    | '/app/sync-log'
     | '/app/trucks-inventory'
     | '/auth/native'
     | '/app'
@@ -512,6 +523,7 @@ export interface FileRouteTypes {
     | '/app/stock-adjust'
     | '/app/stock-movements'
     | '/app/suppliers'
+    | '/app/sync-log'
     | '/app/trucks-inventory'
     | '/auth/native'
     | '/app/'
@@ -630,6 +642,13 @@ declare module '@tanstack/react-router' {
       path: '/trucks-inventory'
       fullPath: '/app/trucks-inventory'
       preLoaderRoute: typeof AppTrucksInventoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sync-log': {
+      id: '/app/sync-log'
+      path: '/sync-log'
+      fullPath: '/app/sync-log'
+      preLoaderRoute: typeof AppSyncLogRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/suppliers': {
@@ -888,6 +907,7 @@ interface AppRouteChildren {
   AppStockAdjustRoute: typeof AppStockAdjustRoute
   AppStockMovementsRoute: typeof AppStockMovementsRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
+  AppSyncLogRoute: typeof AppSyncLogRoute
   AppTrucksInventoryRoute: typeof AppTrucksInventoryRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPurchasesPurchaseIdRoute: typeof AppPurchasesPurchaseIdRoute
@@ -918,6 +938,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppStockAdjustRoute: AppStockAdjustRoute,
   AppStockMovementsRoute: AppStockMovementsRoute,
   AppSuppliersRoute: AppSuppliersRoute,
+  AppSyncLogRoute: AppSyncLogRoute,
   AppTrucksInventoryRoute: AppTrucksInventoryRoute,
   AppIndexRoute: AppIndexRoute,
   AppPurchasesPurchaseIdRoute: AppPurchasesPurchaseIdRoute,

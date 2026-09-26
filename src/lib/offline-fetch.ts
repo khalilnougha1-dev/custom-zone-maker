@@ -1,4 +1,5 @@
 // Whole-app offline layer: wraps window.fetch for backend data requests.
+import { addSyncLog, describeRequest } from "./sync-log";
 // - Reads: network first, saved to device; served from device when offline.
 // - Writes while offline: queued on the device, answered locally, replayed in order when online.
 // Must be imported before the backend client is created (see src/router.tsx).
@@ -113,6 +114,7 @@ function queueWrite(u: URL, method: string, body: string | null, h: Record<strin
 export async function flushFetchQueue(): Promise<number> {
   if (flushing || !navigator.onLine || !origFetch) return 0;
   flushing = true; let n = 0;
+  const fails: { label: string; error: string }[] = [];
   try {
     for (const q of readQ()) {
       const token = currentToken();
@@ -122,13 +124,16 @@ export async function flushFetchQueue(): Promise<number> {
       catch { break; } // still offline
       if (res.status === 401) break; // wait for fresh session
       if (!res.ok && res.status !== 409) {
+        const errText = await res.text().catch(() => "");
         const failed = JSON.parse(localStorage.getItem("sahlapos-fetch-failed") || "[]");
-        failed.push({ ...q, status: res.status, error: await res.text().catch(() => "") });
+        failed.push({ ...q, status: res.status, error: errText });
         localStorage.setItem("sahlapos-fetch-failed", JSON.stringify(failed.slice(-50)));
+        let msg = errText; try { msg = JSON.parse(errText)?.message || errText; } catch { /* */ }
+        fails.push({ label: describeRequest(q.url, q.method), error: `${res.status} ${msg}`.slice(0, 200) });
       }
       writeQ(readQ().filter((x) => x.id !== q.id)); n++;
     }
-  } finally { flushing = false; }
+  } finally { flushing = false; addSyncLog(n - fails.length, fails); }
   return n;
 }
 

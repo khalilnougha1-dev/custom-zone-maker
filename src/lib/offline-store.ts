@@ -1,4 +1,5 @@
 // Offline-first storage + sync queue for POS (sales, customers, customer payments).
+import { addSyncLog } from "./sync-log";
 import { supabase } from "@/integrations/supabase/client";
 
 type Op =
@@ -70,6 +71,7 @@ export async function syncNow(): Promise<{ done: number; failed: number }> {
   if (syncing || !isOnline()) return { done: 0, failed: 0 };
   syncing = true; listeners.forEach((l) => l());
   let done = 0, failed = 0;
+  const fails: { label: string; error: string }[] = [];
   try {
     const { data } = await supabase.auth.getSession();
     if (!data.session) return { done, failed };
@@ -81,13 +83,17 @@ export async function syncNow(): Promise<{ done: number; failed: number }> {
       } catch (e) {
         if (isNetErr(e)) break;
         failed++;
+        const error = String((e as any)?.message || e);
+        const kind = (op as any).kind || (op as any).type || "عملية";
+        fails.push({ label: kind === "sale" ? "بيع" : kind === "payment" ? "دفعة زبون" : kind === "customer" ? "زبون" : String(kind), error });
         console.error("[offline-sync] dropped op", op, e);
-        localStorage.setItem("sahlapos-offline-failed", JSON.stringify([...JSON.parse(localStorage.getItem("sahlapos-offline-failed") || "[]"), { op, error: String((e as any)?.message || e) }]));
+        localStorage.setItem("sahlapos-offline-failed", JSON.stringify([...JSON.parse(localStorage.getItem("sahlapos-offline-failed") || "[]"), { op, error }]));
         writeQ(readQ().filter((o) => o.id !== op.id));
       }
     }
   } finally {
     syncing = false; listeners.forEach((l) => l());
+    addSyncLog(done, fails);
   }
   return { done, failed };
 }
