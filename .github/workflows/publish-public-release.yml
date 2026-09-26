@@ -53,7 +53,7 @@ jobs:
           NOTES="إصدار SAHLAPOS $TAG
 
           - SAHLAPOS-*.apk — للتثبيت المباشر على الهاتف
-          - SAHLAPOS-*-play.aab — للرفع على Google Play
+          - SAHLAPOS-*-play.aab — يظهر فقط عند توفر مفاتيح التوقيع، للرفع على Google Play
 
           التطبيق يفتح على https://pos.sahlapay.dz/login"
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
