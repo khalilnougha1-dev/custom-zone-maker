@@ -1,8 +1,15 @@
 // SAHLAPOS service worker — offline-first app shell
-const VERSION = "sahlapos-v9";
+const VERSION = "sahlapos-v10";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
-const PRECACHE = ["/", "/app", "/app/pos", "/app/customer-payments", "/login", "/manifest.webmanifest"];
+const PRECACHE = [
+  "/", "/login", "/manifest.webmanifest",
+  "/app", "/app/pos", "/app/customer-payments", "/app/cash", "/app/sales", "/app/purchases",
+  "/app/purchases/new", "/app/products", "/app/customers", "/app/suppliers", "/app/inventory",
+  "/app/stock-adjust", "/app/stock-movements", "/app/expenses", "/app/finance", "/app/profits",
+  "/app/reports", "/app/settings", "/app/printer", "/app/account", "/app/trucks", "/app/trucks-inventory",
+  "/app/driver",
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u)))));
