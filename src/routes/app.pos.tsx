@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
 import { getActivePrinter } from "@/lib/printer-config";
+import { enqueue, getPending, isOnline, loadCache, saveCache, uuid } from "@/lib/offline-store";
+import { OfflineStatus } from "@/components/pos/OfflineStatus";
 
 export const Route = createFileRoute("/app/pos")({
   component: NewSalePage,
@@ -85,14 +87,40 @@ function NewSalePage() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("products").select("*").eq("user_id", user.id).order("name")
-      .then(({ data }) => setProducts(data || []));
-    supabase.from("customers").select("id,name,phone").eq("user_id", user.id).order("name")
-      .then(({ data }) => setCustomers(data || []));
+    const uid = user.id;
+    // Show cached data instantly (works offline), then refresh from server
+    setProducts(loadCache(uid, "products", []));
+    setCustomers(loadCache(uid, "customers", []));
+    setPackages(loadCache(uid, "packages", []));
+    if (!isOnline()) return;
+    supabase.from("products").select("*").eq("user_id", uid).order("name")
+      .then(({ data, error }) => { if (!error && data) { setProducts(data); saveCache(uid, "products", data); } });
+    supabase.from("customers").select("id,name,phone").eq("user_id", uid).order("name")
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const pendingC = getPending().filter((o) => o.kind === "customer").map((o: any) => ({ id: o.row.id, name: o.row.name, phone: null }));
+        const merged = [...pendingC.filter((p) => !data.some((d) => d.id === p.id)), ...data];
+        setCustomers(merged); saveCache(uid, "customers", merged);
+      });
     (supabase as any).from("product_packages")
       .select("id,product_id,name,units_count,retail_price,cost_price,barcode,is_inactive")
-      .eq("user_id", user.id)
-      .then(({ data }: any) => setPackages((data || []).filter((p: any) => !p.is_inactive)));
+      .eq("user_id", uid)
+      .then(({ data, error }: any) => {
+        if (error || !data) return;
+        const act = data.filter((p: any) => !p.is_inactive);
+        setPackages(act); saveCache(uid, "packages", act);
+      });
+    Promise.all([
+      supabase.from("app_settings").select("business_name").eq("user_id", uid).maybeSingle(),
+      supabase.from("profiles").select("subscription_status,subscription_expires_at,is_active").eq("id", uid).maybeSingle(),
+      supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", uid),
+    ]).then(([st, pr, cnt]) => {
+      const p: any = pr.data;
+      const exp = p?.subscription_expires_at ? new Date(p.subscription_expires_at).getTime() : 0;
+      const active = !!p && p.is_active && (p.subscription_status === "permanent" || exp > Date.now());
+      if (!st.error && !pr.error) saveCache(uid, "receiptMeta", { businessName: (st.data as any)?.business_name || "", isDemo: !active });
+      if (cnt.count != null) saveCache(uid, "salesCount", cnt.count);
+    }).catch(() => {});
   }, [user]);
 
   // Load existing sale into cart when in edit mode
@@ -324,42 +352,12 @@ function NewSalePage() {
         }
       }
 
-      let saleRow: any;
-      if (isEditMode && editSaleId) {
-        const { data: sale, error } = await supabase.from("sales").update({
-          customer_id: customerId,
-          subtotal: totalAmount,
-          total: totalAmount,
-          paid: Number(paid) || 0,
-          payment_method: paymentMethod,
-          notes: note || null,
-        }).eq("id", editSaleId).select().single();
-        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
-        saleRow = sale;
-        const { error: eDel } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
-        if (eDel) { toast.error(eDel.message); return; }
-      } else {
-        const invoiceNumber = `INV-${Date.now()}`;
-        const { data: sale, error } = await supabase.from("sales").insert({
-          user_id: user.id,
-          customer_id: customerId,
-          subtotal: totalAmount,
-          total: totalAmount,
-          paid: Number(paid) || 0,
-          payment_method: paymentMethod,
-          notes: note || null,
-          invoice_number: invoiceNumber,
-        }).select().single();
-        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
-        saleRow = sale;
-      }
-
-      const items = cart.map((i) => {
+      const buildItems = (saleId: string) => cart.map((i) => {
         const units = i.qty * (i.unitsPerPackage || 1);
         const unitPrice = i.unitsPerPackage ? i.price / i.unitsPerPackage : i.price;
         const unitCost = i.unitsPerPackage ? i.cost / i.unitsPerPackage : i.cost;
         return {
-          sale_id: saleRow.id,
+          sale_id: saleId,
           product_id: i.productId,
           product_name: i.name,
           quantity: units,
@@ -376,24 +374,81 @@ function NewSalePage() {
             : {}),
         };
       });
-      const { error: e2 } = await supabase.from("sale_items").insert(items);
-      if (e2) {
-        toast.error(e2.message);
-        return;
-      }
 
-      if (isEditMode) {
+      if (isEditMode && editSaleId) {
+        if (!isOnline()) { toast.error("تعديل الفواتير يتطلب اتصالاً بالإنترنت"); return; }
+        const { data: sale, error } = await supabase.from("sales").update({
+          customer_id: customerId,
+          subtotal: totalAmount,
+          total: totalAmount,
+          paid: Number(paid) || 0,
+          payment_method: paymentMethod,
+          notes: note || null,
+        }).eq("id", editSaleId).select().single();
+        if (error || !sale) { toast.error(error?.message || "خطأ"); return; }
+        const { error: eDel } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+        if (eDel) { toast.error(eDel.message); return; }
+        const { error: e2 } = await supabase.from("sale_items").insert(buildItems(editSaleId));
+        if (e2) { toast.error(e2.message); return; }
         toast.success("تم تحديث الفاتورة");
         setConfirmOpen(false);
-        navigate({ to: "/app/sales/$saleId", params: { saleId: editSaleId! } });
+        navigate({ to: "/app/sales/$saleId", params: { saleId: editSaleId } });
         return;
       }
 
-      toast.success(`✅ تم البيع — ${totalAmount.toFixed(2)}`);
-      const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+      const saleId = uuid();
+      const createdAt = new Date().toISOString();
+      const saleRow = {
+        id: saleId,
+        user_id: user.id,
+        customer_id: customerId,
+        subtotal: totalAmount,
+        total: totalAmount,
+        paid: Number(paid) || 0,
+        payment_method: paymentMethod,
+        notes: note || null,
+        invoice_number: `INV-${Date.now()}`,
+        created_at: createdAt,
+      };
+      const items = buildItems(saleId);
+      let offline = !isOnline();
+      if (!offline) {
+        const { error } = await supabase.from("sales").insert(saleRow);
+        if (error) {
+          if (/fetch|network|failed/i.test(error.message)) offline = true;
+          else { toast.error(error.message); return; }
+        } else {
+          const { error: e2 } = await supabase.from("sale_items").insert(items);
+          if (e2) {
+            await supabase.from("sales").delete().eq("id", saleId);
+            if (/fetch|network|failed/i.test(e2.message)) offline = true;
+            else { toast.error(e2.message); return; }
+          }
+        }
+      }
+      if (offline) enqueue({ kind: "sale", id: saleId, sale: saleRow, items, ts: Date.now() });
+
+      toast.success(offline
+        ? `✅ تم البيع وحُفظ على الجهاز — ${totalAmount.toFixed(2)}`
+        : `✅ تم البيع — ${totalAmount.toFixed(2)}`);
+
+      let seq = loadCache<number>(user.id, "salesCount", 0) + 1;
+      if (!offline) {
+        const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+        if (count) seq = count + getPending().filter((o) => o.kind === "sale").length;
+      }
+      saveCache(user.id, "salesCount", seq);
+
+      // Update cached stock locally so offline stock checks stay accurate
+      const nextProducts = products.map((p: any) =>
+        usedByProduct.has(p.id) ? { ...p, stock_quantity: Number(p.stock_quantity || 0) - usedByProduct.get(p.id)! } : p);
+      setProducts(nextProducts);
+      saveCache(user.id, "products", nextProducts);
+
+      const biz = loadCache<{ businessName?: string; isDemo?: boolean }>(user.id, "receiptMeta", {});
       await printReceiptHtml({
         userId: user.id,
-        saleSeq: count || 1,
+        saleSeq: seq,
         customerId,
         customerName: customers.find((c: any) => c.id === customerId)?.name || "—",
         items: cart.map(i => ({
@@ -406,14 +461,17 @@ function NewSalePage() {
         total: totalAmount,
         paid: Number(paid) || 0,
         note,
-        createdAt: saleRow.created_at,
+        createdAt,
         preparedBluetoothPrinterId,
-      });
+        ...(offline ? { prevDebt: 0, businessName: biz.businessName || " ", isDemo: biz.isDemo ?? false } : {}),
+      } as any);
 
       setCart([]); setPaid(""); setNote(""); setCustomerId(null); setCustomerQ("");
       setConfirmOpen(false);
-      supabase.from("products").select("*").eq("user_id", user.id).order("name")
-        .then(({ data }) => setProducts(data || []));
+      if (!offline) {
+        supabase.from("products").select("*").eq("user_id", user.id).order("name")
+          .then(({ data }) => { if (data) { setProducts(data); saveCache(user.id, "products", data); } });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -472,17 +530,22 @@ function NewSalePage() {
                     onClick={async () => {
                       const name = customerQ.trim();
                       if (!name || !user) return;
-                      const { data, error } = await supabase
-                        .from("customers")
-                        .insert({ user_id: user.id, name })
-                        .select("id,name,phone")
-                        .single();
-                      if (error || !data) { toast.error(error?.message || "خطأ"); return; }
-                      setCustomers((prev) => [data, ...prev]);
+                      const row = { id: uuid(), user_id: user.id, name };
+                      let offline = !isOnline();
+                      if (!offline) {
+                        const { error } = await supabase.from("customers").insert(row);
+                        if (error) {
+                          if (/fetch|network|failed/i.test(error.message)) offline = true;
+                          else { toast.error(error.message); return; }
+                        }
+                      }
+                      if (offline) enqueue({ kind: "customer", id: row.id, row, ts: Date.now() });
+                      const data = { id: row.id, name, phone: null };
+                      setCustomers((prev) => { const n = [data, ...prev]; saveCache(user.id, "customers", n); return n; });
                       setCustomerId(data.id);
                       setCustomerQ(data.name);
                       setShowCustomerList(false);
-                      toast.success("تمت إضافة الزبون");
+                      toast.success(offline ? "تمت إضافة الزبون (سيُزامن لاحقاً)" : "تمت إضافة الزبون");
                     }}
                     className="w-full text-right px-3 py-2 text-sm bg-primary/10 hover:bg-primary/20 border-b border-border font-semibold text-primary"
                   >
