@@ -228,7 +228,7 @@ jobs:
             إصدار SAHLAPOS الجاهز للتنزيل.
 
             - `SAHLAPOS-*.apk` — للتثبيت المباشر على الهاتف (اختبار).
-             - `SAHLAPOS-*-play.aab` — يظهر فقط عند توفر مفاتيح التوقيع، وهو جاهز للرفع على Google Play Console.
+            - `SAHLAPOS-*-play.aab` — يظهر فقط عند توفر مفاتيح التوقيع، وهو جاهز للرفع على Google Play Console.
 
             التطبيق يفتح مباشرة على https://pos.sahlapay.dz/login
           files: release-files/*
