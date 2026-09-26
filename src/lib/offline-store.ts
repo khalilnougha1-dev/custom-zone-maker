@@ -1,4 +1,5 @@
 // Offline-first storage + sync queue for POS (sales, customers, customer payments).
+import { addSyncLog } from "./sync-log";
 import { supabase } from "@/integrations/supabase/client";
 
 type Op =

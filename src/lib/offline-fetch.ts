@@ -1,4 +1,5 @@
 // Whole-app offline layer: wraps window.fetch for backend data requests.
+import { addSyncLog, describeRequest } from "./sync-log";
 // - Reads: network first, saved to device; served from device when offline.
 // - Writes while offline: queued on the device, answered locally, replayed in order when online.
 // Must be imported before the backend client is created (see src/router.tsx).
