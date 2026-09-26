@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { CloudOff, RefreshCw, CloudUpload } from "lucide-react";
 import { toast } from "sonner";
 import { isOnline, isSyncing, onQueueChange, pendingCount, startAutoSync, syncNow } from "@/lib/offline-store";
+import { FETCH_QUEUE_EVENT, fetchQueueCount, flushFetchQueue } from "@/lib/offline-fetch";
+
+let toastBound = false;
 
 export function OfflineStatus() {
   const [, force] = useState(0);
@@ -10,18 +13,31 @@ export function OfflineStatus() {
       if (r.done) toast.success(`تمت مزامنة ${r.done} عملية محفوظة`);
       if (r.failed) toast.error(`تعذرت مزامنة ${r.failed} عملية`);
     });
-    const off = onQueueChange(() => force((n) => n + 1));
-    const t = setInterval(() => force((n) => n + 1), 5000);
-    return () => { off(); clearInterval(t); };
+    if (!toastBound) {
+      toastBound = true;
+      window.addEventListener("sahlapos-synced", (e: any) => toast.success(`تمت مزامنة ${e.detail} تعديل محفوظ`));
+    }
+    const rerender = () => force((n) => n + 1);
+    const off = onQueueChange(rerender);
+    window.addEventListener(FETCH_QUEUE_EVENT, rerender);
+    window.addEventListener("online", rerender);
+    window.addEventListener("offline", rerender);
+    const t = setInterval(rerender, 5000);
+    return () => {
+      off(); clearInterval(t);
+      window.removeEventListener(FETCH_QUEUE_EVENT, rerender);
+      window.removeEventListener("online", rerender);
+      window.removeEventListener("offline", rerender);
+    };
   }, []);
 
   const online = isOnline();
-  const pending = pendingCount();
+  const pending = pendingCount() + fetchQueueCount();
   if (online && pending === 0) return null;
 
   return (
     <button
-      onClick={() => online && syncNow()}
+      onClick={() => { if (online) { syncNow(); flushFetchQueue(); } }}
       className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-xs font-semibold"
       aria-label="حالة المزامنة"
     >
