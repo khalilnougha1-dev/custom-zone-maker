@@ -1,8 +1,8 @@
 // SAHLAPOS service worker — offline-first app shell
-const VERSION = "sahlapos-v8";
+const VERSION = "sahlapos-v9";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
-const PRECACHE = ["/", "/app", "/manifest.webmanifest"];
+const PRECACHE = ["/", "/app", "/app/pos", "/app/customer-payments", "/login", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u)))));
