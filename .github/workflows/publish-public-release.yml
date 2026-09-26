@@ -1,0 +1,65 @@
+name: Publish to public releases repo
+
+# يعمل تلقائياً بعد نجاح "Build Android APK" وينسخ APK و AAB
+# إلى مستودع إصدارات عام منفصل، دون جعل مستودع التطبيق عاماً.
+#
+# الإعداد المطلوب (مرة واحدة):
+#  1) أنشئ مستودعاً عاماً فارغاً مثل: <حسابك>/sahlapos-releases
+#  2) أنشئ Fine-grained token له صلاحية Contents: Read and write على ذلك المستودع فقط
+#  3) في هذا المستودع: Settings → Secrets and variables → Actions
+#     - Secret:   PUBLIC_RELEASES_TOKEN = التوكن
+#     - Variable: PUBLIC_RELEASES_REPO  = <حسابك>/sahlapos-releases
+
+on:
+  workflow_run:
+    workflows: ["Build Android APK"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check configuration
+        env:
+          TOKEN: ${{ secrets.PUBLIC_RELEASES_TOKEN }}
+          REPO: ${{ vars.PUBLIC_RELEASES_REPO }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$REPO" ]; then
+            echo "::error::أضف السر PUBLIC_RELEASES_TOKEN والمتغير PUBLIC_RELEASES_REPO"
+            exit 1
+          fi
+
+      - name: Download latest private release files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p files
+          TAG=$(gh release view --repo "${{ github.repository }}" --json tagName -q .tagName)
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          gh release download "$TAG" --repo "${{ github.repository }}" \
+            --dir files --pattern '*.apk' --pattern '*.aab'
+          ls -lh files
+
+      - name: Publish to public repo
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_RELEASES_TOKEN }}
+          REPO: ${{ vars.PUBLIC_RELEASES_REPO }}
+        run: |
+          NOTES="إصدار SAHLAPOS $TAG
+
+          - SAHLAPOS-*.apk — للتثبيت المباشر على الهاتف
+          - SAHLAPOS-*-play.aab — للرفع على Google Play
+
+          التطبيق يفتح على https://pos.sahlapay.dz/login"
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" files/* --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" files/* --repo "$REPO" \
+              --title "SAHLAPOS $TAG" --notes "$NOTES" --latest
+          fi
+          echo "رابط التنزيل: https://github.com/$REPO/releases/latest"
