@@ -494,6 +494,7 @@ function NewSalePage() {
             <ArrowRight className="h-6 w-6" />
           </button>
           <h1 className="min-w-0 truncate text-center text-base sm:text-lg font-bold">{isEditMode ? "تعديل عملية بيع" : "بيع جديد"}</h1>
+          <OfflineStatus />
           <button
             onClick={openConfirm}
             className="shrink-0 rounded-lg p-2 hover:bg-white/10 transition"
