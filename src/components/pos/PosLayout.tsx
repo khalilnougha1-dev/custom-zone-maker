@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CalculatorDialog } from "@/components/pos/CalculatorDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { OfflineStatus } from "@/components/pos/OfflineStatus";
 
 const NAV = [
   { to: "/app", label: "الرئيسية", icon: Home, exact: true },
@@ -123,6 +124,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
           </button>
           <h1 className="text-lg font-bold">{title}</h1>
           <div className="flex items-center gap-1">
+            <OfflineStatus />
             {actions}
             <ThemeToggle className="h-9 w-9 p-0 bg-transparent border-white/20 text-primary-foreground hover:bg-white/10" />
             <button onClick={() => setCalcOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="calculator">
