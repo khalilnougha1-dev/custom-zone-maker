@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { enqueue, getPending, isOnline, loadCache, onQueueChange, pendingCount, saveCache, uuid } from "@/lib/offline-store";
 
 export const Route = createFileRoute("/app/customer-payments")({ component: CustomerPaymentsPage });
 
@@ -59,18 +60,36 @@ function CustomerPaymentsPage() {
     return m;
   }, [customers]);
 
+  const pendingPayments = () =>
+    getPending().filter((o) => o.kind === "payment").map((o: any) => ({ ...o.row, _pending: true }));
+
   const load = () => {
     if (!user) return;
+    const uid = user.id;
+    setCustomers(loadCache(uid, "customers", []));
+    setItems([...pendingPayments(), ...loadCache<any[]>(uid, `payments:${period}`, [])]);
+    if (!isOnline()) return;
     let q = supabase.from("cash_transactions").select("*")
-      .eq("user_id", user.id).eq("type", "customer_payment")
+      .eq("user_id", uid).eq("type", "customer_payment")
       .order("created_at", { ascending: false });
     if (range.from) q = q.gte("created_at", range.from.toISOString());
     if (range.to) q = q.lte("created_at", range.to.toISOString());
-    q.limit(300).then(({ data }) => setItems(data || []));
-    supabase.from("customers").select("id,name").eq("user_id", user.id)
-      .order("name").then(({ data }) => setCustomers(data || []));
+    q.limit(300).then(({ data, error }) => {
+      if (error || !data) return;
+      saveCache(uid, `payments:${period}`, data);
+      const pend = pendingPayments().filter((p) => !data.some((d) => d.id === p.id));
+      setItems([...pend, ...data]);
+    });
+    supabase.from("customers").select("id,name").eq("user_id", uid)
+      .order("name").then(({ data, error }) => {
+        if (error || !data) return;
+        const pendC = getPending().filter((o) => o.kind === "customer").map((o: any) => ({ id: o.row.id, name: o.row.name }));
+        const merged = [...pendC.filter((p) => !data.some((d) => d.id === p.id)), ...data];
+        setCustomers(merged);
+      });
   };
   useEffect(load, [user, period]);
+  useEffect(() => onQueueChange(() => { if (pendingCount() === 0) load(); }), [user, period]);
 
   const filtered = useMemo(() => {
     return items.filter(it => {
@@ -92,12 +111,20 @@ function CustomerPaymentsPage() {
     if (!form.customerId) return toast.error("اختر الزبون");
     if (!amount || amount <= 0) return toast.error("أدخل مبلغاً صحيحاً");
     const desc = `[${form.method}] ${form.description || ""}`.trim();
-    const { error } = await supabase.from("cash_transactions").insert({
-      user_id: user.id, type: "customer_payment", amount,
-      reference_id: form.customerId, description: desc,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("تم الحفظ");
+    const row = {
+      id: uuid(), user_id: user.id, type: "customer_payment", amount,
+      reference_id: form.customerId, description: desc, created_at: new Date().toISOString(),
+    };
+    let offline = !isOnline();
+    if (!offline) {
+      const { error } = await supabase.from("cash_transactions").insert(row);
+      if (error) {
+        if (/fetch|network|failed/i.test(error.message)) offline = true;
+        else return toast.error(error.message);
+      }
+    }
+    if (offline) enqueue({ kind: "payment", id: row.id, row, ts: Date.now() });
+    toast.success(offline ? "تم الحفظ على الجهاز (سيُزامن لاحقاً)" : "تم الحفظ");
     setFormOpen(false);
     setForm({ customerId: "", amount: "", method: "cash", description: "" });
     load();
