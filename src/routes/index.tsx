@@ -153,7 +153,7 @@ function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 sm:mt-16 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {advantages.map((a) => (
-              <div key={a.title} className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
+              <div key={a.title} className="tile-3d rounded-2xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <a.icon className="h-5 w-5" />
@@ -178,7 +178,7 @@ function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 sm:mt-16 sm:gap-6 md:grid-cols-3">
             {steps.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-card sm:p-8">
+              <div key={s.n} className="tile-3d relative rounded-2xl p-5 sm:p-8">
                 <div className="text-4xl font-bold text-gradient sm:text-5xl">{s.n}</div>
                 <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
                 <p className="mt-2 text-muted-foreground">{s.desc}</p>
