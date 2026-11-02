@@ -11,7 +11,7 @@ export const fr = {
     logout: "Déconnexion",
   },
   hero: {
-    badge: "✨ La nouvelle génération de POS",
+    badge: "La nouvelle génération de POS",
     title: "Gérez votre commerce",
     titleHighlight: "intelligemment",
     subtitle: "Plateforme tout-en-un pour gérer ventes, stock, clients et achats. Tout ce dont vous avez besoin au même endroit.",

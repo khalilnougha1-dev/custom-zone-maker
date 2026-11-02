@@ -1,9 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowRight, Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
@@ -11,6 +8,12 @@ import { InstallAppSection } from "@/components/marketing/InstallAppSection";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ICONS_3D } from "@/lib/icons3d";
 import hero3d from "@/assets/hero-3d.png";
+import iconSecurity from "@/assets/icons3d/security.png";
+import iconCloud from "@/assets/icons3d/cloud.png";
+import iconMobile from "@/assets/icons3d/mobile.png";
+import iconPrinter from "@/assets/icons3d/printer.png";
+import iconInvoice from "@/assets/icons3d/invoice.png";
+import iconGrowth from "@/assets/icons3d/growth.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,12 +44,12 @@ function HomePage() {
   ] as const;
 
   const advantages = [
-    { icon: ShieldCheck, title: "أمان متقدم", desc: "بياناتك محمية بتشفير على مستوى البنوك ونسخ احتياطية يومية." },
-    { icon: Cloud, title: "سحابي 100%", desc: "اعمل من أي مكان وعلى أي جهاز دون الحاجة لتثبيت برامج." },
-    { icon: Smartphone, title: "متوافق مع الجوال", desc: "واجهة محسّنة للهواتف واللوحات لإدارة نشاطك أثناء التنقل." },
-    { icon: Printer, title: "طباعة احترافية", desc: "دعم طابعات الإيصالات 58mm و80mm وطباعة A4 بثلاث لغات." },
-    { icon: Receipt, title: "فواتير ذكية", desc: "أنشئ فواتير المبيعات والمشتريات بثوانٍ مع حساب الديون تلقائياً." },
-    { icon: TrendingUp, title: "تقارير لحظية", desc: "تابع أرباحك ومخزونك ووضعيتك المالية في أي وقت." },
+    { img: iconSecurity, title: "أمان متقدم", desc: "بياناتك محمية بتشفير على مستوى البنوك ونسخ احتياطية يومية." },
+    { img: iconCloud, title: "سحابي 100%", desc: "اعمل من أي مكان وعلى أي جهاز دون الحاجة لتثبيت برامج." },
+    { img: iconMobile, title: "متوافق مع الجوال", desc: "واجهة محسّنة للهواتف واللوحات لإدارة نشاطك أثناء التنقل." },
+    { img: iconPrinter, title: "طباعة احترافية", desc: "دعم طابعات الإيصالات 58mm و80mm وطباعة A4 بثلاث لغات." },
+    { img: iconInvoice, title: "فواتير ذكية", desc: "أنشئ فواتير المبيعات والمشتريات بثوانٍ مع حساب الديون تلقائياً." },
+    { img: iconGrowth, title: "تقارير لحظية", desc: "تابع أرباحك ومخزونك ووضعيتك المالية في أي وقت." },
   ];
 
   const steps = [
@@ -70,7 +73,6 @@ function HomePage() {
             <div className="text-center lg:text-start">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/70 px-3 py-1.5 text-sm font-medium text-primary shadow-card backdrop-blur">
                 <BrandLogo className="h-6 w-6" />
-                <Sparkles className="h-4 w-4" />
                 {t("hero.badge")}
               </div>
               <h1 className="text-3xl font-extrabold leading-tight tracking-tight break-words sm:text-5xl md:text-6xl">
@@ -153,13 +155,14 @@ function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 sm:mt-16 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {advantages.map((a) => (
-              <div key={a.title} className="tile-3d rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <a.icon className="h-5 w-5" />
+              <div key={a.title} className="group tile-3d rounded-2xl p-5 sm:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+                    <div aria-hidden className="absolute inset-2 rounded-full bg-gradient-primary opacity-20 blur-xl transition-opacity group-hover:opacity-40" />
+                    <img src={a.img} alt="" width={80} height={80} loading="lazy" className="icon-3d relative h-20 w-20 object-contain" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{a.title}</h3>
+                    <h3 className="text-lg font-bold">{a.title}</h3>
                     <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{a.desc}</p>
                   </div>
                 </div>

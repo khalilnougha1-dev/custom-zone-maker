@@ -11,7 +11,7 @@ export const en = {
     logout: "Sign Out",
   },
   hero: {
-    badge: "✨ Next generation POS system",
+    badge: "Next generation POS system",
     title: "Run your business",
     titleHighlight: "intelligently",
     subtitle: "All-in-one platform to manage sales, inventory, customers and purchases. Everything you need in one place.",

@@ -6,7 +6,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/use-auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
-import { LayoutDashboard, Sparkles, Download } from "lucide-react";
+import { LayoutDashboard, LogIn, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export function Header() {
@@ -32,18 +32,32 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto flex h-14 items-center justify-between gap-2 px-3 sm:h-16 sm:px-4">
-        <Link to="/" className="flex min-w-0 items-center gap-2">
-          <BrandLogo className="h-8 w-8 sm:h-9 sm:w-9" />
-          <span className="truncate text-base font-bold tracking-tight sm:text-xl">{t("brand.name")}</span>
+    <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-4 sm:pt-3">
+      <div className="container mx-auto flex h-14 items-center justify-between gap-2 rounded-2xl border border-border/50 bg-card/75 px-3 shadow-card backdrop-blur-xl sm:h-16 sm:px-5">
+        <Link to="/" className="group flex min-w-0 items-center gap-2.5">
+          <span className="relative flex">
+            <span aria-hidden className="absolute inset-0 rounded-xl bg-gradient-primary opacity-40 blur-md transition-opacity group-hover:opacity-70" />
+            <BrandLogo className="relative h-9 w-9 sm:h-10 sm:w-10" />
+          </span>
+          <span className="flex min-w-0 flex-col leading-none">
+            <span className="truncate text-base font-extrabold tracking-tight text-gradient sm:text-xl">{t("brand.name")}</span>
+            <span className="hidden text-[10px] font-medium text-muted-foreground sm:block">نقاط البيع والمخزون</span>
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+        <nav className="hidden items-center gap-1 rounded-full border border-border/50 bg-background/60 p-1 md:flex">
+          <Link
+            to="/features"
+            className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-smooth hover:bg-primary/10 hover:text-primary"
+            activeProps={{ className: "bg-primary/10 text-primary" }}
+          >
             {t("nav.features")}
           </Link>
-          <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+          <Link
+            to="/contact"
+            className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-smooth hover:bg-primary/10 hover:text-primary"
+            activeProps={{ className: "bg-primary/10 text-primary" }}
+          >
             {t("nav.contact")}
           </Link>
         </nav>
@@ -55,22 +69,25 @@ export function Header() {
             type="button"
             size="sm"
             variant="outline"
-            className="hidden gap-2 sm:inline-flex"
+            className="hidden h-9 gap-2 rounded-full border-primary/30 bg-background/60 sm:inline-flex"
             onClick={handleInstall}
           >
-            <Download className="h-4 w-4" />
+            <Download className="h-4 w-4 text-primary" />
             <span className="hidden sm:inline">تحميل التطبيق</span>
           </Button>
           {user ? (
-            <Button asChild size="sm" className="gap-2">
+            <Button asChild size="sm" className="h-9 gap-2 rounded-full bg-gradient-primary shadow-glow hover:opacity-90">
               <Link to="/dashboard">
                 <LayoutDashboard className="h-4 w-4" />
                 {t("nav.dashboard")}
               </Link>
             </Button>
           ) : (
-            <Button asChild size="sm" className="bg-gradient-primary hover:opacity-90 shadow-md">
-              <Link to="/login">{t("nav.login")}</Link>
+            <Button asChild size="sm" className="h-9 gap-2 rounded-full bg-gradient-primary px-4 shadow-glow hover:opacity-90">
+              <Link to="/login">
+                <LogIn className="h-4 w-4" />
+                {t("nav.login")}
+              </Link>
             </Button>
           )}
         </div>
