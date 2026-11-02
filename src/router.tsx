@@ -1,5 +1,5 @@
 import "@/lib/offline-fetch";
-import { createRouter, useRouter } from "@tanstack/react-router";
+import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 // بعد نشر تحديث جديد تُحذف ملفات النسخة القديمة؛ أعد تحميل الصفحة تلقائياً مرة واحدة.
@@ -19,7 +19,7 @@ if (typeof window !== "undefined") {
   (window as any).__sahlaStale = (m: unknown) => { if (isStale(m)) reloadOnce(); };
 }
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
 
   return (
