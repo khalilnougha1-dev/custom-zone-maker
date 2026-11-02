@@ -115,19 +115,34 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   }
 
   return (
-    <div className="min-h-screen bg-muted/30" dir="rtl">
-      {/* Top bar — SAHLAPOS purple */}
-      <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
-          <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="menu">
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-lg font-bold">{title}</h1>
+    <div className="relative min-h-screen bg-aurora" dir="rtl">
+      {/* Decorative 3D background blobs */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
+        <div className="animate-blob absolute -top-24 -left-20 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+        <div className="animate-blob absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl [animation-delay:-5s]" />
+        <div className="animate-blob absolute bottom-0 left-1/4 h-64 w-64 rounded-full bg-primary-glow/15 blur-3xl [animation-delay:-9s]" />
+      </div>
+
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 header-3d text-primary-foreground">
+        <div className="flex h-16 items-center justify-between gap-2 px-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <button onClick={() => setOpen(true)} className="rounded-xl p-2 hover:bg-primary-foreground/15 transition" aria-label="menu">
+              <Menu className="h-6 w-6" />
+            </button>
+            <Link to="/app" className="flex items-center gap-2 min-w-0">
+              <BrandLogo className="h-9 w-9 shadow-lg ring-2 ring-primary-foreground/30" />
+              <div className="min-w-0 leading-tight">
+                <div className="text-[10px] font-semibold uppercase tracking-widest opacity-75">SahlaPos</div>
+                <h1 className="truncate text-base font-bold">{title}</h1>
+              </div>
+            </Link>
+          </div>
           <div className="flex items-center gap-1">
             <OfflineStatus />
             {actions}
-            <ThemeToggle className="h-9 w-9 p-0 bg-transparent border-white/20 text-primary-foreground hover:bg-white/10" />
-            <button onClick={() => setCalcOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="calculator">
+            <ThemeToggle className="h-9 w-9 p-0 bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10" />
+            <button onClick={() => setCalcOpen(true)} className="rounded-xl p-2 hover:bg-primary-foreground/15 transition" aria-label="calculator">
               <Calculator className="h-6 w-6" />
             </button>
           </div>
