@@ -2,11 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ShoppingCart, Package, Users, Truck, Receipt, Wallet, BarChart3,
-  TrendingUp, Boxes, Printer, Settings, FileText
+  TrendingUp, Boxes, Settings, FileText
 } from "lucide-react";
 import { PosLayout } from "@/components/pos/PosLayout";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { ICONS_3D } from "@/lib/icons3d";
+import bg3d from "@/assets/bg-3d.jpg";
 
 export const Route = createFileRoute("/app/")({ component: AppHome });
 
@@ -49,19 +52,33 @@ function AppHome() {
 
   return (
     <PosLayout title="الرئيسية">
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <StatCard label="مبيعات اليوم" value={stats.todayTotal.toFixed(2)} hint="دج" />
-        <StatCard label="عمليات اليوم" value={String(stats.sales)} hint="عملية" />
-        <StatCard label="المنتجات" value={String(stats.products)} hint="منتج" />
-        <StatCard label="الزبائن" value={String(stats.customers)} hint="زبون" />
+      {/* Welcome banner with 3D background */}
+      <div className="relative mb-5 overflow-hidden rounded-3xl text-primary-foreground shadow-elegant">
+        <img src={bg3d} alt="" width={1600} height={1008} className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-linear-to-l from-primary/70 via-primary/40 to-transparent" />
+        <div className="relative flex items-center gap-4 p-5">
+          <BrandLogo className="h-16 w-16 shadow-2xl ring-4 ring-primary-foreground/20 animate-float" />
+          <div className="min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-widest opacity-80">SahlaPos</div>
+            <div className="text-xl font-extrabold">مرحباً بك 👋</div>
+            <div className="mt-1 text-sm opacity-85">مبيعات اليوم: <span className="font-mono font-bold">{stats.todayTotal.toFixed(2)}</span> دج</div>
+          </div>
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <StatCard label="مبيعات اليوم" value={stats.todayTotal.toFixed(2)} hint="دج" icon={ICONS_3D["/app/sales"]} />
+        <StatCard label="عمليات اليوم" value={String(stats.sales)} hint="عملية" icon={ICONS_3D["/app/pos"]} />
+        <StatCard label="المنتجات" value={String(stats.products)} hint="منتج" icon={ICONS_3D["/app/products"]} />
+        <StatCard label="الزبائن" value={String(stats.customers)} hint="زبون" icon={ICONS_3D["/app/customers"]} />
+      </div>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {TILES.map((t) => (
-          <Link key={t.to} to={t.to} className="group rounded-2xl bg-card p-3 shadow-card border border-border hover:border-primary/40 transition">
-            <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${t.color} text-white shadow-md group-hover:scale-110 transition`}>
-              <t.icon className="h-6 w-6" />
+          <Link key={t.to} to={t.to} className="group tile-3d rounded-2xl p-3 pt-4">
+            <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center">
+              <img src={ICONS_3D[t.to]} alt="" width={64} height={64} loading="lazy" className="icon-3d h-16 w-16 object-contain" />
             </div>
-            <div className="text-center text-xs font-semibold text-foreground">{t.label}</div>
+            <div className="text-center text-xs font-bold text-foreground">{t.label}</div>
           </Link>
         ))}
       </div>
@@ -69,11 +86,14 @@ function AppHome() {
   );
 }
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+function StatCard({ label, value, hint, icon }: { label: string; value: string; hint: string; icon?: string }) {
   return (
-    <div className="rounded-2xl bg-card border border-border p-3 shadow-card">
+    <div className="group tile-3d relative overflow-hidden rounded-2xl p-3">
+      {icon && (
+        <img src={icon} alt="" width={56} height={56} loading="lazy" className="icon-3d absolute -bottom-1 -left-1 h-14 w-14 object-contain opacity-90" />
+      )}
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 font-mono text-2xl font-bold text-primary">{value}</div>
+      <div className="mt-1 font-mono text-2xl font-bold text-gradient">{value}</div>
       <div className="text-[10px] text-muted-foreground">{hint}</div>
     </div>
   );
