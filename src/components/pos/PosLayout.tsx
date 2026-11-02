@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { CalculatorDialog } from "@/components/pos/CalculatorDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { OfflineStatus } from "@/components/pos/OfflineStatus";
+import { BrandLogo } from "@/components/BrandLogo";
+import { ICONS_3D } from "@/lib/icons3d";
 
 const NAV = [
   { to: "/app", label: "الرئيسية", icon: Home, exact: true },
@@ -115,19 +117,34 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   }
 
   return (
-    <div className="min-h-screen bg-muted/30" dir="rtl">
-      {/* Top bar — SAHLAPOS purple */}
-      <header className="sticky top-0 z-40 bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
-          <button onClick={() => setOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="menu">
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-lg font-bold">{title}</h1>
+    <div className="relative min-h-screen bg-aurora" dir="rtl">
+      {/* Decorative 3D background blobs */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
+        <div className="animate-blob absolute -top-24 -left-20 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+        <div className="animate-blob absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl [animation-delay:-5s]" />
+        <div className="animate-blob absolute bottom-0 left-1/4 h-64 w-64 rounded-full bg-primary-glow/15 blur-3xl [animation-delay:-9s]" />
+      </div>
+
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 header-3d text-primary-foreground">
+        <div className="flex h-16 items-center justify-between gap-2 px-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <button onClick={() => setOpen(true)} className="rounded-xl p-2 hover:bg-primary-foreground/15 transition" aria-label="menu">
+              <Menu className="h-6 w-6" />
+            </button>
+            <Link to="/app" className="flex items-center gap-2 min-w-0">
+              <BrandLogo className="h-9 w-9 shadow-lg ring-2 ring-primary-foreground/30" />
+              <div className="min-w-0 leading-tight">
+                <div className="text-[10px] font-semibold uppercase tracking-widest opacity-75">SahlaPos</div>
+                <h1 className="truncate text-base font-bold">{title}</h1>
+              </div>
+            </Link>
+          </div>
           <div className="flex items-center gap-1">
             <OfflineStatus />
             {actions}
-            <ThemeToggle className="h-9 w-9 p-0 bg-transparent border-white/20 text-primary-foreground hover:bg-white/10" />
-            <button onClick={() => setCalcOpen(true)} className="rounded-lg p-2 hover:bg-white/10 transition" aria-label="calculator">
+            <ThemeToggle className="h-9 w-9 p-0 bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10" />
+            <button onClick={() => setCalcOpen(true)} className="rounded-xl p-2 hover:bg-primary-foreground/15 transition" aria-label="calculator">
               <Calculator className="h-6 w-6" />
             </button>
           </div>
@@ -162,39 +179,47 @@ export function PosLayout({ title, children, actions }: { title: string; childre
       {/* Drawer */}
       {open && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <aside className="fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] overflow-y-auto bg-card shadow-2xl">
-            <div className="flex items-center justify-between bg-gradient-primary p-4 text-primary-foreground">
-              <div>
-                <div className="text-sm opacity-80">مرحبا</div>
-                <div className="font-bold truncate max-w-[180px]">{user.email}</div>
+          <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <aside className="fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] overflow-y-auto bg-aurora shadow-2xl">
+            <div className="header-3d relative overflow-hidden p-4 text-primary-foreground">
+              <div className="flex items-start justify-between">
+                <BrandLogo className="h-14 w-14 shadow-xl ring-2 ring-primary-foreground/30" />
+                <button onClick={() => setOpen(false)} className="rounded-xl p-2 hover:bg-primary-foreground/15">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-white/10">
-                <X className="h-5 w-5" />
-              </button>
+              <div className="mt-3 text-xs opacity-80">مرحبا بك في SahlaPos</div>
+              <div className="font-bold truncate">{user.email}</div>
             </div>
-            <nav className="p-2">
+            <nav className="space-y-1 p-2">
               {[...NAV, ...(isAdmin ? [ADMIN_NAV] : [])].map((item) => {
                 const active = "exact" in item && item.exact ? path === item.to : path.startsWith(item.to);
+                const img = ICONS_3D[item.to];
                 return (
                   <Link
                     key={item.to}
                     to={item.to}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition",
+                      "group flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold transition",
                       active
-                        ? "bg-primary/10 text-primary"
-                        : "text-foreground/80 hover:bg-muted"
+                        ? "tile-3d text-primary"
+                        : "text-foreground/85 hover:bg-card/70"
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-card/80 shadow-sm">
+                      {img ? (
+                        <img src={img} alt="" width={36} height={36} loading="lazy" className="icon-3d h-8 w-8 object-contain" />
+                      ) : (
+                        <item.icon className="h-5 w-5 text-primary" />
+                      )}
+                    </span>
                     {item.label}
                   </Link>
                 );
               })}
               <button
                 onClick={handleLogout}
-                className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-destructive hover:bg-destructive/10"
+                className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-destructive hover:bg-destructive/10"
               >
                 <LogOut className="h-5 w-5" />
                 تسجيل الخروج
@@ -204,7 +229,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
         </>
       )}
 
-      <main className="mx-auto max-w-5xl p-4">{children}</main>
+      <main className="relative z-10 mx-auto max-w-5xl p-4">{children}</main>
 
       {/* Activate footer — يظهر فقط عند الحاجة للتفعيل */}
       {showActivate && (

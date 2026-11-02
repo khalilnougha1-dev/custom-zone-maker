@@ -1,16 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowRight, ShoppingCart, Package, Users, BarChart3, Globe2, Zap,
-  Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
-  Sparkles, CheckCircle2,
+  ArrowRight, Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
 import { InstallAppSection } from "@/components/marketing/InstallAppSection";
+import { BrandLogo } from "@/components/BrandLogo";
+import { ICONS_3D } from "@/lib/icons3d";
+import hero3d from "@/assets/hero-3d.png";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "SahlaPos — نظام نقاط البيع وإدارة المخزون في الجزائر" },
+      { name: "description", content: "SahlaPos منصة احترافية لنقاط البيع، المخزون، الزبائن والتقارير مع طباعة بلوتوث والعمل دون إنترنت." },
+      { property: "og:title", content: "SahlaPos — نظام نقاط البيع الاحترافي" },
+      { property: "og:description", content: "أدر مبيعاتك ومخزونك وزبائنك من أي جهاز، حتى بدون إنترنت." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: HomePage,
 });
 
@@ -20,12 +32,12 @@ function HomePage() {
   const Arrow = isRtl ? () => <ArrowRight className="h-4 w-4 rotate-180" /> : () => <ArrowRight className="h-4 w-4" />;
 
   const features = [
-    { icon: Zap, key: "cashier" },
-    { icon: ShoppingCart, key: "sales" },
-    { icon: Package, key: "inventory" },
-    { icon: Users, key: "customers" },
-    { icon: BarChart3, key: "reports" },
-    { icon: Globe2, key: "multi" },
+    { key: "cashier", img: ICONS_3D["/app/pos"] },
+    { key: "sales", img: ICONS_3D["/app/sales"] },
+    { key: "inventory", img: ICONS_3D["/app/inventory"] },
+    { key: "customers", img: ICONS_3D["/app/customers"] },
+    { key: "reports", img: ICONS_3D["/app/reports"] },
+    { key: "multi", img: ICONS_3D["/app/settings"] },
   ] as const;
 
   const advantages = [
@@ -48,32 +60,49 @@ function HomePage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-mesh">
-        <div className="container mx-auto px-4 py-12 sm:py-20 md:py-32">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary">
-              <Sparkles className="h-4 w-4" />
-              {t("hero.badge")}
+      <section className="relative overflow-hidden bg-aurora">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="animate-blob absolute -top-20 right-0 h-96 w-96 rounded-full bg-primary/25 blur-3xl" />
+          <div className="animate-blob absolute bottom-0 -left-20 h-96 w-96 rounded-full bg-accent/25 blur-3xl [animation-delay:-6s]" />
+        </div>
+        <div className="container relative mx-auto px-4 py-12 sm:py-20 md:py-24">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div className="text-center lg:text-start">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/70 px-3 py-1.5 text-sm font-medium text-primary shadow-card backdrop-blur">
+                <BrandLogo className="h-6 w-6" />
+                <Sparkles className="h-4 w-4" />
+                {t("hero.badge")}
+              </div>
+              <h1 className="text-3xl font-extrabold leading-tight tracking-tight break-words sm:text-5xl md:text-6xl">
+                {t("hero.title")}
+                <br />
+                <span className="text-gradient">{t("hero.titleHighlight")}</span>
+              </h1>
+              <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:mt-6 sm:text-lg lg:mx-0">
+                {t("hero.subtitle")}
+              </p>
+              <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start">
+                <Button asChild size="lg" className="w-full bg-gradient-primary hover:opacity-90 shadow-glow gap-2 h-12 px-6 text-base sm:w-auto sm:px-8">
+                  <Link to="/login">
+                    دخول لوحة التحكم
+                    <Arrow />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="w-full gap-2 h-12 px-6 text-base sm:w-auto sm:px-8 bg-card/60 backdrop-blur">
+                  <Play className="h-4 w-4" />
+                  {t("hero.ctaSecondary")}
+                </Button>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold leading-tight tracking-tight break-words sm:text-5xl md:text-7xl">
-              {t("hero.title")}
-              <br />
-              <span className="text-gradient">{t("hero.titleHighlight")}</span>
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:mt-6 sm:text-lg md:text-xl">
-              {t("hero.subtitle")}
-            </p>
-            <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:items-center sm:gap-4">
-              <Button asChild size="lg" className="w-full bg-gradient-primary hover:opacity-90 shadow-glow gap-2 h-12 px-6 text-base sm:w-auto sm:px-8">
-                <Link to="/login">
-                  دخول لوحة التحكم
-                  <Arrow />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="w-full gap-2 h-12 px-6 text-base sm:w-auto sm:px-8">
-                <Play className="h-4 w-4" />
-                {t("hero.ctaSecondary")}
-              </Button>
+            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
+              <div className="absolute inset-8 rounded-full bg-gradient-primary opacity-30 blur-3xl" />
+              <img
+                src={hero3d}
+                alt="نقطة بيع SahlaPos ثلاثية الأبعاد"
+                width={820}
+                height={820}
+                className="relative w-full animate-float drop-shadow-2xl"
+              />
             </div>
           </div>
 
@@ -86,7 +115,7 @@ function HomePage() {
                 { v: "25+", k: "countries" },
                 { v: "99.9%", k: "uptime" },
               ].map((s) => (
-                <div key={s.k} className="rounded-2xl border border-border/60 bg-card/80 p-4 text-center shadow-card backdrop-blur sm:p-6">
+                <div key={s.k} className="tile-3d rounded-2xl p-4 text-center sm:p-6">
                   <div className="text-2xl font-bold text-gradient sm:text-3xl md:text-4xl">{s.v}</div>
                   <div className="mt-1 text-xs text-muted-foreground sm:text-sm">{t(`stats.${s.k}`)}</div>
                 </div>
@@ -104,11 +133,9 @@ function HomePage() {
             <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">{t("features.subtitle")}</p>
           </div>
           <div className="mt-8 grid gap-4 sm:mt-16 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {features.map(({ icon: Icon, key }) => (
-              <div key={key} className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-card transition-smooth sm:p-8 hover:shadow-elegant hover:-translate-y-1">
-                <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-                  <Icon className="h-6 w-6" />
-                </div>
+            {features.map(({ key, img }) => (
+              <div key={key} className="group tile-3d relative overflow-hidden rounded-3xl p-5 sm:p-8">
+                <img src={img} alt="" width={80} height={80} loading="lazy" className="icon-3d mb-4 h-20 w-20 object-contain" />
                 <h3 className="text-xl font-semibold">{t(`features.${key}.title`)}</h3>
                 <p className="mt-2 text-muted-foreground">{t(`features.${key}.desc`)}</p>
               </div>
@@ -126,7 +153,7 @@ function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 sm:mt-16 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {advantages.map((a) => (
-              <div key={a.title} className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
+              <div key={a.title} className="tile-3d rounded-2xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <a.icon className="h-5 w-5" />
@@ -151,7 +178,7 @@ function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 sm:mt-16 sm:gap-6 md:grid-cols-3">
             {steps.map((s) => (
-              <div key={s.n} className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-card sm:p-8">
+              <div key={s.n} className="tile-3d relative rounded-2xl p-5 sm:p-8">
                 <div className="text-4xl font-bold text-gradient sm:text-5xl">{s.n}</div>
                 <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
                 <p className="mt-2 text-muted-foreground">{s.desc}</p>

@@ -1,5 +1,5 @@
 import "@/lib/offline-fetch";
-import { createRouter, useRouter } from "@tanstack/react-router";
+import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 // بعد نشر تحديث جديد تُحذف ملفات النسخة القديمة؛ أعد تحميل الصفحة تلقائياً مرة واحدة.
@@ -19,7 +19,7 @@ if (typeof window !== "undefined") {
   (window as any).__sahlaStale = (m: unknown) => { if (isStale(m)) reloadOnce(); };
 }
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
 
   return (
@@ -45,7 +45,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         <p className="mt-2 text-sm text-muted-foreground">
           An unexpected error occurred. Please try again.
         </p>
-        {import.meta.env.DEV && error.message && (
+        {import.meta.env.DEV && error instanceof Error && error.message && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
             {error.message}
           </pre>
