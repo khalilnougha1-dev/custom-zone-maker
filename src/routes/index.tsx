@@ -1,9 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowRight, Play, ShieldCheck, Cloud, Smartphone, Printer, Receipt, TrendingUp,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
@@ -11,6 +8,12 @@ import { InstallAppSection } from "@/components/marketing/InstallAppSection";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ICONS_3D } from "@/lib/icons3d";
 import hero3d from "@/assets/hero-3d.png";
+import iconSecurity from "@/assets/icons3d/security.png";
+import iconCloud from "@/assets/icons3d/cloud.png";
+import iconMobile from "@/assets/icons3d/mobile.png";
+import iconPrinter from "@/assets/icons3d/printer.png";
+import iconInvoice from "@/assets/icons3d/invoice.png";
+import iconGrowth from "@/assets/icons3d/growth.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
