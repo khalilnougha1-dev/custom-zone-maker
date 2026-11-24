@@ -5,6 +5,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { BarcodeScanner } from "@/components/purchases/BarcodeScanner";
+import { findPurchaseBarcode } from "@/lib/purchase-barcode";
 
 type CartLine = {
   id: string; // unique row id
@@ -36,6 +39,7 @@ export function PurchaseEditor({ purchaseId }: Props) {
   const [products, setProducts] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [showProducts, setShowProducts] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [saving, setSaving] = useState(false);
@@ -355,12 +359,25 @@ export function PurchaseEditor({ purchaseId }: Props) {
         </div>
       </main>
 
-      <button
-        onClick={() => toast.info("استخدم حقل البحث لمسح الباركود")}
-        className="fixed bottom-44 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
+      <Button
+        type="button" variant="destructive" size="icon"
+        onClick={() => setScannerOpen(true)}
+        className="fixed bottom-44 right-4 z-30 h-14 w-14 rounded-full shadow-2xl transition hover:scale-110 active:scale-95 motion-reduce:transform-none"
         aria-label="مسح باركود">
         <ScanLine className="h-6 w-6" />
-      </button>
+      </Button>
+      <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={barcode => {
+        setScannerOpen(false);
+        const entry = findPurchaseBarcode(productEntries, barcode);
+        if (entry) {
+          addEntry(entry);
+          toast.success("تمت إضافة المنتج بالباركود");
+        } else {
+          setProductQ(barcode);
+          setShowProducts(true);
+          toast.error("لا يوجد منتج أو كرطون بهذا الباركود");
+        }
+      }} />
 
       <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
