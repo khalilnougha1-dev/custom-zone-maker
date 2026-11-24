@@ -21,6 +21,8 @@ call npx capacitor-assets generate --android --assetPath resources --iconBackgro
 echo ==^> 4/5 مزامنة Capacitor...
 call npx cap sync android
 if errorlevel 1 goto :fail
+call node scripts/android-camera.mjs
+if errorlevel 1 goto :fail
 
 echo ==^> 5/5 بناء APK...
 cd android

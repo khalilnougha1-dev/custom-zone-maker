@@ -1,4 +1,7 @@
 # Architecture rules
 
-- Keep purchase camera scanning in a browser-only lifecycle with a dynamically imported ZXing reader, and release camera tracks on close; this avoids SSR camera access and leaves the phone camera available afterward.
-- Resolve scanned purchase barcodes by exact product/package barcode in the shared lookup helper; this preserves leading zeros and prevents partial matches from adding the wrong item.
+- Reuse the camera scanner in purchases, POS, and product/package editors with a dynamically imported ZXing reader and release tracks on close; this avoids SSR camera access and leaves the camera available afterward.
+- Resolve sale and purchase barcodes by exact product/package barcode in the shared lookup helper; this preserves leading zeros and prevents partial matches from adding the wrong item.
+- In editor continuous-scan mode keep the camera open and update the draft's single barcode to the last scan; the schema stores one barcode and existing records must not be rewritten automatically.
+- Run the shared Android camera manifest step after Capacitor sync in every APK build path; WebView video capture needs the manifest declaration as well as the user's runtime consent.
+- Mount the full-screen product editor in a body portal so its nested package editor is above the POS header; the page main area creates a lower stacking context that otherwise blocks editor buttons.

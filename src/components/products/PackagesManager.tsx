@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { BarcodeScanner } from "@/components/purchases/BarcodeScanner";
 
 type Pkg = {
   id: string;
@@ -122,6 +123,7 @@ function PackageEditor({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [multiBarcode, setMultiBarcode] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const [form, setForm] = useState({
     name: editing?.name || productName || "",
@@ -261,8 +263,8 @@ function PackageEditor({
         </Row>
 
         <Row label="الرموز الشريطية">
-          <div className="flex items-center gap-3">
-            <button className="text-foreground"><Barcode className="h-7 w-7" strokeWidth={1.5} /></button>
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <Button type="button" variant="ghost" size="icon" onClick={() => setScannerOpen(true)} aria-label="مسح باركود التعبئة"><Barcode className="h-7 w-7" strokeWidth={1.5} /></Button>
             <button onClick={() => { const c = prompt("أدخل الباركود"); if (c) update({ barcode: c }); }} className="text-foreground">
               <PencilLine className="h-6 w-6" />
             </button>
@@ -272,6 +274,11 @@ function PackageEditor({
           </div>
         </Row>
       </main>
+
+      <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} continuous={multiBarcode} onScan={barcode => {
+        update({ barcode });
+        if (!multiBarcode) setScannerOpen(false);
+      }} />
 
       <div className="border-t border-border bg-card p-3">
         <Button onClick={save} disabled={saving} className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold gap-2 rounded-full">

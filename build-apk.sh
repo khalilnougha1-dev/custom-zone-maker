@@ -22,6 +22,7 @@ npx capacitor-assets generate --android --assetPath resources \
 
 echo "==> 4/5 مزامنة Capacitor..."
 npx cap sync android
+node scripts/android-camera.mjs
 
 echo "==> 5/5 بناء APK..."
 cd android

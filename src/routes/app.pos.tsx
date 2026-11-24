@@ -18,8 +18,18 @@ import { printReceipt as printReceiptHtml } from "@/lib/print-receipt";
 import { getActivePrinter } from "@/lib/printer-config";
 import { enqueue, getPending, isOnline, loadCache, saveCache, uuid } from "@/lib/offline-store";
 import { OfflineStatus } from "@/components/pos/OfflineStatus";
+import { BarcodeScanner } from "@/components/purchases/BarcodeScanner";
+import { findPurchaseBarcode } from "@/lib/purchase-barcode";
 
 export const Route = createFileRoute("/app/pos")({
+  head: () => ({ meta: [
+    { title: "نقطة البيع | SahlaPos" },
+    { name: "description", content: "بيع المنتجات والكرطون بالباركود في SahlaPos." },
+    { property: "og:title", content: "نقطة البيع | SahlaPos" },
+    { property: "og:description", content: "بيع المنتجات والكرطون بالباركود في SahlaPos." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: NewSalePage,
   validateSearch: (search: Record<string, unknown>) => ({
     edit: typeof search.edit === "string" ? search.edit : undefined,
@@ -54,6 +64,7 @@ function NewSalePage() {
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [showProductList, setShowProductList] = useState(false);
   const [browseAll, setBrowseAll] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
@@ -231,15 +242,12 @@ function NewSalePage() {
       .filter((i) => i.productId === productId && i.id !== exceptRowId)
       .reduce((s, i) => s + i.qty * (i.unitsPerPackage || 1), 0);
 
-  // Barcode: read via keyboard-wedge scanner or manual entry, then add the matching item
-  const handleScanBarcode = () => {
-    const code = typeof window !== "undefined" ? window.prompt("امسح أو أدخل الباركود") : null;
-    const q = (code || "").trim();
+  // Camera and manual scanner input share the same exact barcode lookup.
+  const handleScanBarcode = (code: string) => {
+    setScannerOpen(false);
+    const q = code.trim();
     if (!q) return;
-    const found = searchEntries.find((e: any) => {
-      const bc = e.kind === "package" ? (e.pkg.barcode || "") : (e.product.barcode || "");
-      return bc && String(bc).trim() === q;
-    });
+    const found = findPurchaseBarcode(searchEntries, q);
     if (!found) {
       setProductQ(q);
       setShowProductList(true);
@@ -682,13 +690,14 @@ function NewSalePage() {
       </main>
 
       {/* Floating barcode button */}
-      <button
-        onClick={handleScanBarcode}
-        className="fixed bottom-24 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600 to-red-700 text-white shadow-2xl hover:scale-110 transition active:scale-95"
+      <Button type="button" variant="destructive" size="icon"
+        onClick={() => setScannerOpen(true)}
+        className="fixed bottom-24 right-4 z-30 h-14 w-14 rounded-full shadow-2xl transition hover:scale-110 active:scale-95 motion-reduce:transform-none"
         aria-label="مسح الباركود"
       >
         <ScanLine className="h-6 w-6" />
-      </button>
+      </Button>
+      <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleScanBarcode} />
 
 
       {/* Bottom action bar */}

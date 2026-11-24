@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus, Search, Pencil, Trash2, ImageIcon, ArrowRight, Camera,
   ImageOff, Save, Barcode, PencilLine
@@ -21,8 +22,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Package as PackageIcon } from "lucide-react";
 import { PackagesManager } from "@/components/products/PackagesManager";
+import { BarcodeScanner } from "@/components/purchases/BarcodeScanner";
 
-export const Route = createFileRoute("/app/products")({ component: ProductsPage });
+export const Route = createFileRoute("/app/products")({
+  head: () => ({ meta: [
+    { title: "المنتجات والتعبئات | SahlaPos" },
+    { name: "description", content: "إدارة المنتجات والأسعار والباركود والتعبئات في SahlaPos." },
+    { property: "og:title", content: "المنتجات والتعبئات | SahlaPos" },
+    { property: "og:description", content: "إدارة المنتجات والأسعار والباركود والتعبئات في SahlaPos." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: ProductsPage,
+});
 
 type Product = {
   id: string; name: string; reference: string | null; barcode: string | null;
@@ -134,6 +146,7 @@ function ProductEditor({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [multiBarcode, setMultiBarcode] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [packagesOpen, setPackagesOpen] = useState(false);
 
   const [form, setForm] = useState({
@@ -212,7 +225,7 @@ function ProductEditor({
     onSaved();
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col bg-background" dir="rtl">
       {/* Top bar */}
       <header className="bg-gradient-primary text-primary-foreground shadow-md">
@@ -355,10 +368,10 @@ function ProductEditor({
 
         {/* Barcodes */}
         <Row label="الرموز الشريطية">
-          <div className="flex items-center gap-3">
-            <button className="text-foreground" aria-label="مسح الباركود">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <Button type="button" variant="ghost" size="icon" onClick={() => setScannerOpen(true)} aria-label="مسح الباركود">
               <Barcode className="h-7 w-7" strokeWidth={1.5} />
-            </button>
+            </Button>
             <button
               onClick={() => {
                 const code = prompt("أدخل الباركود");
@@ -377,6 +390,11 @@ function ProductEditor({
           </div>
         </Row>
       </main>
+
+      <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} continuous={multiBarcode} onScan={barcode => {
+        update({ barcode });
+        if (!multiBarcode) setScannerOpen(false);
+      }} />
 
       {/* Save button */}
       <div className="border-t border-border bg-card p-3">
@@ -411,7 +429,7 @@ function ProductEditor({
           onClose={() => setPackagesOpen(false)}
         />
       )}
-    </div>
+    </div>, document.body
   );
 }
 

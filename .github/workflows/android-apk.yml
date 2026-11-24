@@ -27,6 +27,7 @@ on:
       - "public/sw.js"
       - "src/routes/app.printer.tsx"
       - "android-shell/**"
+      - "scripts/android-camera.mjs"
       - ".github/workflows/android-apk.yml"
 
 permissions:
@@ -75,6 +76,9 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Enable barcode camera access
+        run: node scripts/android-camera.mjs
 
       - name: Bump versionCode / versionName (Google Play)
         run: |
