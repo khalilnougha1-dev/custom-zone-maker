@@ -5,31 +5,12 @@ import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/use-auth";
-import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { LayoutDashboard, LogIn, Download } from "lucide-react";
-import { toast } from "sonner";
+import apkAsset from "@/assets/sahlapos-apk.asset.json";
 
 export function Header() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { canInstall, installed, isIOS, install } = usePwaInstall();
-
-  const handleInstall = async () => {
-    if (installed) {
-      toast.success("التطبيق مثبت بالفعل");
-      return;
-    }
-    if (canInstall) {
-      const outcome = await install();
-      if (outcome === "accepted") toast.success("تم تثبيت التطبيق بنجاح");
-      return;
-    }
-    if (isIOS) {
-      toast.message("للتثبيت على iPhone: اضغط زر المشاركة ثم \"إضافة إلى الشاشة الرئيسية\"");
-      return;
-    }
-    toast.message("افتح القائمة في متصفحك واختر \"تثبيت التطبيق\"");
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-4 sm:pt-3">
@@ -66,14 +47,15 @@ export function Header() {
           <LanguageSwitcher />
           <ThemeToggle />
           <Button
-            type="button"
+            asChild
             size="sm"
             variant="outline"
             className="hidden h-9 gap-2 rounded-full border-primary/30 bg-background/60 sm:inline-flex"
-            onClick={handleInstall}
           >
-            <Download className="h-4 w-4 text-primary" />
-            <span className="hidden sm:inline">تحميل التطبيق</span>
+            <a href={apkAsset.url} download="SAHLAPOS.apk">
+              <Download className="h-4 w-4 text-primary" />
+              <span className="hidden sm:inline">تحميل التطبيق</span>
+            </a>
           </Button>
           {user ? (
             <Button asChild size="sm" className="h-9 gap-2 rounded-full bg-gradient-primary shadow-glow hover:opacity-90">

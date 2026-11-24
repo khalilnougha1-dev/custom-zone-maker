@@ -3,26 +3,16 @@ import { Download, Smartphone, Monitor, Apple, CheckCircle2, Share2, Plus } from
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
-import { toast } from "sonner";
+import apkAsset from "@/assets/sahlapos-apk.asset.json";
 
 export function InstallAppSection() {
-  const { canInstall, installed, isIOS, install } = usePwaInstall();
+  const { isIOS } = usePwaInstall();
   const [iosOpen, setIosOpen] = useState(false);
 
-  const handleInstall = async () => {
-    if (installed) {
-      toast.success("التطبيق مثبّت بالفعل ✓");
-      return;
-    }
+  const handleDownloadClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isIOS) {
+      e.preventDefault();
       setIosOpen(true);
-      return;
-    }
-    if (canInstall) {
-      const outcome = await install();
-      if (outcome === "accepted") toast.success("تم تثبيت التطبيق بنجاح");
-    } else {
-      toast.info("افتح الموقع في Chrome/Edge لتثبيت التطبيق، أو من قائمة المتصفح: تثبيت التطبيق");
     }
   };
 
@@ -63,12 +53,14 @@ export function InstallAppSection() {
 
               <div className="flex flex-wrap gap-3 pt-2">
                 <Button
-                  onClick={handleInstall}
+                  asChild
                   size="lg"
                   className="bg-gradient-primary text-primary-foreground shadow-glow gap-2 h-12 px-8 text-base"
                 >
-                  <Download className="h-5 w-5" />
-                  {installed ? "التطبيق مثبّت" : "حمّل التطبيق الآن"}
+                  <a href={apkAsset.url} download="SAHLAPOS.apk" onClick={handleDownloadClick}>
+                    <Download className="h-5 w-5" />
+                    حمّل التطبيق الآن
+                  </a>
                 </Button>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Smartphone className="h-4 w-4" /> Android</span>
