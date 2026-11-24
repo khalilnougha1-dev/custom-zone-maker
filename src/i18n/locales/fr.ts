@@ -17,7 +17,7 @@ export const fr = {
     subtitle: "Plateforme tout-en-un pour gérer ventes, stock, clients et achats. Tout ce dont vous avez besoin au même endroit.",
     cta: "Commencer gratuitement",
     ctaSecondary: "Voir la démo",
-    trial: "14 jours gratuits • Sans carte bancaire",
+    trial: "1 jour gratuit • Sans carte bancaire",
   },
   stats: {
     users: "Utilisateurs actifs",
@@ -75,7 +75,7 @@ export const fr = {
     loginTitle: "Bon retour",
     loginSubtitle: "Connectez-vous à votre tableau de bord",
     signupTitle: "Créez votre compte",
-    signupSubtitle: "Démarrez votre essai gratuit de 14 jours",
+    signupSubtitle: "Démarrez votre essai gratuit d’un jour",
     email: "Email",
     password: "Mot de passe",
     fullName: "Nom complet",

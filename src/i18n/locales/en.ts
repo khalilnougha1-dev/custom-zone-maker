@@ -17,7 +17,7 @@ export const en = {
     subtitle: "All-in-one platform to manage sales, inventory, customers and purchases. Everything you need in one place.",
     cta: "Start free trial",
     ctaSecondary: "Watch demo",
-    trial: "14-day free trial • No credit card required",
+    trial: "1-day free trial • No credit card required",
   },
   stats: {
     users: "Active users",
@@ -75,7 +75,7 @@ export const en = {
     loginTitle: "Welcome back",
     loginSubtitle: "Sign in to access your dashboard",
     signupTitle: "Create your account",
-    signupSubtitle: "Start your 14-day free trial",
+    signupSubtitle: "Start your 1-day free trial",
     email: "Email",
     password: "Password",
     fullName: "Full name",
