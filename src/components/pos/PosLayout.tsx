@@ -129,20 +129,20 @@ export function PosLayout({ title, children, actions }: { title: string; childre
 
       {/* Top bar */}
       <header className="sticky top-0 z-40 header-3d text-primary-foreground">
-        <div className="flex h-16 items-center justify-between gap-2 px-3">
+        <div className={actions ? "grid min-h-16 grid-cols-1 items-center gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto]" : "grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3"}>
           <div className="flex items-center gap-2 min-w-0">
             <button onClick={() => setOpen(true)} className="rounded-xl p-2 hover:bg-primary-foreground/15 transition" aria-label="menu">
               <Menu className="h-6 w-6" />
             </button>
             <Link to="/app" className="flex items-center gap-2 min-w-0">
-              <BrandLogo className="h-9 w-9 shadow-lg ring-2 ring-primary-foreground/30" />
+              <BrandLogo className="h-9 w-9 shrink-0 shadow-lg ring-2 ring-primary-foreground/30" />
               <div className="min-w-0 leading-tight">
                 <div className="text-[10px] font-semibold uppercase tracking-widest opacity-75">SahlaPos</div>
                 <h1 className="truncate text-base font-bold">{title}</h1>
               </div>
             </Link>
           </div>
-          <div className="flex items-center gap-1">
+          <div className={`flex shrink-0 items-center justify-end gap-1 ${actions ? "border-t border-primary-foreground/20 pt-2 sm:border-0 sm:pt-0" : ""}`}>
             <OfflineStatus />
             {actions}
             <ThemeToggle className="h-9 w-9 p-0 bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10" />

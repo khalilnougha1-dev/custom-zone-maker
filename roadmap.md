@@ -2,6 +2,11 @@
 
 ## Mobile editor layout
 
+## Inventory typography
+
+- [x] Separate product name, reference, price, and stock with readable mobile typography; give header tools their own mobile row so the title and logo remain readable.
+- [x] Verify signed-in inventory search and long values at 320–430px and desktop widths without changing data.
+
 - [x] Fit product and package fields, sale modes, images, and barcode controls inside narrow phone screens.
 - [x] Verify new product/package drafts at 320, 360, 390, 430, and 1280px widths, plus the existing product editor at 360px, in the signed-in account without saving data. Confirm no horizontal overflow and inspect mobile screenshots. Existing package-edit save behavior is unchanged and was not exercised.
 
