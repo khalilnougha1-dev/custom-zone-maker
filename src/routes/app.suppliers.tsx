@@ -10,7 +10,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/suppliers")({ component: SuppliersPage });
+export const Route = createFileRoute("/app/suppliers")({
+  head: () => ({ meta: [
+    { title: "الممونون وأرصدتهم | SahlaPos" },
+    { name: "description", content: "إدارة أسماء الممونين وبيانات الاتصال وأرصدتهم في SahlaPos." },
+    { property: "og:title", content: "الممونون وأرصدتهم | SahlaPos" },
+    { property: "og:description", content: "إدارة أسماء الممونين وبيانات الاتصال وأرصدتهم في SahlaPos." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: SuppliersPage,
+});
 
 type FormState = {
   name: string;
@@ -174,21 +184,19 @@ function SuppliersPage() {
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">لا يوجد ممونين</div>
         ) : filtered.map(c => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm">
-            <div className="flex-1 min-w-0 text-right">
-              <div className="font-semibold flex items-center gap-2 justify-end">
-                {c.is_inactive && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">غير نشيط</span>}
-                {c.name}
-              </div>
-              {c.phone && <div className="text-xs text-muted-foreground mt-1">{c.phone}</div>}
+          <div key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-card border border-border p-3 shadow-sm" dir="rtl">
+            <div className="min-w-0 text-right">
+              <h2 className="font-semibold leading-7 break-words [overflow-wrap:anywhere]">{c.name}</h2>
+              {c.is_inactive && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">غير نشيط</span>}
+              {c.phone && <div className="text-xs text-muted-foreground mt-1 break-words [overflow-wrap:anywhere]"><bdi>{c.phone}</bdi></div>}
             </div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">الرصيد</div>
-              <div className={`font-mono font-bold ${Number(c.balance) > 0 ? "text-destructive" : "text-success"}`}>{Number(c.balance).toFixed(2)}</div>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={() => openEdit(c)} aria-label={`تعديل ${c.name}`} title="تعديل الممون"><Pencil className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => remove(c.id)} className="hover:bg-destructive/10 text-destructive" aria-label={`حذف ${c.name}`} title="حذف الممون"><Trash2 className="h-4 w-4" /></Button>
             </div>
-            <div className="flex flex-col gap-1">
-              <button onClick={() => openEdit(c)} className="rounded-md p-1.5 hover:bg-muted"><Pencil className="h-4 w-4" /></button>
-              <button onClick={() => remove(c.id)} className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <div className="col-span-2 min-w-0 border-t border-border pt-2 text-right">
+              <span className="text-xs text-muted-foreground">الرصيد </span>
+              <bdi className={`font-mono font-bold tabular-nums break-words [overflow-wrap:anywhere] ${Number(c.balance) > 0 ? "text-destructive" : "text-success"}`}>{Number(c.balance).toFixed(2)}</bdi>
             </div>
           </div>
         ))}

@@ -1,5 +1,10 @@
 # Barcode scan sweep
 
+## Supplier alignment and sale scanner
+
+- [x] Place supplier names at the right edge with separate balance and edit/delete controls; verified at 320, 360, 430, and 1280px.
+- [x] Verify the existing red new-sale scanner opens and decodes 00123456 using a simulated camera in the signed-in account without saving a sale. No scanner code change was needed; physical Android permission remains dependent on the updated APK.
+
 ## Mobile editor layout
 
 ## Inventory typography
