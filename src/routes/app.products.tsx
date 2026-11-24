@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { Package as PackageIcon } from "lucide-react";
 import { PackagesManager } from "@/components/products/PackagesManager";
 import { BarcodeScanner } from "@/components/purchases/BarcodeScanner";
+import { EditorRow as Row } from "@/components/products/EditorRow";
 
 export const Route = createFileRoute("/app/products")({
   head: () => ({ meta: [
@@ -226,23 +227,23 @@ function ProductEditor({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col bg-background" dir="rtl">
+    <div className="fixed inset-0 z-50 flex min-w-0 flex-col bg-background" dir="rtl">
       {/* Top bar */}
-      <header className="bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
+      <header className="shrink-0 bg-gradient-primary text-primary-foreground shadow-md">
+        <div className="grid h-14 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 px-4">
           <button onClick={onClose} className="rounded-lg p-2 hover:bg-white/10" aria-label="رجوع">
             <ArrowRight className="h-6 w-6" />
           </button>
-          <h1 className="text-lg font-bold">{editing ? "تعديل المنتج" : "إضافة منتج"}</h1>
+          <h1 className="min-w-0 truncate text-center text-lg font-bold">{editing ? "تعديل المنتج" : "إضافة منتج"}</h1>
           <div className="w-10" />
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+      <main className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto px-4 py-4">
         {/* Manage packages — always visible at top when editing */}
         {editing && (
           <div className="mb-4">
-            <Button onClick={() => setPackagesOpen(true)} className="w-full h-12 bg-gradient-primary text-primary-foreground gap-2 rounded-xl text-base font-bold shadow-md">
+            <Button onClick={() => setPackagesOpen(true)} className="w-full min-h-12 h-auto whitespace-normal bg-gradient-primary text-primary-foreground gap-2 rounded-xl py-3 text-sm sm:text-base font-bold shadow-md">
               <PackageIcon className="h-5 w-5" /> تسيير التعبئات (البيع بالكرطون)
             </Button>
           </div>
@@ -261,11 +262,11 @@ function ProductEditor({
 
         {/* Category */}
         <Row label="الفئة">
-          <div className="flex items-center gap-2">
+          <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
             <button onClick={() => setCatOpen(true)} className="shrink-0 text-foreground" aria-label="إضافة فئة">
               <Plus className="h-7 w-7" strokeWidth={2.5} />
             </button>
-            <div className="flex-1">
+            <div className="min-w-0">
               <Select value={form.category_id || "none"} onValueChange={(v) => update({ category_id: v === "none" ? "" : v })}>
                 <SelectTrigger className="bg-card border-primary/40 h-11" dir="rtl">
                   <SelectValue placeholder="[بدون فئة]" />
@@ -301,8 +302,8 @@ function ProductEditor({
         </Row>
 
         {/* Sale mode */}
-        <Row label="طريقة البيع">
-          <div className="flex items-center gap-5">
+        <Row label="طريقة البيع" expanded>
+          <div className="grid w-full min-w-0 grid-cols-3 gap-2">
             <RadioOption
               checked={form.sale_mode === "unit"}
               onClick={() => update({ sale_mode: "unit" })}
@@ -330,9 +331,9 @@ function ProductEditor({
         </Row>
 
         {/* Image */}
-        <Row label="صورة المنتج" alignTop>
-          <div className="flex items-start gap-3">
-            <div className="flex flex-col gap-2">
+        <Row label="صورة المنتج" alignTop expanded>
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_7rem] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+            <div className="flex min-w-0 flex-col gap-2">
               <Button onClick={pickImage} disabled={uploading} className="bg-gradient-primary text-primary-foreground gap-2 rounded-full px-5">
                 <Camera className="h-4 w-4" /> {uploading ? "جارٍ الرفع..." : "تحديد..."}
               </Button>
@@ -340,7 +341,7 @@ function ProductEditor({
                 <ImageOff className="h-4 w-4" /> حذف
               </Button>
             </div>
-            <div className="h-32 w-32 rounded-xl border border-border bg-card flex items-center justify-center overflow-hidden shadow-sm">
+            <div className="aspect-square w-full rounded-xl border border-border bg-card flex items-center justify-center overflow-hidden shadow-sm">
               {form.image_url ? (
                 <img src={form.image_url} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -367,7 +368,7 @@ function ProductEditor({
         )}
 
         {/* Barcodes */}
-        <Row label="الرموز الشريطية">
+        <Row label="الرموز الشريطية" expanded>
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <Button type="button" variant="ghost" size="icon" onClick={() => setScannerOpen(true)} aria-label="مسح الباركود">
               <Barcode className="h-7 w-7" strokeWidth={1.5} />
@@ -397,7 +398,7 @@ function ProductEditor({
       }} />
 
       {/* Save button */}
-      <div className="border-t border-border bg-card p-3">
+      <div className="shrink-0 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button onClick={save} disabled={saving}
           className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold gap-2 rounded-full">
           <Save className="h-5 w-5" /> {saving ? "جارٍ الحفظ..." : "حفظ"}
@@ -433,22 +434,13 @@ function ProductEditor({
   );
 }
 
-function Row({ label, children, alignTop }: { label: string; children: React.ReactNode; alignTop?: boolean }) {
-  return (
-    <div className={`flex ${alignTop ? "items-start" : "items-center"} gap-3 py-2`}>
-      <Label className="w-32 shrink-0 text-right text-muted-foreground font-semibold">{label}</Label>
-      <div className="flex-1 flex justify-end">{children}</div>
-    </div>
-  );
-}
-
 function RadioOption({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
-    <button type="button" onClick={onClick} className="flex items-center gap-2">
-      <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${checked ? "border-red-600" : "border-muted-foreground"}`}>
-        {checked && <span className="h-2.5 w-2.5 rounded-full bg-red-600" />}
+    <Button type="button" variant="outline" onClick={onClick} aria-pressed={checked} className="h-auto min-h-12 min-w-0 whitespace-normal px-2 py-2">
+      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-destructive" : "border-muted-foreground"}`}>
+        {checked && <span className="h-2.5 w-2.5 rounded-full bg-destructive" />}
       </span>
-      <span className="text-sm">{label}</span>
-    </button>
+      <span className="min-w-0 text-sm">{label}</span>
+    </Button>
   );
 }

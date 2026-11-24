@@ -1,5 +1,10 @@
 # Barcode scan sweep
 
+## Mobile editor layout
+
+- [x] Fit product and package fields, sale modes, images, and barcode controls inside narrow phone screens.
+- [x] Verify new product/package drafts at 320, 360, 390, 430, and 1280px widths, plus the existing product editor at 360px, in the signed-in account without saving data. Confirm no horizontal overflow and inspect mobile screenshots. Existing package-edit save behavior is unchanged and was not exercised.
+
 - [x] Reuse camera scanning in purchases, POS, product editors, and package editors.
 - [x] Verify Android camera declaration across GitHub and local build paths.
 - [x] Test barcode lookup, scanner lifecycle, and signed-in mobile flows without saving transactions.

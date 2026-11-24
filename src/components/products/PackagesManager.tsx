@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { BarcodeScanner } from "@/components/purchases/BarcodeScanner";
+import { EditorRow as Row } from "@/components/products/EditorRow";
 
 type Pkg = {
   id: string;
@@ -59,15 +60,15 @@ export function PackagesManager({ productId, productName, unitPrice, unitCost = 
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-background" dir="rtl">
-      <header className="bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
+      <header className="shrink-0 bg-gradient-primary text-primary-foreground shadow-md">
+        <div className="grid h-14 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 px-4">
           <button onClick={onClose} className="rounded-lg p-2 hover:bg-white/10"><ArrowRight className="h-6 w-6" /></button>
-          <h1 className="text-lg font-bold">التعبئات — {productName}</h1>
+          <h1 className="min-w-0 truncate text-center text-lg font-bold">التعبئات — {productName}</h1>
           <button onClick={() => { setEditing(null); setEditorOpen(true); }} className="rounded-lg p-2 hover:bg-white/10"><Plus className="h-6 w-6" /></button>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <main className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto px-4 py-4 space-y-2">
         <div className="text-sm text-muted-foreground">سعر الوحدة: <span className="font-mono">{unitPrice.toFixed(2)}</span></div>
         {items.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
@@ -183,15 +184,15 @@ function PackageEditor({
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-background" dir="rtl">
-      <header className="bg-gradient-primary text-primary-foreground shadow-md">
-        <div className="flex h-14 items-center justify-between px-4">
+      <header className="shrink-0 bg-gradient-primary text-primary-foreground shadow-md">
+        <div className="grid h-14 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 px-4">
           <button onClick={onClose} className="rounded-lg p-2 hover:bg-white/10"><ArrowRight className="h-6 w-6" /></button>
-          <h1 className="text-lg font-bold">{editing ? "تعديل تعبئة" : "إضافة تعبئة"}</h1>
+          <h1 className="min-w-0 truncate text-center text-lg font-bold">{editing ? "تعديل تعبئة" : "إضافة تعبئة"}</h1>
           <div className="w-10" />
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+      <main className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto px-4 py-4">
         <div className="text-right font-bold mb-2">المنتج {/* product name shown by parent header */}</div>
 
         <div className="flex items-center justify-end gap-3 mb-3">
@@ -241,9 +242,9 @@ function PackageEditor({
             className="bg-card border-primary/40 w-40 text-right font-mono" />
         </Row>
 
-        <Row label="صورة التعبئة" alignTop>
-          <div className="flex items-start gap-3">
-            <div className="flex flex-col gap-2">
+        <Row label="صورة التعبئة" alignTop expanded>
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_7rem] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+            <div className="flex min-w-0 flex-col gap-2">
               <Button onClick={() => fileRef.current?.click()} disabled={uploading} className="bg-gradient-primary text-primary-foreground gap-2 rounded-full px-5">
                 <Camera className="h-4 w-4" /> {uploading ? "جارٍ الرفع..." : "تحديد..."}
               </Button>
@@ -251,7 +252,7 @@ function PackageEditor({
                 <ImageOff className="h-4 w-4" /> حذف
               </Button>
             </div>
-            <div className="h-32 w-32 rounded-xl border border-border bg-card flex items-center justify-center overflow-hidden shadow-sm">
+            <div className="aspect-square w-full rounded-xl border border-border bg-card flex items-center justify-center overflow-hidden shadow-sm">
               {form.image_url ? <img src={form.image_url} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="h-16 w-16 text-muted-foreground" />}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
@@ -262,7 +263,7 @@ function PackageEditor({
           <Textarea value={form.notes} onChange={(e) => update({ notes: e.target.value })} rows={2} className="bg-card border-primary/40 text-right" />
         </Row>
 
-        <Row label="الرموز الشريطية">
+        <Row label="الرموز الشريطية" expanded>
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <Button type="button" variant="ghost" size="icon" onClick={() => setScannerOpen(true)} aria-label="مسح باركود التعبئة"><Barcode className="h-7 w-7" strokeWidth={1.5} /></Button>
             <button onClick={() => { const c = prompt("أدخل الباركود"); if (c) update({ barcode: c }); }} className="text-foreground">
@@ -280,7 +281,7 @@ function PackageEditor({
         if (!multiBarcode) setScannerOpen(false);
       }} />
 
-      <div className="border-t border-border bg-card p-3">
+      <div className="shrink-0 border-t border-border bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button onClick={save} disabled={saving} className="w-full h-12 bg-gradient-primary text-primary-foreground font-bold gap-2 rounded-full">
           <Save className="h-5 w-5" /> {saving ? "جارٍ الحفظ..." : "حفظ"}
         </Button>
@@ -289,11 +290,3 @@ function PackageEditor({
   );
 }
 
-function Row({ label, children, alignTop }: { label: string; children: React.ReactNode; alignTop?: boolean }) {
-  return (
-    <div className={`flex ${alignTop ? "items-start" : "items-center"} gap-3 py-2`}>
-      <Label className="w-32 shrink-0 text-right text-muted-foreground font-semibold">{label}</Label>
-      <div className="flex-1 flex justify-end">{children}</div>
-    </div>
-  );
-}
