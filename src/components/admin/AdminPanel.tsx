@@ -78,7 +78,10 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
       return toast.error("الرقم التعريفي يجب أن يكون 16 خانة");
     }
     setLoading(true);
-    const code = Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 6).toUpperCase()).join("-");
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+    const code = (chars.match(/.{4}/g) || []).join("-");
     const { error } = await supabase.from("activation_codes").insert({
       code,
       duration_days: isPermanent ? 36500 : days,
@@ -185,7 +188,11 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
         days != null ? (days < 0 ? "منتهي" : `${days}`) : "",
         u.created_at ? new Date(u.created_at).toLocaleDateString("ar-DZ") : ""];
     });
-    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    const escape = (v: string) => {
+      let t = String(v);
+      if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+      return `"${t.replace(/"/g, '""')}"`;
+    };
     const csv = "\uFEFF" + [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

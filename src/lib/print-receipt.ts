@@ -1,3 +1,6 @@
+export function escHtml(v: unknown): string {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
 import { supabase } from "@/integrations/supabase/client";
 import { getActivePrinter, getPaperWidthMm, getPaperWidthPx, getReceiptPaperWidth } from "@/lib/printer-config";
 import { toast } from "sonner";
@@ -191,7 +194,7 @@ export async function printReceipt(d: ReceiptData) {
       .map(
         (i) => `
       <tr>
-        <td style="${bodyCell}text-align:right;word-break:break-word;">${i.product_name}</td>
+        <td style="${bodyCell}text-align:right;word-break:break-word;">${escHtml(i.product_name)}</td>
         <td style="${bodyCell}${numCell}text-align:center;">${fmtQty(i)}</td>
         <td style="${bodyCell}${numCell}text-align:center;">${i.unit_price.toFixed(2)}</td>
         <td style="${bodyCell}${numCell}text-align:left;">${(i.unit_price * i.quantity).toFixed(2)}</td>
@@ -208,7 +211,7 @@ export async function printReceipt(d: ReceiptData) {
     // Single inline-styled block — used for both system print and bluetooth raster
     const receiptBody = `
       <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.4;font-weight:900;" dir="rtl">
-${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${businessName}</div>` : ""}
+${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${escHtml(businessName)}</div>` : ""}
 
         <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
           <tbody>
@@ -218,12 +221,12 @@ ${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 2
             </tr>
             <tr>
               <td style="padding:3px 0;text-align:right;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;">الزبون:</td>
-              <td style="padding:3px 0;text-align:left;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;word-break:break-word;">${d.customerName}</td>
+              <td style="padding:3px 0;text-align:left;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;word-break:break-word;">${escHtml(d.customerName)}</td>
             </tr>
           </tbody>
         </table>
 
-        <div style="text-align:center;font-size:${isCompactReceipt ? 22 : 26}px;font-weight:900;margin:6px 0 8px;">وصل بيع رقم: ${d.saleSeq}</div>
+        <div style="text-align:center;font-size:${isCompactReceipt ? 22 : 26}px;font-weight:900;margin:6px 0 8px;">وصل بيع رقم: ${escHtml(d.saleSeq)}</div>
 
         <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
           <colgroup>
@@ -259,12 +262,12 @@ ${businessName ? `<div style="text-align:center;font-size:${isCompactReceipt ? 2
           </table>
         </div>
 
-        ${d.note ? `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;"><b>ملاحظة:</b> ${d.note}</div>` : ""}
+        ${d.note ? `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;"><b>ملاحظة:</b> ${escHtml(d.note)}</div>` : ""}
 
         <div style="text-align:center;margin-top:14px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;">اعد الحساب من فضلك</div>
       </div>`;
 
-    const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${d.saleSeq}</title>
+    const html = `<html dir="rtl"><head><meta charset="utf-8"><title>وصل بيع ${escHtml(d.saleSeq)}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       @page { size: ${paperWidthMm}mm auto; margin: 0; }
@@ -524,7 +527,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
     .map(
       (i) => `
     <tr>
-      <td style="${bodyCell}text-align:right;word-break:break-word;">${i.product_name}</td>
+      <td style="${bodyCell}text-align:right;word-break:break-word;">${escHtml(i.product_name)}</td>
       <td style="${bodyCell}${numCell}text-align:center;">${fmtQty(i)}</td>
       <td style="${bodyCell}${numCell}text-align:center;">${i.unit_price.toFixed(2)}</td>
       <td style="${bodyCell}${numCell}text-align:left;">${(i.unit_price * i.quantity).toFixed(2)}</td>
@@ -540,7 +543,7 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
 
   const receiptBody = `
     <div style="width:100%;font-family:Arial,'Tahoma',sans-serif;color:#000;background:#fff;padding:0;direction:rtl;box-sizing:border-box;line-height:1.4;font-weight:900;" dir="rtl">
-      ${(d.businessName || "").trim() ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${(d.businessName || "").trim()}</div>` : ""}
+      ${(d.businessName || "").trim() ? `<div style="text-align:center;font-size:${isCompactReceipt ? 24 : 28}px;font-weight:900;margin:0 0 8px;word-break:break-word;">${escHtml((d.businessName || "").trim())}</div>` : ""}
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <tbody>
           <tr>
@@ -549,11 +552,11 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
           </tr>
           <tr>
             <td style="padding:3px 0;text-align:right;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;">الزبون:</td>
-            <td style="padding:3px 0;text-align:left;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;word-break:break-word;">${d.customerName}</td>
+            <td style="padding:3px 0;text-align:left;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;word-break:break-word;">${escHtml(d.customerName)}</td>
           </tr>
         </tbody>
       </table>
-      <div style="text-align:center;font-size:${isCompactReceipt ? 22 : 26}px;font-weight:900;margin:6px 0 8px;">وصل بيع رقم: ${d.saleSeq}</div>
+      <div style="text-align:center;font-size:${isCompactReceipt ? 22 : 26}px;font-weight:900;margin:6px 0 8px;">وصل بيع رقم: ${escHtml(d.saleSeq)}</div>
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
         <colgroup>
           <col style="width:46%;" />
@@ -583,11 +586,11 @@ export function buildReceiptHtmlPreview(d: PreviewReceiptInput, paper: "58mm" | 
           </tbody>
         </table>
       </div>
-      ${d.note ? `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;"><b>ملاحظة:</b> ${d.note}</div>` : ""}
+      ${d.note ? `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:5px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;"><b>ملاحظة:</b> ${escHtml(d.note)}</div>` : ""}
       <div style="text-align:center;margin-top:14px;font-size:${isCompactReceipt ? 15 : 18}px;font-weight:900;">اعد الحساب من فضلك</div>
     </div>`;
 
-  return `<html dir="rtl"><head><meta charset="utf-8"><title>معاينة وصل ${d.saleSeq}</title>
+  return `<html dir="rtl"><head><meta charset="utf-8"><title>معاينة وصل ${escHtml(d.saleSeq)}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     @page { size: ${paperWidthMm}mm auto; margin: 0; }

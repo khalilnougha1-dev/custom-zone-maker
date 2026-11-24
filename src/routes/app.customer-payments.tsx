@@ -1,3 +1,4 @@
+import { escHtml } from "@/lib/print-receipt";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, Printer, Trash2, X, Banknote, CreditCard, Smartphone, FileText } from "lucide-react";
@@ -146,9 +147,9 @@ function CustomerPaymentsPage() {
 .row{display:flex;justify-content:space-between;margin:6px 0}.amt{font-size:24px;font-weight:bold;text-align:center;margin:12px 0}
 hr{border:none;border-top:1px dashed #999}</style></head><body>
 <h2>وصل دفع زبون</h2><hr>
-<div class="row"><span>الزبون</span><b>${name}</b></div>
+<div class="row"><span>الزبون</span><b>${escHtml(name)}</b></div>
 <div class="row"><span>التاريخ</span><span>${new Date(it.created_at).toLocaleString("ar")}</span></div>
-<div class="row"><span>المرجع</span><span>${refOf(it.id)}</span></div>
+<div class="row"><span>المرجع</span><span>${escHtml(refOf(it.id))}</span></div>
 <hr><div class="amt">${Number(it.amount).toFixed(2)}</div><hr>
 </body></html>`;
     const w = window.open("", "_blank");
