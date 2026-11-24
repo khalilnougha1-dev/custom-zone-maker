@@ -44,6 +44,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const [calcOpen, setCalcOpen] = useState(false);
   const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
   const [showActivate, setShowActivate] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouterState();
@@ -61,10 +62,11 @@ export function PosLayout({ title, children, actions }: { title: string; childre
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("subscription_expires_at")
+        .select("subscription_expires_at, subscription_status")
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;
+      setLocked(!data?.subscription_expires_at || new Date(data.subscription_expires_at).getTime() <= Date.now() || data.subscription_status === "expired");
       if (!data?.subscription_expires_at) {
         // لم يُفعّل الحساب بعد — يظهر شريط التفعيل
         setExpiryInfo(null);
@@ -229,7 +231,16 @@ export function PosLayout({ title, children, actions }: { title: string; childre
         </>
       )}
 
-      <main className="relative z-10 mx-auto max-w-5xl p-4">{children}</main>
+      <main className="relative z-10 mx-auto max-w-5xl p-4">
+        {locked && !isAdmin && !path.startsWith("/app/activate") && !path.startsWith("/app/account") ? (
+          <div className="mx-auto mt-10 max-w-md rounded-2xl border border-destructive/30 bg-card p-6 text-center shadow-xl">
+            <BrandLogo className="mx-auto h-16 w-16" />
+            <h2 className="mt-4 text-xl font-bold">انتهت الفترة التجريبية</h2>
+            <p className="mt-2 text-sm text-muted-foreground">التطبيق مغلق حتى يتم تفعيل حسابك. أدخل رمز التفعيل أو تواصل مع المسؤول.</p>
+            <Link to="/app/activate"><Button className="mt-5 w-full bg-gradient-primary text-primary-foreground">تفعيل الحساب</Button></Link>
+          </div>
+        ) : children}
+      </main>
 
       {/* Activate footer — يظهر فقط عند الحاجة للتفعيل */}
       {showActivate && (

@@ -112,6 +112,17 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
     load();
   };
 
+  const giveTrialDay = async (u: any) => {
+    const newExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabase.from("profiles").update({
+      subscription_expires_at: newExpiresAt, subscription_status: "trial",
+    }).eq("id", u.id);
+    if (error) return toast.error(error.message);
+    await logAudit(u.id, "extend", { expires_at: u.subscription_expires_at }, { expires_at: newExpiresAt, days_added: 1 }, "يوم تجريبي");
+    toast.success("تم ضبط يوم تجريبي واحد");
+    load();
+  };
+
   const extendSubscription = async () => {
     if (!extendUser) return;
     const baseDate = extendUser.subscription_expires_at && new Date(extendUser.subscription_expires_at) > new Date()
@@ -405,6 +416,9 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
                     </div>
                   </div>
                 </div>
+                <Button size="sm" variant="secondary" onClick={() => giveTrialDay(u)} className="mb-2 w-full">
+                  يوم تجريبي فقط (ثم يُغلق)
+                </Button>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => { setExtendUser(u); setExtendDays(30); }} className="flex-1 gap-1">
                     <CalendarPlus className="h-3 w-3" /> تمديد
