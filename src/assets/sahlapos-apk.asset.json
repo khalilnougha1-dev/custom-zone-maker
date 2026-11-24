@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "54d76620-b43a-47f9-9065-d7f461eada10",
+  "asset_id": "072a6311-76a7-4800-8706-9b220711aae0",
   "project_id": "c4779272-19cc-4e87-959f-a75116596f33",
-  "url": "/__l5e/assets-v1/54d76620-b43a-47f9-9065-d7f461eada10/SAHLAPOS.apk",
-  "r2_key": "a/v1/c4779272-19cc-4e87-959f-a75116596f33/54d76620-b43a-47f9-9065-d7f461eada10/SAHLAPOS.apk",
+  "url": "/__l5e/assets-v1/072a6311-76a7-4800-8706-9b220711aae0/SAHLAPOS.apk",
+  "r2_key": "a/v1/c4779272-19cc-4e87-959f-a75116596f33/072a6311-76a7-4800-8706-9b220711aae0/SAHLAPOS.apk",
   "original_filename": "SAHLAPOS.apk",
   "size": 8221698,
-  "content_type": "application/zip",
-  "created_at": "2026-11-24T10:30:52Z"
+  "content_type": "application/vnd.android.package-archive",
+  "created_at": "2026-11-24T10:43:51Z"
 }
