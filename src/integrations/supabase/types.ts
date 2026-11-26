@@ -940,6 +940,7 @@ export type Database = {
     Functions: {
       can_link_users: { Args: never; Returns: boolean }
       find_user_id_by_email: { Args: { _email: string }; Returns: string }
+      has_active_subscription: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

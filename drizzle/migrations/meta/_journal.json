@@ -29,6 +29,13 @@
       "when": 1795692920254,
       "tag": "0003_profile_ban_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795694569773,
+      "tag": "0004_sales_require_active_subscription",
+      "breakpoints": true
     }
   ]
 }

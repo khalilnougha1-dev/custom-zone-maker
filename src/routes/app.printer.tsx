@@ -20,7 +20,7 @@ import {
   BluetoothSearching,
   RefreshCw,
 } from "lucide-react";
-import { buildReceiptHtmlPreview, SAMPLE_RECEIPT } from "@/lib/print-receipt";
+import { buildReceiptHtmlPreview, escHtml, SAMPLE_RECEIPT } from "@/lib/print-receipt";
 import { PosLayout } from "@/components/pos/PosLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -410,7 +410,7 @@ function PrinterPage() {
     try {
       const html = `<div style="font-family:Arial;font-size:18px;text-align:center;padding:6px;">
         <div style="font-weight:bold;font-size:22px;">✓ طباعة اختبارية</div>
-        <div style="margin-top:6px;">${active.name}</div>
+        <div style="margin-top:6px;">${escHtml(active.name)}</div>
         <div style="margin-top:4px;font-size:14px;">${new Date().toLocaleString("ar")}</div>
         <div style="margin-top:8px;border-top:1px dashed #000;padding-top:6px;">إذا قرأت هذا فالطابعة تعمل بنجاح</div>
       </div>`;
@@ -446,7 +446,7 @@ function PrinterPage() {
         const { printHtmlBluetooth } = await import("@/lib/bt-printer");
         const html = `<div style="font-family:Arial;font-size:20px;text-align:center;padding:8px;">
           <div style="font-weight:bold;font-size:24px;">صفحة اختبار</div>
-          <div style="margin-top:8px;">${p.name}</div>
+          <div style="margin-top:8px;">${escHtml(p.name)}</div>
           <div style="margin-top:8px;">${new Date().toLocaleString("ar")}</div>
           <div style="margin-top:12px;">sahlapay ✓</div>
         </div>`;
