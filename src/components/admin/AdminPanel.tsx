@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX, Database, Settings as SettingsIcon } from "lucide-react";
+import { Shield, Plus, Copy, Check, X, KeyRound, Users as UsersIcon, MessageCircle, Send, RefreshCw, LogOut, Home, AlertTriangle, CalendarClock, History, CalendarPlus, Download, Search, TrendingUp, UserCheck, UserX, Database, Settings as SettingsIcon, Ban, Trash2, ShieldCheck } from "lucide-react";
 import { AdminUserDataPanel } from "./AdminUserDataPanel";
 import { AdminUserAppMenu } from "./AdminUserAppMenu";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { adminDeleteUser, adminSetUserBan } from "@/lib/admin-accounts.functions";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AdminPanelProps {
   /** Wrapper layout component (e.g. PosLayout or AdminLayout) */
@@ -37,6 +43,10 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired" | "disabled">("all");
   const [manageUser, setManageUser] = useState<any | null>(null);
+  const [accountAction, setAccountAction] = useState<{ type: "ban" | "unban" | "delete"; user: any } | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const setUserBan = useServerFn(adminSetUserBan);
+  const deleteUser = useServerFn(adminDeleteUser);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +124,37 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
     toast.success(u.is_active ? "تم تعطيل الحساب" : "تم تفعيل الحساب");
     load();
   };
+
+  const runAccountAction = async () => {
+    if (!accountAction) return;
+    const { type, user: target } = accountAction;
+    setAccountBusy(true);
+    try {
+      const res = type === "delete"
+        ? await deleteUser({ data: { userId: target.id } })
+        : await setUserBan({ data: { userId: target.id, banned: type === "ban" } });
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success(type === "delete" ? "تم حذف الحساب نهائيا" : type === "ban" ? "تم حظر الحساب" : "تم رفع الحظر");
+      setAccountAction(null);
+      load();
+    } catch {
+      toast.error("تعذّر تنفيذ العملية. أعد المحاولة.");
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const accountButtons = (u: any) => u.id === user?.id ? null : (
+    <div className="mt-2 flex gap-2">
+      <Button size="sm" variant="outline" onClick={() => setAccountAction({ type: u.is_banned ? "unban" : "ban", user: u })}
+        className="flex-1 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+        {u.is_banned ? <><ShieldCheck className="h-3 w-3" /> رفع الحظر</> : <><Ban className="h-3 w-3" /> حظر الحساب</>}
+      </Button>
+      <Button size="sm" variant="destructive" onClick={() => setAccountAction({ type: "delete", user: u })} className="flex-1 gap-1">
+        <Trash2 className="h-3 w-3" /> حذف نهائيا
+      </Button>
+    </div>
+  );
 
   const giveTrialDay = async (u: any) => {
     const newExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -365,7 +406,7 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
                   {u.phone && <div className="text-xs text-muted-foreground" dir="ltr">{u.phone}</div>}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  {u.is_active ? <Badge className="bg-emerald-500">مُفعّل</Badge> : <Badge variant="secondary">معطّل</Badge>}
+                  {u.is_banned ? <Badge variant="destructive">محظور</Badge> : u.is_active ? <Badge className="bg-emerald-500">مُفعّل</Badge> : <Badge variant="secondary">معطّل</Badge>}
                   <div className="flex gap-1">
                     <Button size="sm" variant="default" onClick={() => setManageUser(u)} className="h-7 text-xs bg-gradient-primary text-primary-foreground gap-1" title="تعديل كل بيانات هذا المستخدم">
                       <SettingsIcon className="h-3 w-3" /> تعديل
@@ -407,7 +448,8 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
                     <div className="font-semibold truncate">{u.full_name || u.business_name || "بدون اسم"}</div>
                     {u.phone && <div className="text-xs text-muted-foreground" dir="ltr">{u.phone}</div>}
                   </div>
-                  {u.is_active && !isExpired ? <Badge className="bg-emerald-500">نشط</Badge>
+                  {u.is_banned ? <Badge variant="destructive">محظور</Badge>
+                    : u.is_active && !isExpired ? <Badge className="bg-emerald-500">نشط</Badge>
                     : isExpired ? <Badge variant="destructive">منتهي</Badge>
                     : <Badge variant="secondary">معطّل</Badge>}
                 </div>
@@ -434,6 +476,7 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
                     {u.is_active ? <><X className="h-3 w-3" /> تعطيل</> : <><Check className="h-3 w-3" /> تفعيل</>}
                   </Button>
                 </div>
+                {accountButtons(u)}
               </div>
             );
           })}
@@ -451,6 +494,9 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
               deactivate: { label: "تعطيل", color: "bg-destructive" },
               extend: { label: "تمديد", color: "bg-blue-500" },
               code_redeemed: { label: "رمز تفعيل", color: "bg-purple-500" },
+              ban: { label: "حظر", color: "bg-red-600" },
+              unban: { label: "رفع الحظر", color: "bg-emerald-600" },
+              delete_account: { label: "حذف نهائي", color: "bg-red-800" },
             };
             const info = actionLabels[entry.action] || { label: entry.action, color: "bg-gray-500" };
             return (
@@ -537,6 +583,34 @@ export function AdminPanel({ Layout, layoutTitle = "لوحة المسؤول" }: 
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!accountAction} onOpenChange={(o) => { if (!o && !accountBusy) setAccountAction(null); }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {accountAction?.type === "delete" ? "حذف الحساب نهائيا؟" : accountAction?.type === "ban" ? "حظر الحساب؟" : "رفع الحظر عن الحساب؟"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold text-foreground">
+                {accountAction?.user?.full_name || accountAction?.user?.business_name || "بدون اسم"}
+              </span>
+              {" — "}
+              {accountAction?.type === "delete"
+                ? "سيُحذف الحساب وكل بياناته (المنتجات، المبيعات، المشتريات، الزبائن...) ولا يمكن التراجع عن ذلك."
+                : accountAction?.type === "ban"
+                  ? "لن يستطيع الدخول إلى التطبيق أبدا إلى أن ترفع الحظر. بياناته تبقى محفوظة."
+                  : "سيتمكن من الدخول إلى التطبيق من جديد."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel disabled={accountBusy}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction disabled={accountBusy} onClick={(e) => { e.preventDefault(); runAccountAction(); }}
+              className={accountAction?.type === "unban" ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}>
+              {accountBusy ? "جارٍ التنفيذ..." : accountAction?.type === "delete" ? "حذف نهائيا" : accountAction?.type === "ban" ? "حظر" : "رفع الحظر"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={!!extendUser} onOpenChange={(o) => !o && setExtendUser(null)}>
         <DialogContent dir="rtl">

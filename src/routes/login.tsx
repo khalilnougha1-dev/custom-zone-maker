@@ -60,7 +60,7 @@ function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(/banned/i.test(error.message) ? "تم حظر هذا الحساب. تواصل مع المسؤول." : error.message);
       return;
     }
     unlockApp();

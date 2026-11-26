@@ -45,6 +45,7 @@ export function PosLayout({ title, children, actions }: { title: string; childre
   const [expiryInfo, setExpiryInfo] = useState<{ daysLeft: number | null; isExpired: boolean } | null>(null);
   const [showActivate, setShowActivate] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [banned, setBanned] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouterState();
@@ -60,12 +61,19 @@ export function PosLayout({ title, children, actions }: { title: string; childre
     if (!user) { setShowActivate(false); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("subscription_expires_at, subscription_status")
+        .select("subscription_expires_at, subscription_status, is_banned")
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;
+      // الحساب حُذف نهائيا من طرف المسؤول — أخرجه من التطبيق
+      if (!error && !data && navigator.onLine) {
+        await supabase.auth.signOut();
+        navigate({ to: "/login" });
+        return;
+      }
+      setBanned(!!data?.is_banned);
       setLocked(!data?.subscription_expires_at || new Date(data.subscription_expires_at).getTime() <= Date.now() || data.subscription_status === "expired");
       if (!data?.subscription_expires_at) {
         // لم يُفعّل الحساب بعد — يظهر شريط التفعيل
@@ -232,7 +240,14 @@ export function PosLayout({ title, children, actions }: { title: string; childre
       )}
 
       <main className="relative z-10 mx-auto max-w-5xl p-4">
-        {locked && !isAdmin && !path.startsWith("/app/activate") && !path.startsWith("/app/account") ? (
+        {banned && !isAdmin ? (
+          <div className="mx-auto mt-10 max-w-md rounded-2xl border border-destructive/30 bg-card p-6 text-center shadow-xl">
+            <BrandLogo className="mx-auto h-16 w-16" />
+            <h2 className="mt-4 text-xl font-bold text-destructive">تم حظر هذا الحساب</h2>
+            <p className="mt-2 text-sm text-muted-foreground">لا يمكنك استعمال التطبيق. تواصل مع المسؤول إذا كنت ترى أن هذا خطأ.</p>
+            <Button variant="outline" className="mt-5 w-full" onClick={handleLogout}>تسجيل الخروج</Button>
+          </div>
+        ) : locked && !isAdmin && !path.startsWith("/app/activate") && !path.startsWith("/app/account") ? (
           <div className="mx-auto mt-10 max-w-md rounded-2xl border border-destructive/30 bg-card p-6 text-center shadow-xl">
             <BrandLogo className="mx-auto h-16 w-16" />
             <h2 className="mt-4 text-xl font-bold">انتهت الفترة التجريبية</h2>

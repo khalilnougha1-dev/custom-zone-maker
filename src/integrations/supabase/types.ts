@@ -426,11 +426,13 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banned_at: string | null
           business_name: string | null
           created_at: string
           full_name: string | null
           id: string
           is_active: boolean
+          is_banned: boolean
           phone: string | null
           preferred_language: string | null
           subscription_expires_at: string | null
@@ -439,11 +441,13 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          banned_at?: string | null
           business_name?: string | null
           created_at?: string
           full_name?: string | null
           id: string
           is_active?: boolean
+          is_banned?: boolean
           phone?: string | null
           preferred_language?: string | null
           subscription_expires_at?: string | null
@@ -452,11 +456,13 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          banned_at?: string | null
           business_name?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
           is_active?: boolean
+          is_banned?: boolean
           phone?: string | null
           preferred_language?: string | null
           subscription_expires_at?: string | null
